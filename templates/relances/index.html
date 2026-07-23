@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}Relances — NAVISUR{% endblock %}
+{% block page_title %}Relances{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('relance_nouvelle') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Planifier</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📣 Relances</h1>
+    <p class="page-header-sub">Suivi des relances clients — renouvellements, impayés, pièces</p>
+  </div>
+  <a href="{{ url_for('relance_nouvelle') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Planifier une relance
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  {% for s, label, icon, color in [('a_faire','À faire','⏳','blue'),('effectuee','Effectuées','✅','green'),('sans_suite','Sans suite','⛔','orange'),('en_retard','En retard','🔴','red')] %}
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('relances_list') }}?statut={{ s if s != 'en_retard' else 'a_faire' }}" class="stat-card text-decoration-none">
+      <div class="stat-icon {{ color }}"><i class="bi bi-{{ 'clock' if s=='a_faire' else 'check-circle' if s=='effectuee' else 'x-circle' if s=='sans_suite' else 'alarm-fill' }}"></i></div>
+      <div><div class="stat-value">{{ counts[s] }}</div><div class="stat-label">{{ label }}</div></div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="search-bar mb-4">
+  <div class="d-flex gap-2 flex-wrap">
+    {% for s, label in [('a_faire','⏳ À faire'),('effectuee','✅ Effectuées'),('sans_suite','⛔ Sans suite')] %}
+    <a href="{{ url_for('relances_list') }}?statut={{ s }}"
+       class="btn btn-sm {% if statut==s %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+      {{ label }}
+    </a>
+    {% endfor %}
+    <a href="{{ url_for('relances_list') }}" class="btn btn-sm btn-outline-secondary">Toutes</a>
+  </div>
+</div>
+
+<div class="card-crm">
+  {% if relances %}
+  <table class="table-crm">
+    <thead>
+      <tr><th>Client</th><th>Contrat</th><th>Type</th><th>Date prévue</th><th>Moyen</th><th>Statut</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for r in relances %}
+      {% set is_late = r.date_prevue and r.date_prevue < today and r.statut == 'a_faire' %}
+      <tr class="{{ 'relance-urgente' if is_late else '' }}">
+        <td>
+          <div class="fw-500">{{ r.prenom or '' }} {{ r.nom }}</div>
+          {% if r.email %}<div class="text-muted" style="font-size:11px">{{ r.email }}</div>{% endif %}
+          {% if r.telephone %}<div class="text-muted" style="font-size:11px">{{ r.telephone }}</div>{% endif %}
+        </td>
+        <td>
+          <div class="font-mono fw-500" style="font-size:12px">{{ r.numero or '—' }}</div>
+          <div class="text-muted" style="font-size:11px">{{ r.type_assurance or '' }}</div>
+          {% if r.date_fin %}<div class="text-muted" style="font-size:11px">Éch. {{ r.date_fin }}</div>{% endif %}
+        </td>
+        <td>
+          <span class="badge-crm badge-{{ 'attendu' if r.type_relance=='echeance' else 'ouvert' if r.type_relance=='impaye' else 'client' }}">
+            {% if r.type_relance == 'echeance' %}📅 Échéance
+            {% elif r.type_relance == 'impaye' %}💳 Impayé
+            {% elif r.type_relance == 'piece_manquante' %}📄 Pièce
+            {% elif r.type_relance == 'signature' %}✍️ Signature
+            {% else %}{{ r.type_relance or '—' }}{% endif %}
+          </span>
+        </td>
+        <td>
+          <span class="{{ 'text-danger fw-600' if is_late else 'text-muted' }}">
+            {% if is_late %}⚠️ {% endif %}{{ r.date_prevue or '—' }}
+          </span>
+        </td>
+        <td class="text-muted">
+          {% if r.moyen == 'email' %}✉️ Email
+          {% elif r.moyen == 'telephone' %}📞 Téléphone
+          {% elif r.moyen == 'courrier' %}📮 Courrier
+          {% else %}{{ r.moyen }}{% endif %}
+        </td>
+        <td>
+          {% if r.statut == 'effectuee' %}<span class="badge-crm badge-clos">✓ Effectuée</span>
+          {% elif r.statut == 'sans_suite' %}<span class="badge-crm badge-inactif">Sans suite</span>
+          {% else %}<span class="badge-crm badge-attendu">À faire</span>{% endif %}
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            {% if r.statut == 'a_faire' %}
+            <form method="post" action="{{ url_for('relance_effectuer', id=r.id) }}">
+              <input type="hidden" name="reponse" value="">
+              <button type="submit" class="btn btn-sm btn-success" title="Marquer effectuée">✓</button>
+            </form>
+            <form method="post" action="{{ url_for('relance_sans_suite', id=r.id) }}">
+              <button type="submit" class="btn btn-sm btn-outline-secondary" title="Sans suite">⛔</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{{ url_for('relance_supprimer', id=r.id) }}" onsubmit="return confirm('Supprimer ?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-megaphone"></i>
+    <h5>Aucune relance{% if statut %} avec ce statut{% endif %}</h5>
+    <a href="{{ url_for('relance_nouvelle') }}" class="btn btn-primary">Planifier une relance</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

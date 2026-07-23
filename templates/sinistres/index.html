@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Sinistres — Riviera Marine Assurances{% endblock %}
+{% block page_title %}Sinistres{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('sinistre_nouveau') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Déclarer</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">Sinistres & Workflows</h1>
+    <p class="page-header-sub">{{ sinistres|length }} dossier(s)</p>
+  </div>
+  <a href="{{ url_for('sinistre_nouveau') }}" class="btn btn-primary">
+    <i class="bi bi-exclamation-triangle me-2"></i>Déclarer un sinistre
+  </a>
+</div>
+
+<form method="get" class="search-bar">
+  <div class="search-input-wrap">
+    <i class="bi bi-search"></i>
+    <input type="text" name="q" class="form-control" placeholder="Rechercher numéro, client, type..." value="{{ search }}">
+  </div>
+  <select name="statut" class="form-select" style="width:auto">
+    <option value="">Tous les statuts</option>
+    <option value="ouvert" {{ 'selected' if statut=='ouvert' }}>Ouvert</option>
+    <option value="en_cours" {{ 'selected' if statut=='en_cours' }}>En cours</option>
+    <option value="clos" {{ 'selected' if statut=='clos' }}>Clos</option>
+    <option value="refuse" {{ 'selected' if statut=='refuse' }}>Refusé</option>
+  </select>
+  <button type="submit" class="btn btn-primary">Filtrer</button>
+  {% if search or statut %}<a href="{{ url_for('sinistres_list') }}" class="btn btn-outline-secondary">Réinitialiser</a>{% endif %}
+</form>
+
+<div class="card-crm">
+  {% if sinistres %}
+  <table class="table-crm">
+    <thead>
+      <tr><th>N° Sinistre</th><th>Client</th><th>Type</th><th>Date sinistre</th><th>Montant estimé</th><th>Indemnisé</th><th>Contrat</th><th>Statut</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for s in sinistres %}
+      <tr>
+        <td class="fw-500">{{ s.numero or '—' }}</td>
+        <td>{{ s.prenom or '' }} {{ s.nom }}</td>
+        <td>{{ s.type_sinistre or '—' }}</td>
+        <td class="text-muted">{{ s.date_sinistre or '—' }}</td>
+        <td class="text-money">{{ "%.0f"|format(s.montant_estime) }} €</td>
+        <td class="text-money-pos">{{ "%.0f"|format(s.montant_indemnise) }} €</td>
+        <td class="text-muted">{{ s.contrat_num or '—' }}</td>
+        <td>
+          <span class="badge-crm badge-{{ 'en_cours_s' if s.statut=='en_cours' else s.statut }}">
+            {{ s.statut|replace('_',' ')|title }}
+          </span>
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{{ url_for('sinistre_modifier', id=s.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{{ url_for('sinistre_supprimer', id=s.id) }}" onsubmit="return confirm('Supprimer ce sinistre ?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-shield-check"></i>
+    <h5>Aucun sinistre</h5>
+    <p class="text-muted">{% if search %}Aucun résultat pour "{{ search }}"{% else %}Aucun dossier sinistre enregistré{% endif %}</p>
+    <a href="{{ url_for('sinistre_nouveau') }}" class="btn btn-primary">Déclarer un sinistre</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

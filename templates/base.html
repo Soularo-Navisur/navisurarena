@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <!-- DARK MODE IMMÉDIAT — avant tout rendu pour éviter le flash -->
+  <script>
+  (function(){
+    try {
+      if(localStorage.getItem('navisur_dark')==='1'){
+        document.documentElement.classList.add('dark-mode');
+        document.documentElement.style.background='#080d1a';
+        document.documentElement.style.colorScheme='dark';
+        document.documentElement.setAttribute('data-dark','1');
+      }
+    }catch(e){}
+  })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}NAVISUR{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/navisur-premium.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/navisur-halos.css') }}">
+
+  <style>
+  /* ══ SIDEBAR ICÔNES NAVISUR v9.9 ══════════════════════════ */
+  :root{
+    --sb-w:62px; --sb-wx:220px; --sb-bg:#0f1e3c;
+    --sb-gold:#c9a84c; --sb-hover:rgba(201,168,76,.12);
+    --sb-text:rgba(255,255,255,.6); --sb-tr:.2s ease;
+  }
+  /* Anti-flash dark mode : fond sombre IMMÉDIAT */
+html[data-dark="1"] { background: #080d1a !important; }
+html[data-dark="1"] body { background: #080d1a !important; }
+body{margin:0;display:flex;min-height:100vh;background:#f1f5f9;}
+
+  /* Sidebar */
+  .sidebar{
+    width:var(--sb-w); min-height:100vh; background:var(--sb-bg);
+    display:flex; flex-direction:column;
+    position:fixed; top:0; left:0; bottom:0; z-index:1030;
+    overflow:hidden; transition:width var(--sb-tr); flex-shrink:0;
+  }
+  .sidebar.expanded{width:var(--sb-wx);}
+  .main-content{
+    margin-left:var(--sb-w); flex:1; min-width:0;
+    display:flex; flex-direction:column;
+    transition:margin-left var(--sb-tr);
+  }
+  .sidebar.expanded ~ .main-content{margin-left:var(--sb-wx);}
+
+  /* Logo */
+  .sb-logo{
+    height:62px; display:flex; align-items:center; padding:0 11px;
+    flex-shrink:0; border-bottom:1px solid rgba(255,255,255,.07);
+    overflow:hidden; gap:10px; cursor:default;
+  }
+  .sb-logo img{width:40px;height:40px;border-radius:8px;flex-shrink:0;background:#fff;padding:2px;object-fit:contain;}
+  .sb-logo-text{opacity:0;white-space:nowrap;overflow:hidden;transition:opacity var(--sb-tr);}
+  .sidebar.expanded .sb-logo-text{opacity:1;}
+  .sb-logo-text .t1{font-size:13px;font-weight:800;color:#fff;letter-spacing:.04em;}
+  .sb-logo-text .t2{font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;}
+
+  /* Toggle */
+  .sb-toggle{
+    height:36px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; color:var(--sb-text); flex-shrink:0;
+    border-bottom:1px solid rgba(255,255,255,.07); transition:color var(--sb-tr);
+  }
+  .sb-toggle:hover{color:#fff; background:rgba(255,255,255,.04);}
+  .sb-toggle i{font-size:16px; transition:transform .3s;}
+  .sidebar.expanded .sb-toggle i{transform:rotate(180deg);}
+
+  /* Scroll */
+  .sb-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 0 16px;}
+  .sb-scroll::-webkit-scrollbar{width:3px;}
+  .sb-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px;}
+
+  /* Divider */
+  .sb-sep{height:1px;background:rgba(255,255,255,.06);margin:5px 10px;}
+
+  /* Menu items */
+  .sb-item{
+    position:relative; display:flex; align-items:center;
+    height:38px; padding:0 0 0 12px; margin:1px 5px;
+    border-radius:8px; color:var(--sb-text); text-decoration:none;
+    cursor:pointer; transition:background var(--sb-tr),color var(--sb-tr);
+    white-space:nowrap; overflow:hidden; gap:11px;
+  }
+  .sb-item:hover{background:var(--sb-hover);color:#fff;text-decoration:none;}
+  .sb-item.active{background:rgba(201,168,76,.15);color:var(--sb-gold) !important;}
+  .sb-item.active::before{
+    content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+    width:3px;height:20px;border-radius:0 2px 2px 0;background:var(--sb-gold);
+  }
+  .sb-item i{font-size:17px;flex-shrink:0;width:20px;text-align:center;}
+  .sb-label{
+    font-size:12.5px;font-weight:500;opacity:0;
+    transition:opacity var(--sb-tr);overflow:hidden;white-space:nowrap;flex:1;
+  }
+  .sidebar.expanded .sb-label{opacity:1;}
+  .sb-badge{
+    background:#dc2626;color:#fff;border-radius:10px;
+    padding:1px 6px;font-size:10px;font-weight:700;
+    opacity:0;transition:opacity var(--sb-tr);flex-shrink:0;margin-right:4px;
+  }
+  .sidebar.expanded .sb-badge{opacity:1;}
+
+  /* Tooltip */
+  .sb-tip{
+    position:absolute;left:calc(var(--sb-w) + 6px);top:50%;
+    transform:translateY(-50%);
+    background:#1e293b;color:#fff;font-size:12px;font-weight:500;
+    padding:4px 10px;border-radius:6px;white-space:nowrap;pointer-events:none;
+    opacity:0;transition:opacity .12s;z-index:9999;
+    box-shadow:0 4px 14px rgba(0,0,0,.3);
+  }
+  .sb-tip::before{
+    content:'';position:absolute;right:100%;top:50%;transform:translateY(-50%);
+    border:5px solid transparent;border-right-color:#1e293b;
+  }
+  .sb-item:hover .sb-tip{opacity:1;}
+  .sidebar.expanded .sb-item .sb-tip{display:none;}
+
+  /* Footer */
+  .sb-footer{padding:6px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;}
+  .sb-version{font-size:9px;color:rgba(255,255,255,.18);text-align:center;font-family:monospace;letter-spacing:.06em;}
+
+  /* Topbar */
+  .topbar{
+    height:54px;background:#fff;border-bottom:1px solid #e2e8f0;
+    display:flex;align-items:center;gap:10px;padding:0 20px;
+    position:sticky;top:0;z-index:100;flex-shrink:0;
+  }
+  .page-content{padding:24px;flex:1;}
+
+  /* Toasts */
+  .navisur-toast{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.12);transition:opacity .3s,transform .3s;}
+  .navisur-toast-success{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}
+  .navisur-toast-success i{color:#22c55e}
+  .navisur-toast-error{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+  .navisur-toast-error i{color:#dc2626}
+  .navisur-toast-info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
+  .navisur-toast-info i{color:#3b82f6}
+  #modal-search.open{display:flex !important}
+
+  /* Pulse badge animation */
+  @keyframes badgePulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  }
+  .badge-pulse {
+    animation: badgePulse 2s infinite;
+  }
+  </style>
+</head>
+<body>
+
+{% if not db_integrity_ok %}
+<div style="background:#dc2626;color:white;text-align:center;padding:8px;font-size:13px;font-weight:600;position:sticky;top:0;z-index:10000">
+  ⚠️ Problème d'intégrité DB —
+  <a href="/admin/sante" style="color:#fef9c3;text-decoration:underline">Santé système</a>
+  {{ db_integrity_msg }}
+</div>
+{% endif %}
+
+<!-- MODAL RECHERCHE Ctrl+K -->
+<div id="modal-search" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(10,15,30,.6);backdrop-filter:blur(4px);align-items:flex-start;justify-content:center;padding-top:12vh">
+  <div style="background:white;border-radius:14px;width:100%;max-width:560px;box-shadow:0 24px 80px rgba(0,0,0,.25);overflow:hidden;margin:0 16px">
+    <form action="{{ url_for('recherche_globale') }}" method="get">
+      <div style="display:flex;align-items:center;padding:0 18px;border-bottom:1px solid #e2e8f0">
+        <i class="bi bi-search" style="color:#94a3b8;font-size:18px;flex-shrink:0"></i>
+        <input type="text" name="q" id="search-modal-input" placeholder="Rechercher client, contrat, police, bateau..." autocomplete="off"
+               style="flex:1;border:none;padding:18px 14px;font-size:15px;outline:none;color:#1e293b">
+        <kbd style="background:#f1f5f9;color:#94a3b8;padding:3px 8px;border-radius:5px;font-size:11px;font-family:monospace">Entrée</kbd>
+      </div>
+    </form>
+    <div style="padding:10px 18px;display:flex;gap:8px;flex-wrap:wrap">
+      <a href="{{ url_for('client_nouveau') }}" onclick="closeSearch()" style="display:flex;align-items:center;gap:5px;background:#f8fafc;border:1px solid #e2e8f0;color:#1e293b;padding:5px 12px;border-radius:8px;font-size:12px;text-decoration:none"><i class="bi bi-person-plus text-primary"></i> Nouveau client</a>
+      <a href="{{ url_for('contrat_nouveau') }}" onclick="closeSearch()" style="display:flex;align-items:center;gap:5px;background:#f8fafc;border:1px solid #e2e8f0;color:#1e293b;padding:5px 12px;border-radius:8px;font-size:12px;text-decoration:none"><i class="bi bi-file-earmark-plus text-success"></i> Nouveau contrat</a>
+      <a href="{{ url_for('sinistre_nouveau') }}" onclick="closeSearch()" style="display:flex;align-items:center;gap:5px;background:#f8fafc;border:1px solid #e2e8f0;color:#1e293b;padding:5px 12px;border-radius:8px;font-size:12px;text-decoration:none"><i class="bi bi-exclamation-triangle text-danger"></i> Sinistre</a>
+    </div>
+    <div style="padding:4px 18px 10px;font-size:11px;color:#cbd5e1;display:flex;justify-content:space-between">
+      <span>Clients · Contrats · Devis · Sinistres</span>
+      <span><kbd style="background:#f1f5f9;color:#94a3b8;padding:2px 6px;border-radius:4px;font-family:monospace">Esc</kbd> fermer</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SIDEBAR ══ -->
+<nav class="sidebar" id="sidebar">
+
+  <div class="sb-logo">
+    <img src="{{ url_for('static', filename='img/navisur_logo.png') }}" alt="NAVISUR">
+    <div class="sb-logo-text">
+      <div class="t1">NAVISUR</div>
+      <div class="t2">CRM Courtage Plaisance</div>
+    </div>
+  </div>
+
+  <div class="sb-toggle" onclick="toggleSidebar()" title="Agrandir / Réduire">
+    <i class="bi bi-chevrons-right"></i>
+  </div>
+
+  <div class="sb-scroll">
+
+    <a class="sb-item" onclick="openSearch();return false;" href="#">
+      <i class="bi bi-search"></i>
+      <span class="sb-label" style="color:rgba(255,255,255,.4)">Recherche rapide</span>
+      <span class="sb-tip">Recherche  Ctrl+K</span>
+    </a>
+
+    <div class="sb-sep"></div>
+
+    <a href="{{ url_for('accueil') }}" class="sb-item {% if request.endpoint in ('accueil','dashboard','aujourdhui') %}active{% endif %}">
+      <i class="bi bi-house"></i>
+      <span class="sb-label">Accueil {% if nb_notifs > 0 %}<span class="sb-badge badge-pulse" style="opacity:1;margin-left:4px">{{ nb_notifs }}</span>{% endif %}</span>
+      <span class="sb-tip">Accueil{% if nb_notifs > 0 %} · {{ nb_notifs }} alerte(s){% endif %}</span>
+    </a>
+
+    <a href="{{ url_for('clients_list') }}" class="sb-item {% if 'client' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-people"></i>
+      <span class="sb-label">Clients &amp; Prospects</span>
+      <span class="sb-tip">Clients &amp; Prospects</span>
+    </a>
+
+    <a href="{{ url_for('devis_list') }}" class="sb-item {% if 'devis' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-file-earmark-text"></i>
+      <span class="sb-label">Devis</span>
+      <span class="sb-tip">Devis</span>
+    </a>
+
+    <a href="{{ url_for('contrats_list') }}" class="sb-item {% if 'contrat' in request.endpoint and 'devis' not in request.endpoint %}active{% endif %}">
+      <i class="bi bi-file-earmark-check"></i>
+      <span class="sb-label">Contrats</span>
+      <span class="sb-tip">Contrats</span>
+    </a>
+
+    <a href="{{ url_for('risques_list') }}" class="sb-item {% if 'risque' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-shield-check"></i>
+      <span class="sb-label">Risques assurés</span>
+      <span class="sb-tip">Risques assurés</span>
+    </a>
+
+    <a href="{{ url_for('sinistres_list') }}" class="sb-item {% if 'sinistre' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-exclamation-triangle"></i>
+      <span class="sb-label">Sinistres</span>
+      <span class="sb-tip">Sinistres</span>
+    </a>
+
+    <div class="sb-sep"></div>
+
+    <a href="{{ url_for('agenda') }}" class="sb-item {% if 'agenda' in request.endpoint or 'rdv' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-calendar3"></i>
+      <span class="sb-label">Agenda</span>
+      <span class="sb-tip">Agenda</span>
+    </a>
+
+    <a href="{{ url_for('alertes') }}" class="sb-item {% if request.endpoint in ('alertes','relances_list','retards') %}active{% endif %}">
+      <i class="bi bi-bell"></i>
+      <span class="sb-label">Alertes &amp; Relances</span>
+      <span class="sb-tip">Alertes &amp; Relances</span>
+    </a>
+
+    <a href="{{ url_for('echeances_page') }}" class="sb-item {% if 'echeance' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-calendar-event"></i>
+      <span class="sb-label">Échéances</span>
+      <span class="sb-tip">Échéances</span>
+    </a>
+
+    <a href="{{ url_for('emails_list') }}" class="sb-item {% if 'email' in request.endpoint and 'communication' not in request.endpoint %}active{% endif %}">
+      <i class="bi bi-envelope"></i>
+      <span class="sb-label">Modèles emails</span>
+      <span class="sb-tip">Modèles emails</span>
+    </a>
+
+    <a href="{{ url_for('documents_list') }}" class="sb-item {% if 'document' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-folder2"></i>
+      <span class="sb-label">GED Documents</span>
+      <span class="sb-tip">GED Documents</span>
+    </a>
+
+    <div class="sb-sep"></div>
+
+    <a href="{{ url_for('suivi_financier_global') }}" class="sb-item {% if 'suivi_financier' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-cash-stack"></i>
+      <span class="sb-label">Suivi financier</span>
+      <span class="sb-tip">Suivi financier</span>
+    </a>
+
+    <a href="{{ url_for('compta_dashboard') }}" class="sb-item {% if 'compta' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-calculator"></i>
+      <span class="sb-label">Comptabilité</span>
+      <span class="sb-tip">Comptabilité</span>
+    </a>
+
+    <a href="{{ url_for('factures_list') }}" class="sb-item {% if 'facture' in request.endpoint and 'compta' not in request.endpoint %}active{% endif %}">
+      <i class="bi bi-receipt"></i>
+      <span class="sb-label">Quittances</span>
+      <span class="sb-tip">Quittances</span>
+    </a>
+
+    <div class="sb-sep"></div>
+
+    <a href="{{ url_for('dda_list') }}" class="sb-item {% if 'dda' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-clipboard-check"></i>
+      <span class="sb-label">Recueil DDA</span>
+      <span class="sb-tip">Recueil DDA</span>
+    </a>
+
+    <a href="{{ url_for('formations_list') }}" class="sb-item {% if 'formation' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-mortarboard"></i>
+      <span class="sb-label">Formations DDA</span>
+      <span class="sb-tip">Formations DDA</span>
+    </a>
+
+    <a href="{{ url_for('reclamations_list') }}" class="sb-item {% if 'reclamation' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-megaphone"></i>
+      <span class="sb-label">Réclamations</span>
+      <span class="sb-tip">Réclamations</span>
+    </a>
+
+    <a href="{{ url_for('rgpd_list') }}" class="sb-item {% if 'rgpd' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-shield-lock"></i>
+      <span class="sb-label">RGPD</span>
+      <span class="sb-tip">RGPD</span>
+    </a>
+
+    <a href="{{ url_for('compagnies_list') }}" class="sb-item {% if 'compagni' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-building"></i>
+      <span class="sb-label">Compagnies</span>
+      <span class="sb-tip">Compagnies</span>
+    </a>
+
+    <div class="sb-sep"></div>
+
+    <a href="{{ url_for('parametres') }}" class="sb-item {% if request.endpoint in ('parametres','mise_en_page','admin_parametres_courtier','admin_api_config','admin_parametres_fiscaux') %}active{% endif %}">
+      <i class="bi bi-gear"></i>
+      <span class="sb-label">Paramètres</span>
+      <span class="sb-tip">Paramètres</span>
+    </a>
+
+    <a href="{{ url_for('sauvegarde_page') }}" class="sb-item {% if 'sauvegarde' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-cloud-check"></i>
+      <span class="sb-label">Sauvegardes</span>
+      <span class="sb-tip">Sauvegardes</span>
+    </a>
+
+    <a href="{{ url_for('admin_sante') }}" class="sb-item {% if 'sante' in request.endpoint or 'logs' in request.endpoint or 'audit' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-wrench-adjustable"></i>
+      <span class="sb-label">Administration</span>
+      <span class="sb-tip">Administration</span>
+    </a>
+
+  </div>
+
+  <!-- Dark mode toggle -->
+  <div style="padding:4px 5px 0">
+    <button onclick="toggleDarkMode()" id="dm-btn" class="sb-item" style="width:100%;background:none;border:none;cursor:pointer;height:36px">
+      <i id="dm-icon" class="bi bi-moon" style="font-size:16px"></i>
+      <span class="sb-label" id="dm-label" style="font-size:12px;color:var(--sb-text)">Mode sombre</span>
+      <span class="sb-tip" id="dm-tip">Mode sombre</span>
+    </button>
+  </div>
+  <!-- Connectivité internet -->
+  <div style="padding:4px 10px 2px">
+    <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,.3);overflow:hidden">
+      <div class="connectivity-dot online" style="flex-shrink:0"></div>
+      <span class="sb-label" style="font-size:10px;color:rgba(255,255,255,.3)">En ligne</span>
+    </div>
+  </div>
+  <div class="sb-footer">
+    <div class="sb-version">NAVISUR v9.9</div>
+  </div>
+</nav>
+
+<main class="main-content" id="main-content">
+  <header class="topbar">
+    <div class="fw-600" style="font-size:14px;color:#1e293b">{% block page_title %}{% endblock %}</div>
+    <div style="flex:1"></div>
+
+    <button onclick="openSearch()" style="border:1px solid #e2e8f0;background:#f8fafc;border-radius:8px;padding:6px 14px;cursor:text;display:flex;align-items:center;gap:8px;color:#94a3b8;font-size:13px">
+      <i class="bi bi-search" style="font-size:13px"></i>
+      <span>Recherche…</span>
+      <kbd style="background:#e2e8f0;color:#94a3b8;padding:2px 6px;border-radius:4px;font-size:10px;font-family:monospace">Ctrl K</kbd>
+    </button>
+
+    <div class="topbar-actions d-flex align-items-center gap-2" style="margin-left:8px">
+      {% block topbar_actions %}{% endblock %}
+      <div class="dropdown">
+        <button class="btn btn-primary btn-sm d-flex align-items-center gap-1" data-bs-toggle="dropdown" style="padding:6px 10px">
+          <i class="bi bi-plus-lg" style="font-size:14px"></i>
+          <i class="bi bi-chevron-down" style="font-size:9px"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" style="min-width:200px;border-radius:10px;border:1px solid #e2e8f0;box-shadow:0 8px 24px rgba(0,0,0,.1)">
+          <li><h6 class="dropdown-header" style="font-size:10px;letter-spacing:.08em;color:#94a3b8">CRÉER RAPIDEMENT</h6></li>
+          <li><a class="dropdown-item" href="{{ url_for('client_nouveau') }}" style="font-size:13px;padding:7px 14px"><i class="bi bi-person-plus me-2 text-primary"></i>Nouveau client</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('devis_nouveau') }}" style="font-size:13px;padding:7px 14px"><i class="bi bi-clipboard-plus me-2" style="color:#0ea5e9"></i>Nouveau devis</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('devis_multi_nouveau') }}" style="font-size:13px;padding:7px 14px"><i class="bi bi-clipboard-data me-2" style="color:#0ea5e9"></i>Multi-devis</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('contrat_nouveau') }}" style="font-size:13px;padding:7px 14px"><i class="bi bi-file-earmark-plus me-2 text-success"></i>Nouveau contrat</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('risque_nouveau') }}" style="font-size:13px;padding:7px 14px"><i class="bi bi-shield-plus me-2" style="color:#f59e0b"></i>Nouveau risque</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="{{ url_for('sinistre_nouveau') }}" style="font-size:13px;padding:7px 14px"><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Déclarer sinistre</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('journal_nouveau') }}" style="font-size:13px;padding:7px 14px"><i class="bi bi-chat-square-text me-2 text-secondary"></i>Enregistrer échange</a></li>
+        </ul>
+      </div>
+      <a href="#" onclick="toggleNotifDrawer(); return false;" class="position-relative" style="color:{{ '#dc2626' if nb_notifs > 0 else '#94a3b8' }};text-decoration:none;font-size:20px;line-height:1;padding:4px 8px" title="Centre de notifications">
+        <i class="bi bi-bell{{ '-fill' if nb_notifs > 0 else '' }}"></i>
+        {% if nb_notifs > 0 %}
+        <span class="badge-pulse" style="position:absolute;top:0;right:2px;background:#dc2626;color:white;border-radius:8px;padding:1px 5px;font-size:9px;font-weight:700">{{ nb_notifs if nb_notifs < 10 else '9+' }}</span>
+        {% endif %}
+      </a>
+    </div>
+  </header>
+
+  <!-- Toast container -->
+  <div id="toast-container" style="position:fixed;top:16px;right:20px;z-index:1080;display:flex;flex-direction:column;gap:8px;min-width:280px;max-width:400px;pointer-events:none">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}{% for category, message in messages %}
+      <div class="navisur-toast navisur-toast-{{ 'success' if category=='success' else 'error' if category in ('error','danger') else 'info' }}"
+           style="opacity:0;transform:translateX(20px);pointer-events:all">
+        <i class="bi bi-{% if category=='success' %}check-circle-fill{% elif category in ('error','danger') %}x-circle-fill{% else %}info-circle-fill{% endif %}" style="font-size:17px;flex-shrink:0"></i>
+        <span style="flex:1">{{ message }}</span>
+        <button onclick="this.closest('.navisur-toast').remove()" style="background:none;border:none;padding:0;cursor:pointer;opacity:.5;font-size:18px;line-height:1;flex-shrink:0">×</button>
+      </div>
+      {% endfor %}{% endif %}
+    {% endwith %}
+  </div>
+
+  <div class="page-content">
+    {% if breadcrumbs is defined and breadcrumbs %}
+    <nav class="breadcrumbs">
+      <a href="{{ url_for('accueil') }}" style="display:flex;align-items:center;gap:4px">
+        <i class="bi bi-house" style="font-size:12px"></i>
+      </a>
+      {% for crumb in breadcrumbs %}
+        {% if crumb.label != 'Accueil' %}
+        <span class="breadcrumb-sep">›</span>
+        {% if crumb.url %}
+          <a href="{{ crumb.url }}">{{ crumb.label }}</a>
+        {% else %}
+          <span class="breadcrumb-active">{{ crumb.label }}</span>
+        {% endif %}
+        {% endif %}
+      {% endfor %}
+    </nav>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/loading.js') }}"></script>
+<script src="{{ url_for('static', filename='js/navisur-premium.js') }}"></script>
+<script>
+// ── Dark mode ────────────────────────────────────────────────
+function applyDarkMode(isDark) {
+  document.documentElement.classList.toggle('dark-mode', isDark);
+  document.body.classList.toggle('dark-mode', isDark);
+  document.documentElement.setAttribute('data-dark', isDark ? '1' : '0');
+  document.documentElement.style.background = isDark ? '#080d1a' : '';
+  document.documentElement.style.colorScheme = isDark ? 'dark' : '';
+  const icon = document.getElementById('dm-icon');
+  const label = document.getElementById('dm-label');
+  const tip = document.getElementById('dm-tip');
+  if (icon)  icon.className = isDark ? 'bi bi-sun' : 'bi bi-moon';
+  if (label) label.textContent = isDark ? 'Mode clair' : 'Mode sombre';
+  if (tip)   tip.textContent  = isDark ? 'Mode clair' : 'Mode sombre';
+}
+function toggleDarkMode() {
+  const isDark = !document.body.classList.contains('dark-mode');
+  localStorage.setItem('navisur_dark', isDark ? '1' : '0');
+  applyDarkMode(isDark);
+}
+// Init au chargement — SANS délai, immédiat
+applyDarkMode(localStorage.getItem('navisur_dark') === '1');
+
+// ── Sidebar toggle avec persistance localStorage ─────────────
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  sb.classList.toggle('expanded');
+  localStorage.setItem('navisur_sb', sb.classList.contains('expanded') ? '1' : '0');
+}
+// Restaurer l'état au chargement
+(function(){
+  const state = localStorage.getItem('navisur_sb');
+  if (state === '1') {
+    document.getElementById('sidebar').classList.add('expanded');
+  }
+})();
+
+// ── Recherche rapide Ctrl+K ──────────────────────────────────
+function openSearch(){
+  const m=document.getElementById('modal-search');
+  m.classList.add('open');
+  setTimeout(()=>document.getElementById('search-modal-input').focus(),50);
+}
+function closeSearch(){document.getElementById('modal-search').classList.remove('open');}
+document.getElementById('modal-search').addEventListener('click',function(e){if(e.target===this)closeSearch();});
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();openSearch();}
+  if(e.key==='Escape'){closeSearch();}
+});
+
+// ── Toasts auto-dismiss ──────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.navisur-toast').forEach((t,i)=>{
+    setTimeout(()=>{t.style.opacity='1';t.style.transform='translateX(0)';},i*80);
+    setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(20px)';setTimeout(()=>t.remove(),300);},(5000+i*80));
+  });
+});
+
+// ── Compagnie libre ──────────────────────────────────────────
+function toggleCompagnieFree(sel){
+  const libre=document.getElementById('cp-libre');
+  if(!libre)return;
+  if(sel.value==='__autre__'){libre.style.display='block';libre.required=true;}
+  else{libre.style.display='none';libre.required=false;libre.value='';}
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('select[name="compagnie"]').forEach(sel=>{
+    const libre=document.getElementById('cp-libre');
+    if(!libre)return;
+    libre.style.display=sel.value==='__autre__'?'block':'none';
+  });
+});
+
+// ── Polling notifications ─────────────────────────────────────
+setInterval(async()=>{
+  try{
+    const r=await fetch('/api/notifs-count');
+    const d=await r.json();
+  }catch(e){}
+},60000);
+</script>
+{% block scripts %}{% endblock %}
+<!-- ══ OVERLAY DE CHARGEMENT NAVISUR v9.9 ══ -->
+<div id="loading-overlay" style="display:none">
+  <div class="loading-card">
+    <div class="loading-spinner"></div>
+    <div class="loading-title" id="loading-title">Traitement en cours...</div>
+    <div class="loading-sub"   id="loading-sub">Veuillez patienter</div>
+  </div>
+</div>
+
+<style>
+#loading-overlay {
+  position:fixed; inset:0;
+  background:rgba(15,30,60,.82);
+  z-index:9999;
+  display:flex; align-items:center; justify-content:center;
+  backdrop-filter:blur(3px);
+}
+.loading-card {
+  background:#0f1e3c;
+  border:1px solid rgba(201,168,76,.35);
+  border-radius:16px;
+  padding:40px 56px;
+  text-align:center;
+  box-shadow:0 24px 80px rgba(0,0,0,.55);
+  min-width:240px;
+}
+.loading-spinner {
+  width:52px; height:52px;
+  border:4px solid rgba(201,168,76,.18);
+  border-top-color:#c9a84c;
+  border-radius:50%;
+  animation:ov-spin .8s linear infinite;
+  margin:0 auto 20px;
+}
+.loading-title { color:#fff; font-size:16px; font-weight:600; margin-bottom:6px; }
+.loading-sub   { color:#94a3b8; font-size:13px; }
+@keyframes ov-spin { to { transform:rotate(360deg); } }
+
+/* Bouton en cours de chargement */
+.btn-loading { opacity:.65 !important; cursor:not-allowed !important; pointer-events:none !important; }
+.btn-spinner {
+  display:inline-block; width:13px; height:13px;
+  border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:ov-spin .6s linear infinite;
+  vertical-align:middle; margin-right:6px;
+}
+</style>
+
+<!-- TIROIR DE NOTIFICATIONS COULISSANT -->
+<div id="notif-drawer" style="position:fixed;top:0;right:-380px;width:380px;height:100vh;background:white;box-shadow:-8px 0 30px rgba(0,0,0,.15);z-index:1060;transition:right .3s ease;display:flex;flex-direction:column;">
+  <div style="padding:18px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#0f1e3c;color:white;">
+    <h5 style="margin:0;font-size:15px;font-weight:700;"><i class="bi bi-bell me-2"></i>Centre de notifications</h5>
+    <button onclick="toggleNotifDrawer()" style="background:none;border:none;color:white;font-size:20px;cursor:pointer;">×</button>
+  </div>
+  <div style="padding:12px 20px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+    <span class="text-muted">Alertes et rappels récents</span>
+    <a href="{{ url_for('notifs_tout_lire') }}" style="color:#c9a84c;text-decoration:none;">Tout marquer comme lu</a>
+  </div>
+  <div id="notif-drawer-content" style="flex:1;overflow-y:auto;padding:12px 16px;">
+    {% if notifs_list is defined and notifs_list %}
+      {% for n in notifs_list %}
+      <div style="padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:13px;display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:16px;">🔔</span>
+        <div style="flex:1;">
+          <div style="font-weight:600;color:#1e293b;">{{ n.titre or 'Notification' }}</div>
+          <div style="color:#64748b;font-size:12px;margin-top:2px;">{{ n.message }}</div>
+          <div style="color:#94a3b8;font-size:11px;margin-top:4px;">{{ n.date_creation }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div style="text-align:center;padding:40px 20px;color:#94a3b8;">
+        <i class="bi bi-bell-slash" style="font-size:28px;"></i>
+        <p style="margin-top:8px;font-size:13px;">Aucune nouvelle notification</p>
+      </div>
+    {% endif %}
+  </div>
+  <div style="padding:12px 20px;border-top:1px solid #e2e8f0;text-align:center;background:#f8fafc;">
+    <a href="{{ url_for('notifications_list') }}" style="font-size:12px;color:#0f1e3c;font-weight:600;text-decoration:none;">Voir toutes les notifications →</a>
+  </div>
+</div>
+<div id="notif-overlay" onclick="toggleNotifDrawer()" style="position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:1050;display:none;backdrop-filter:blur(2px);"></div>
+
+<script>
+function toggleNotifDrawer() {
+  const drawer = document.getElementById('notif-drawer');
+  const overlay = document.getElementById('notif-overlay');
+  if (drawer.style.right === '0px') {
+    drawer.style.right = '-380px';
+    overlay.style.display = 'none';
+  } else {
+    drawer.style.right = '0px';
+    overlay.style.display = 'block';
+  }
+}
+</script>
+
+</body>
+</html>

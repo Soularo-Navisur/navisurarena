@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Modifier' if reclamation else 'Nouvelle' }} réclamation — NAVISUR{% endblock %}
+{% block page_title %}Réclamation{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📣 {{ 'Modifier la réclamation' if reclamation else 'Nouvelle réclamation' }}</h1>
+    <p class="page-header-sub">Délais légaux calculés automatiquement</p>
+  </div>
+  <a href="{{ url_for('reclamations_list') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+<form method="post" class="row g-4">
+  <div class="col-lg-7">
+    <div class="form-card" style="max-width:100%">
+      <div class="form-section-title">📋 Informations générales</div>
+      <div class="row g-3">
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Client *</label>
+          <select name="client_id" class="form-select" required
+                  onchange="chargerContrats(this.value)">
+            <option value="">— Sélectionner —</option>
+            {% for c in clients %}
+            <option value="{{ c.id }}"
+              {{ 'selected' if reclamation and reclamation.client_id == c.id }}>
+              {{ c.nom }} {{ c.prenom or '' }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Contrat lié (optionnel)</label>
+          <select name="contrat_id" id="contrat_select" class="form-select">
+            <option value="">— Aucun —</option>
+            {% for ct in contrats %}
+            <option value="{{ ct.id }}"
+              {{ 'selected' if reclamation and reclamation.contrat_id == ct.id }}>
+              {{ ct.numero }} — {{ ct.compagnie }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Date de réception *</label>
+          <input type="date" name="date_reception" class="form-control" required
+                 value="{{ reclamation.date_reception if reclamation else '' }}"
+                 max="{{ '' }}">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Canal de réception</label>
+          <select name="canal" class="form-select">
+            {% for val, label in [('email','Email'),('courrier','Courrier'),('telephone','Téléphone'),('presentiel','En personne')] %}
+            <option value="{{ val }}" {{ 'selected' if reclamation and reclamation.canal == val }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label fw-semibold">Objet de la réclamation *</label>
+          <input type="text" name="objet" class="form-control" required
+                 placeholder="Ex : Retard de remboursement sinistre MAR-2025-042"
+                 value="{{ reclamation.objet if reclamation else '' }}">
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Description détaillée</label>
+          <textarea name="description" class="form-control" rows="4"
+                    placeholder="Décrivez les faits, la demande du client, les documents reçus...">{{ reclamation.description if reclamation else '' }}</textarea>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Notes internes</label>
+          <textarea name="notes" class="form-control" rows="2"
+                    placeholder="Notes internes (non communiquées au client)">{{ reclamation.notes if reclamation else '' }}</textarea>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <!-- Info délais légaux -->
+    <div class="card-crm mb-3">
+      <div class="card-crm-header"><span class="card-crm-title">⏱️ Délais légaux ACPR</span></div>
+      <div class="p-3">
+        <div style="background:#fef9c3;border-radius:8px;padding:12px 14px;font-size:13px;color:#92400e;margin-bottom:12px">
+          <i class="bi bi-info-circle me-1"></i>
+          Ces délais sont calculés <strong>automatiquement</strong> à la création de la réclamation.
+        </div>
+        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+          <span class="text-muted small">Accusé de réception</span>
+          <strong class="text-danger">≤ 10 jours ouvrables</strong>
+        </div>
+        <div class="d-flex justify-content-between align-items-center py-2">
+          <span class="text-muted small">Réponse complète</span>
+          <strong class="text-danger">≤ 2 mois</strong>
+        </div>
+      </div>
+    </div>
+
+    {% if reclamation %}
+    <!-- Suivi si modification -->
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">📊 Suivi</span></div>
+      <div class="p-3">
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Statut</label>
+            <select name="statut" class="form-select">
+              {% for val, label in [('recue','Reçue'),('en_cours','En cours de traitement'),('resolue','Résolue'),('escaladee','Escaladée vers médiateur')] %}
+              <option value="{{ val }}" {{ 'selected' if reclamation.statut == val }}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label small">Date de réponse effective</label>
+            <input type="date" name="date_reponse_effective" class="form-control form-control-sm"
+                   value="{{ reclamation.date_reponse_effective or '' }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label small">Réponse apportée</label>
+            <textarea name="reponse_apportee" class="form-control form-control-sm" rows="2">{{ reclamation.reponse_apportee or '' }}</textarea>
+          </div>
+          <div class="col-12 d-flex gap-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="satisfait" value="1"
+                     id="satisfait" {{ 'checked' if reclamation.satisfait }}>
+              <label class="form-check-label small" for="satisfait">Client satisfait</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="mediateur_saisi" value="1"
+                     id="mediateur" {{ 'checked' if reclamation.mediateur_saisi }}>
+              <label class="form-check-label small" for="mediateur">Médiateur saisi</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="d-flex gap-2 mt-3">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if reclamation else 'Enregistrer' }}
+      </button>
+      <a href="{{ url_for('reclamations_list') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

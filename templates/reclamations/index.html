@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}Réclamations — NAVISUR{% endblock %}
+{% block page_title %}Réclamations clients{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📣 Réclamations clients</h1>
+    <p class="page-header-sub">Suivi des réclamations — Obligation ACPR</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('reclamations_export_rapport') }}" class="btn btn-outline-secondary btn-sm" target="_blank">
+      <i class="bi bi-file-earmark-pdf me-1"></i>Rapport annuel PDF
+    </a>
+    <a href="{{ url_for('reclamation_nouvelle') }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>Nouvelle réclamation
+    </a>
+  </div>
+</div>
+
+{% if en_retard > 0 %}
+<div class="alert alert-danger d-flex align-items-center gap-2 mb-4" style="border-left:4px solid #dc2626">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  <strong>{{ en_retard }} réclamation(s) avec délai dépassé !</strong>
+  Vérifiez immédiatement les dossiers en attente.
+</div>
+{% endif %}
+
+<!-- Filtres statut -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  {% for s, label, color in [
+    ('', 'Toutes', 'secondary'),
+    ('recue', 'Reçues', 'info'),
+    ('en_cours', 'En cours', 'warning'),
+    ('resolue', 'Résolues', 'success'),
+    ('escaladee', 'Escaladées', 'danger')
+  ] %}
+  <a href="{{ url_for('reclamations_list', statut=s) }}"
+     class="btn btn-sm btn-{{ 'outline-' + color if statut != s else color }}">
+    {{ label }}
+  </a>
+  {% endfor %}
+</div>
+
+<div class="form-card" style="max-width:100%">
+  {% if reclamations %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>Date réception</th>
+          <th>Client</th>
+          <th>Objet</th>
+          <th>Canal</th>
+          <th>Statut</th>
+          <th>Délai accusé</th>
+          <th>Délai réponse</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set today = namespace(v='') %}
+        {% for r in reclamations %}
+        {% set today_s = '' %}
+        <tr>
+          <td class="font-mono small">{{ r.date_reception | default('') }}</td>
+          <td>
+            <strong>{{ r.nom }} {{ r.prenom or '' }}</strong>
+          </td>
+          <td style="max-width:200px" class="text-truncate">{{ r.objet }}</td>
+          <td>
+            <span class="badge bg-light text-dark">
+              {% if r.canal == 'email' %}📧
+              {% elif r.canal == 'courrier' %}✉️
+              {% elif r.canal == 'telephone' %}📞
+              {% else %}🤝{% endif %}
+              {{ r.canal }}
+            </span>
+          </td>
+          <td>
+            {% if r.statut == 'recue' %}<span class="badge bg-info text-dark">Reçue</span>
+            {% elif r.statut == 'en_cours' %}<span class="badge bg-warning text-dark">En cours</span>
+            {% elif r.statut == 'resolue' %}<span class="badge bg-success">Résolue</span>
+            {% elif r.statut == 'escaladee' %}<span class="badge bg-danger">Escaladée</span>
+            {% else %}<span class="badge bg-secondary">{{ r.statut }}</span>{% endif %}
+          </td>
+          <td class="small">
+            {% if r.date_accuse %}
+              {% set today_dt = '' %}
+              <span class="{{ 'text-danger fw-bold' if r.date_accuse < '' else '' }}">
+                {{ r.date_accuse }}
+              </span>
+            {% else %}—{% endif %}
+          </td>
+          <td class="small">
+            {% if r.date_reponse_prevue and r.statut not in ('resolue',) %}
+              <span class="{{ 'text-danger fw-bold' if r.date_reponse_prevue < '' else '' }}">
+                {{ r.date_reponse_prevue }}
+              </span>
+            {% elif r.date_reponse_effective %}
+              <span class="text-success">✅ {{ r.date_reponse_effective }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('reclamation_detail', id=r.id) }}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-inbox" style="font-size:48px;opacity:.3"></i>
+    <p class="mt-3">Aucune réclamation enregistrée.</p>
+    <a href="{{ url_for('reclamation_nouvelle') }}" class="btn btn-primary btn-sm mt-2">
+      <i class="bi bi-plus-lg me-1"></i>Saisir une réclamation
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

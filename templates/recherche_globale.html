@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% block title %}Recherche — {{ q }} — NAVISUR{% endblock %}
+{% block page_title %}Recherche globale{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">🔍 Recherche globale</h1>
+</div>
+
+<form method="get" class="search-bar mb-4" style="max-width:600px">
+  <div class="search-input-wrap" style="flex:1">
+    <i class="bi bi-search"></i>
+    <input type="text" name="q" class="form-control" placeholder="Nom, N° police, immatriculation, gestionnaire sinistre..."
+           value="{{ q }}" autofocus>
+  </div>
+  <button type="submit" class="btn btn-primary">Rechercher</button>
+</form>
+
+{% if q and total == 0 %}
+<div class="card-crm">
+  <div class="empty-state py-5">
+    <i class="bi bi-search" style="font-size:48px;opacity:.2"></i>
+    <h5 class="mt-3">Aucun résultat pour "{{ q }}"</h5>
+    <p class="text-muted">Essayez avec un autre terme — nom, numéro de police, immatriculation...</p>
+  </div>
+</div>
+{% elif q %}
+<p class="text-muted mb-3" style="font-size:13px"><strong>{{ total }}</strong> résultat(s) pour « {{ q }} »</p>
+
+{% if resultats.clients %}
+<div class="card-crm mb-3">
+  <div class="card-crm-header"><span class="card-crm-title">👥 Clients ({{ resultats.clients|length }})</span></div>
+  <table class="table-crm">
+    <tbody>
+      {% for c in resultats.clients %}
+      <tr>
+        <td><a href="{{ url_for('client_detail', id=c.id) }}" class="fw-600" style="text-decoration:none;color:#1a2e5a">{{ c.prenom or '' }} {{ c.nom }}</a></td>
+        <td class="text-muted" style="font-size:12px">{{ c.email or '—' }}</td>
+        <td><span class="badge-crm badge-{{ c.statut }}" style="font-size:11px">{{ c.statut|title }}</span></td>
+        <td><a href="{{ url_for('client_detail', id=c.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if resultats.contrats %}
+<div class="card-crm mb-3">
+  <div class="card-crm-header"><span class="card-crm-title">📄 Contrats ({{ resultats.contrats|length }})</span></div>
+  <table class="table-crm">
+    <tbody>
+      {% for ct in resultats.contrats %}
+      <tr>
+        <td class="font-mono fw-600" style="color:#1a2e5a">{{ ct.numero or '—' }}</td>
+        <td><span class="fw-500">{{ ct.prenom or '' }} {{ ct.nom }}</span></td>
+        <td style="font-size:12px">{{ ct.type_assurance or '—' }} · {{ ct.compagnie or '—' }}</td>
+        {% if ct.numero_police_cie %}<td class="font-mono text-muted" style="font-size:11px">{{ ct.numero_police_cie }}</td>{% else %}<td></td>{% endif %}
+        <td><span class="badge-crm badge-{{ ct.statut }}" style="font-size:11px">{{ ct.statut|replace('_',' ')|title }}</span></td>
+        <td><a href="{{ url_for('contrat_detail', id=ct.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if resultats.risques %}
+<div class="card-crm mb-3">
+  <div class="card-crm-header"><span class="card-crm-title">🗂️ Risques ({{ resultats.risques|length }})</span></div>
+  <table class="table-crm">
+    {% set type_icons = {'bateau':'⛵','jet_ski':'🏄','peniche':'🚢','yacht':'⚓','local_pro':'🏢','pro_nautisme':'🔧','habitation':'🏠'} %}
+    <tbody>
+      {% for r in resultats.risques %}
+      <tr>
+        <td style="font-size:16px">{{ type_icons.get(r.type_risque,'📋') }}</td>
+        <td class="fw-600">{{ r.libelle }}</td>
+        <td><a href="{{ url_for('client_detail', id=r.cid) }}" style="text-decoration:none;color:#64748b;font-size:12px">{{ r.prenom or '' }} {{ r.nom }}</a></td>
+        <td class="text-muted" style="font-size:12px">{{ "{:,.0f}".format(r.valeur_assurance).replace(",", " ") }} €</td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{{ url_for('risque_detail', id=r.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+            <a href="{{ url_for('client_detail', id=r.cid) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-person"></i></a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if resultats.sinistres %}
+<div class="card-crm mb-3">
+  <div class="card-crm-header"><span class="card-crm-title">⚠️ Sinistres ({{ resultats.sinistres|length }})</span></div>
+  <table class="table-crm">
+    <tbody>
+      {% for s in resultats.sinistres %}
+      <tr>
+        <td class="font-mono fw-600" style="color:#dc2626">{{ s.numero or '—' }}</td>
+        <td><span class="fw-500">{{ s.prenom or '' }} {{ s.nom }}</span></td>
+        <td style="font-size:12px">{{ s.type_sinistre or '—' }}</td>
+        {% if s.numero_sinistre_cie %}<td class="font-mono text-muted" style="font-size:11px">{{ s.numero_sinistre_cie }}</td>{% else %}<td></td>{% endif %}
+        <td><span class="badge-crm badge-{{ 'ouvert' if s.statut in ('ouvert','declare') else 'clos' if 'clos' in s.statut else 'attendu' }}" style="font-size:11px">{{ s.statut|replace('_',' ')|title }}</span></td>
+        <td><a href="{{ url_for('sinistre_modifier', id=s.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if resultats.devis %}
+<div class="card-crm mb-3">
+  <div class="card-crm-header"><span class="card-crm-title">📊 Devis ({{ resultats.devis|length }})</span></div>
+  <table class="table-crm">
+    <tbody>
+      {% for d in resultats.devis %}
+      <tr>
+        <td><span class="fw-500">{{ d.prenom or '' }} {{ d.nom }}</span></td>
+        <td style="font-size:12px">{{ d.compagnie or '—' }} · {{ d.type_assurance or '—' }}</td>
+        <td class="text-end fw-600" style="color:#c9a84c">{{ "{:,.0f}".format(d.prime_proposee or 0).replace(",", " ") }} €</td>
+        <td><span class="badge-crm badge-{{ 'clos' if d.statut=='accepte' else 'resilie' if d.statut=='refuse' else 'attendu' }}" style="font-size:11px">{{ d.statut|replace('_',' ')|title }}</span></td>
+        <td><a href="{{ url_for('devis_modifier', id=d.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if resultats.avenants %}
+<div class="card-crm mb-3">
+  <div class="card-crm-header"><span class="card-crm-title">📝 Avenants ({{ resultats.avenants|length }})</span></div>
+  <table class="table-crm">
+    <tbody>
+      {% for a in resultats.avenants %}
+      <tr>
+        <td class="font-mono fw-600" style="color:#8b5cf6">{{ a.numero or '—' }}</td>
+        <td><span class="fw-500">{{ a.prenom or '' }} {{ a.nom }}</span></td>
+        <td style="font-size:12px">{{ a.type_avenant|replace('_',' ')|title }}</td>
+        <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis">{{ a.description[:60] }}{% if a.description|length > 60 %}…{% endif %}</td>
+        <td><a href="{{ url_for('contrat_avenants', id=a.contrat_id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

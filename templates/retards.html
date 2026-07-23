@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% block title %}Retards & Alertes — NAVISUR{% endblock %}
+{% block page_title %}Tableau des retards{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">⚠️ Tableau des retards</h1>
+    <p class="page-header-sub">Situations nécessitant une action urgente</p>
+  </div>
+  <a href="{{ url_for('alertes') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-bell me-1"></i>Alertes générales
+  </a>
+</div>
+
+<!-- KPIs retards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card" style="{{ 'border-left:4px solid #dc2626' if expires else '' }}">
+      <div class="stat-icon red"><i class="bi bi-file-earmark-x"></i></div>
+      <div>
+        <div class="stat-value" style="{{ 'color:#dc2626' if expires }}">{{ expires|length }}</div>
+        <div class="stat-label">Contrats expirés</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card" style="{{ 'border-left:4px solid #f97316' if comm_retard else '' }}">
+      <div class="stat-icon orange"><i class="bi bi-currency-euro"></i></div>
+      <div>
+        <div class="stat-value">{{ comm_retard|length }}</div>
+        <div class="stat-label">Commissions > 60j</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card" style="{{ 'border-left:4px solid #f59e0b' if relances_retard else '' }}">
+      <div class="stat-icon orange"><i class="bi bi-megaphone"></i></div>
+      <div>
+        <div class="stat-value">{{ relances_retard|length }}</div>
+        <div class="stat-label">Relances > 7j retard</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card" style="{{ 'border-left:4px solid #8b5cf6' if dossiers_incomplets else '' }}">
+      <div class="stat-icon" style="background:#f3f4f6;color:#8b5cf6"><i class="bi bi-clipboard-x"></i></div>
+      <div>
+        <div class="stat-value">{{ dossiers_incomplets|length }}</div>
+        <div class="stat-label">Dossiers incomplets > 30j</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if not expires and not comm_retard and not relances_retard and not dossiers_incomplets %}
+<div class="card-crm">
+  <div class="p-5 text-center">
+    <div style="font-size:52px;margin-bottom:16px">🎉</div>
+    <h4 style="font-weight:700;color:#1a2e5a">Aucun retard !</h4>
+    <p class="text-muted">Tout est à jour. Bonne navigation ⚓</p>
+  </div>
+</div>
+{% endif %}
+
+<!-- Contrats expirés -->
+{% if expires %}
+<div class="card-crm mb-3" style="border-left:4px solid #dc2626">
+  <div class="card-crm-header">
+    <span class="card-crm-title" style="color:#dc2626">🔴 Contrats expirés non renouvelés ({{ expires|length }})</span>
+  </div>
+  <table class="table-crm">
+    <thead><tr><th>Client</th><th>Produit</th><th>Compagnie</th><th>Expiré le</th><th>Retard</th><th></th></tr></thead>
+    <tbody>
+      {% for ct in expires %}
+      <tr style="background:#fff5f5">
+        <td>
+          <div class="fw-600">{{ ct.prenom or '' }} {{ ct.nom }}</div>
+          {% if ct.email %}<div style="font-size:11px;color:#94a3b8">{{ ct.email }}</div>{% endif %}
+        </td>
+        <td>{{ ct.type_assurance or '—' }}</td>
+        <td>{{ ct.compagnie or '—' }}</td>
+        <td class="text-danger fw-600">{{ ct.date_fin }}</td>
+        <td><span class="badge-crm badge-ouvert">{{ ct.jours_retard }}j</span></td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{{ url_for('contrat_renouveler', id=ct.id) }}" class="btn btn-sm btn-primary">🔁 Renouveler</a>
+            <a href="{{ url_for('client_detail', id=ct.client_id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Commissions très en retard -->
+{% if comm_retard %}
+<div class="card-crm mb-3" style="border-left:4px solid #f97316">
+  <div class="card-crm-header">
+    <span class="card-crm-title" style="color:#c2410c">🟠 Commissions en retard > 60 jours ({{ comm_retard|length }})</span>
+    <a href="{{ url_for('compta_commissions') }}" class="btn btn-sm btn-outline-secondary">Module commissions</a>
+  </div>
+  <table class="table-crm">
+    <thead><tr><th>Compagnie</th><th>Client</th><th>Attendue le</th><th>Retard</th><th class="text-end">Montant</th></tr></thead>
+    <tbody>
+      {% for c in comm_retard %}
+      <tr>
+        <td class="fw-600">{{ c.compagnie }}</td>
+        <td>{{ c.prenom or '' }} {{ c.nom or '' }}</td>
+        <td class="text-danger">{{ c.date_prevue }}</td>
+        <td><span class="badge-crm badge-ouvert">{{ c.jours_retard }}j</span></td>
+        <td class="text-end fw-700" style="color:#c2410c">{{ "{:,.2f}".format(c.montant_attendu).replace(",", " ") }} €</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Relances en retard -->
+{% if relances_retard %}
+<div class="card-crm mb-3" style="border-left:4px solid #f59e0b">
+  <div class="card-crm-header">
+    <span class="card-crm-title" style="color:#92400e">🟡 Relances en retard > 7 jours ({{ relances_retard|length }})</span>
+    <a href="{{ url_for('relances_list') }}" class="btn btn-sm btn-outline-secondary">Toutes les relances</a>
+  </div>
+  <table class="table-crm">
+    <thead><tr><th>Client</th><th>Type</th><th>Prévue le</th><th>Retard</th><th></th></tr></thead>
+    <tbody>
+      {% for r in relances_retard %}
+      <tr>
+        <td>
+          <div class="fw-600">{{ r.prenom or '' }} {{ r.nom }}</div>
+          {% if r.email %}<a href="mailto:{{ r.email }}" style="font-size:11px;color:#94a3b8">{{ r.email }}</a>{% endif %}
+        </td>
+        <td style="font-size:12px">{{ r.type_relance or '—' }}</td>
+        <td class="text-warning fw-600">{{ r.date_prevue }}</td>
+        <td><span class="badge-crm badge-attendu">{{ r.jours_retard }}j</span></td>
+        <td>
+          <form method="post" action="{{ url_for('relance_effectuer', id=r.id) }}" style="margin:0">
+            <input type="hidden" name="reponse" value="">
+            <button class="btn btn-sm btn-success">✓ Effectuée</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Dossiers incomplets -->
+{% if dossiers_incomplets %}
+<div class="card-crm mb-3" style="border-left:4px solid #8b5cf6">
+  <div class="card-crm-header">
+    <span class="card-crm-title" style="color:#6d28d9">🟣 Dossiers incomplets depuis > 30 jours ({{ dossiers_incomplets|length }})</span>
+  </div>
+  <table class="table-crm">
+    <thead><tr><th>Client</th><th>Contrat</th><th>Depuis</th><th>Pièces</th><th></th></tr></thead>
+    <tbody>
+      {% for d in dossiers_incomplets %}
+      <tr>
+        <td class="fw-600">{{ d.prenom or '' }} {{ d.nom }}</td>
+        <td style="font-size:12px">{{ d.type_assurance or '—' }}{% if d.numero %} · {{ d.numero }}{% endif %}</td>
+        <td class="text-muted" style="font-size:12px">{{ d.date_creation }}</td>
+        <td>
+          <span class="text-danger fw-700">{{ d.recues }}/{{ d.total }}</span>
+          <span class="text-muted" style="font-size:11px"> ({{ d.total - d.recues }} manquante{{ 's' if d.total - d.recues > 1 }})</span>
+        </td>
+        <td>
+          <a href="{{ url_for('contrat_checklist', id=d.id) }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-clipboard-check me-1"></i>Checklist
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% endblock %}

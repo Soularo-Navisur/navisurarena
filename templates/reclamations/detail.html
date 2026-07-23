@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block title %}Réclamation #{{ r.id }} — NAVISUR{% endblock %}
+{% block page_title %}Réclamation #{{ r.id }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📣 Réclamation #{{ r.id }}</h1>
+    <p class="page-header-sub">{{ r.nom }} {{ r.prenom or '' }} — reçue le {{ r.date_reception }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('reclamation_modifier', id=r.id) }}" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-pencil me-1"></i>Modifier
+    </a>
+    <a href="{{ url_for('reclamations_list') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Retour
+    </a>
+  </div>
+</div>
+
+{% set is_late = r.date_reponse_prevue and r.date_reponse_prevue < today and r.statut not in ('resolue', 'classee') %}
+{% if is_late %}
+<div class="alert alert-danger mb-4">
+  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+  <strong>Délai légal dépassé !</strong> La réponse était attendue avant le {{ r.date_reponse_prevue }}.
+  Traitez cette réclamation immédiatement ou escaladez vers le médiateur.
+</div>
+{% endif %}
+
+<div class="row g-4">
+
+  <div class="col-lg-8">
+    <!-- Détails réclamation -->
+    <div class="form-card mb-4" style="max-width:100%">
+      <div class="form-section-title">📋 Détails</div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label text-muted small">Client</label>
+          <div class="fw-semibold">
+            <a href="{{ url_for('client_detail', id=r.client_id) }}">{{ r.nom }} {{ r.prenom or '' }}</a>
+          </div>
+        </div>
+        {% if r.contrat_numero %}
+        <div class="col-md-6">
+          <label class="form-label text-muted small">Contrat lié</label>
+          <div class="fw-semibold font-mono">{{ r.contrat_numero }} — {{ r.compagnie }}</div>
+        </div>
+        {% endif %}
+        <div class="col-md-4">
+          <label class="form-label text-muted small">Date de réception</label>
+          <div class="fw-semibold">{{ r.date_reception }}</div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label text-muted small">Canal</label>
+          <div>{% if r.canal == 'email' %}📧{% elif r.canal == 'courrier' %}✉️{% elif r.canal == 'telephone' %}📞{% else %}🤝{% endif %} {{ r.canal | title }}</div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label text-muted small">Statut</label>
+          <div>
+            {% if r.statut == 'recue' %}<span class="badge bg-info text-dark">Reçue</span>
+            {% elif r.statut == 'en_cours' %}<span class="badge bg-warning text-dark">En cours</span>
+            {% elif r.statut == 'resolue' %}<span class="badge bg-success">Résolue ✅</span>
+            {% elif r.statut == 'escaladee' %}<span class="badge bg-danger">Escaladée</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label text-muted small">Objet</label>
+          <div class="fw-semibold">{{ r.objet }}</div>
+        </div>
+        {% if r.description %}
+        <div class="col-12">
+          <label class="form-label text-muted small">Description</label>
+          <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;white-space:pre-wrap;font-size:13px">{{ r.description }}</div>
+        </div>
+        {% endif %}
+        {% if r.reponse_apportee %}
+        <div class="col-12">
+          <label class="form-label text-muted small">Réponse apportée</label>
+          <div style="background:#f0fdf4;border-radius:8px;padding:12px 14px;white-space:pre-wrap;font-size:13px;border-left:3px solid #22c55e">{{ r.reponse_apportee }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Historique -->
+    <div class="form-card" style="max-width:100%">
+      <div class="form-section-title">📜 Historique</div>
+      {% if historique %}
+      <div class="timeline">
+        {% for h in historique %}
+        <div class="d-flex gap-3 mb-3">
+          <div style="width:8px;height:8px;border-radius:50%;background:#c9a84c;margin-top:6px;flex-shrink:0"></div>
+          <div>
+            <div class="small fw-semibold">{{ h.action }} — {{ h.champ_modifie or '' }}</div>
+            {% if h.ancienne_valeur and h.nouvelle_valeur %}
+            <div class="small text-muted"><span class="text-danger">{{ h.ancienne_valeur }}</span> → <span class="text-success">{{ h.nouvelle_valeur }}</span></div>
+            {% endif %}
+            <div class="small text-muted">{{ h.date_action[:16] if h.date_action else '' }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-muted small">Aucun historique disponible.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Panneau délais -->
+  <div class="col-lg-4">
+    <div class="card-crm mb-3">
+      <div class="card-crm-header"><span class="card-crm-title">⏱️ Délais légaux</span></div>
+      <div class="p-3">
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small text-muted">Accusé de réception (10j ouvrés)</span>
+          </div>
+          <div class="fw-semibold {{ 'text-danger' if r.date_accuse and r.date_accuse < today and not r.statut == 'resolue' else '' }}">
+            {{ r.date_accuse or '—' }}
+          </div>
+        </div>
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small text-muted">Réponse prévue (2 mois)</span>
+          </div>
+          <div class="fw-semibold {{ 'text-danger' if is_late else '' }}">
+            {{ r.date_reponse_prevue or '—' }}
+            {% if is_late %}<i class="bi bi-exclamation-circle-fill text-danger ms-1"></i>{% endif %}
+          </div>
+        </div>
+        {% if r.date_reponse_effective %}
+        <div class="mb-3">
+          <div class="small text-muted mb-1">Réponse effective</div>
+          <div class="fw-semibold text-success">{{ r.date_reponse_effective }} ✅</div>
+        </div>
+        {% endif %}
+        <hr>
+        <div class="d-flex gap-3 small">
+          <div>
+            <i class="bi bi-emoji-smile {{ 'text-success' if r.satisfait else 'text-muted' }}"></i>
+            {{ 'Satisfait' if r.satisfait else 'Non renseigné' }}
+          </div>
+          {% if r.mediateur_saisi %}
+          <div><i class="bi bi-person-badge text-warning"></i> Médiateur saisi</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <a href="{{ url_for('reclamation_modifier', id=r.id) }}" class="btn btn-primary w-100">
+      <i class="bi bi-pencil me-1"></i>Mettre à jour le dossier
+    </a>
+  </div>
+
+</div>
+{% endblock %}

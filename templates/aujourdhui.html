@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% block title %}Aujourd'hui — NAVISUR{% endblock %}
+{% block page_title %}Aujourd'hui{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">☀️ {{ jour_semaine }} {{ today[8:10] }} {{ mois_nom }} {{ today[:4] }}</h1>
+    <p class="page-header-sub">Votre poste de pilotage quotidien</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('journal_nouveau') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chat-square-text me-1"></i>Échange</a>
+    <a href="{{ url_for('rdv_nouveau') }}?date={{ today }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calendar-plus me-1"></i>RDV</a>
+    <a href="{{ url_for('relance_nouvelle') }}" class="btn btn-primary btn-sm"><i class="bi bi-megaphone me-1"></i>Relance</a>
+  </div>
+</div>
+
+<!-- ── STATS RAPIDES ── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#eff6ff;color:#1a2e5a"><i class="bi bi-people"></i></div>
+      <div><div class="stat-value">{{ stats.nb_clients }}</div><div class="stat-label">Clients actifs</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f0fdf4;color:#16a34a"><i class="bi bi-file-earmark-check"></i></div>
+      <div><div class="stat-value">{{ stats.nb_contrats_actifs }}</div><div class="stat-label">Contrats en cours</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fef9c3;color:#92400e"><i class="bi bi-cash-stack"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:18px">{{ "{:,.0f}".format(stats.ca_mois).replace(",", " ") }} €</div>
+        <div class="stat-label">CA ce mois</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card">
+      {% set pct = (stats.ca_annee / stats.plafond * 100)|int if stats.plafond > 0 else 0 %}
+      <div class="stat-icon" style="background:{% if pct >= 90 %}#fee2e2{% elif pct >= 70 %}#fef9c3{% else %}#eff6ff{% endif %};color:{% if pct >= 90 %}#dc2626{% elif pct >= 70 %}#92400e{% else %}#1a2e5a{% endif %}">
+        <i class="bi bi-speedometer2"></i>
+      </div>
+      <div>
+        <div class="stat-value" style="font-size:18px">{{ pct }} %</div>
+        <div class="stat-label">Plafond micro ({{ "{:,.0f}".format(stats.ca_annee).replace(",", " ") }} €)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- COLONNE GAUCHE : URGENT -->
+  <div class="col-lg-6">
+
+    <!-- RDV du jour -->
+    {% if rdvs_ajd %}
+    <div class="card-crm mb-3" style="border-left:4px solid #8b5cf6">
+      <div class="card-crm-header">
+        <span class="card-crm-title">📅 RDV aujourd'hui ({{ rdvs_ajd|length }})</span>
+        <a href="{{ url_for('agenda') }}" class="btn btn-sm btn-outline-secondary">Agenda</a>
+      </div>
+      {% for r in rdvs_ajd %}
+      <div class="p-3 {{ 'border-bottom' if not loop.last }}">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="fw-600">{{ r.heure_debut[:5] if r.heure_debut else '—' }} · {{ r.titre }}</div>
+            {% if r.nom %}<div class="text-muted" style="font-size:12px">👤 {{ r.prenom or '' }} {{ r.nom }}{% if r.telephone %} · {{ r.telephone }}{% endif %}</div>{% endif %}
+            {% if r.lieu %}<div class="text-muted" style="font-size:12px">📍 {{ r.lieu }}</div>{% endif %}
+          </div>
+          <a href="{{ url_for('rdv_modifier', id=r.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Relances à faire -->
+    {% if relances_ajd %}
+    <div class="card-crm mb-3" style="border-left:4px solid #dc2626">
+      <div class="card-crm-header">
+        <span class="card-crm-title">📣 Relances à effectuer ({{ relances_ajd|length }})</span>
+        <a href="{{ url_for('relances_list') }}" class="btn btn-sm btn-outline-secondary">Toutes</a>
+      </div>
+      {% for r in relances_ajd %}
+      <div class="p-3 {{ 'border-bottom' if not loop.last }}">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="fw-600">{{ r.prenom or '' }} {{ r.nom }}
+              {% if r.email %}<a href="mailto:{{ r.email }}" class="ms-2" style="font-size:12px;color:#1a2e5a"><i class="bi bi-envelope"></i></a>{% endif %}
+              {% if r.telephone %}<a href="tel:{{ r.telephone }}" class="ms-1" style="font-size:12px;color:#1a2e5a"><i class="bi bi-telephone"></i></a>{% endif %}
+            </div>
+            <div class="text-muted" style="font-size:12px">
+              {{ r.numero or '' }} · {{ r.type_assurance or '' }}
+              {% if r.date_prevue < today %}<span class="text-danger ms-1">⚠️ Prévue le {{ r.date_prevue }}</span>{% endif %}
+            </div>
+          </div>
+          <div class="d-flex gap-1">
+            <form method="post" action="{{ url_for('relance_effectuer', id=r.id) }}" style="margin:0">
+              <input type="hidden" name="reponse" value="">
+              <button class="btn btn-sm btn-success">✓</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Tâches du jour -->
+    {% if taches_ajd %}
+    <div class="card-crm mb-3" style="border-left:4px solid #f97316">
+      <div class="card-crm-header">
+        <span class="card-crm-title">✅ Tâches du jour ({{ taches_ajd|length }})</span>
+        <a href="{{ url_for('taches_list') }}" class="btn btn-sm btn-outline-secondary">Toutes</a>
+      </div>
+      {% for t in taches_ajd %}
+      <div class="p-3 {{ 'border-bottom' if not loop.last }}">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="fw-600">{{ t.titre }}</div>
+            <div class="text-muted" style="font-size:12px">
+              {{ t.prenom or '' }} {{ t.nom or '' }}
+              {% if t.date_echeance < today %}<span class="text-danger ms-2">⚠️ En retard</span>{% endif %}
+            </div>
+          </div>
+          <form method="post" action="{{ url_for('tache_terminer', id=t.id) }}" style="margin:0">
+            <button class="btn btn-sm btn-success">✓ Terminée</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- URSSAF urgent -->
+    {% if urssaf_dues %}
+    <div class="card-crm mb-3" style="border-left:4px solid #dc2626">
+      <div class="card-crm-header">
+        <span class="card-crm-title">🏛️ URSSAF à déclarer</span>
+        <a href="{{ url_for('compta_urssaf') }}" class="btn btn-sm btn-primary">Déclarer</a>
+      </div>
+      {% for u in urssaf_dues %}
+      <div class="p-3">
+        <div class="fw-600">{{ u.periode_label }} — {{ "{:,.2f}".format(u.total_a_payer).replace(",", " ") }} € à payer</div>
+        <div class="text-muted" style="font-size:12px">
+          CA : {{ "{:,.2f}".format(u.ca_periode).replace(",", " ") }} € ·
+          Limite :
+          <span class="{{ 'text-danger fw-600' if u.date_limite < today else 'text-warning' }}">{{ u.date_limite }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Message si tout est OK -->
+    {% if not rdvs_ajd and not relances_ajd and not taches_ajd and not urssaf_dues %}
+    <div class="card-crm mb-3">
+      <div class="p-5 text-center">
+        <div style="font-size:48px;margin-bottom:12px">🌊</div>
+        <h5 style="color:#1a2e5a;font-weight:700">Tout est à jour !</h5>
+        <p class="text-muted">Aucune urgence du jour. Bonne navigation ⚓</p>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- COLONNE DROITE : ANTICIPATION -->
+  <div class="col-lg-6">
+
+    <!-- Contrats expirant dans 30j -->
+    {% if contrats_30j %}
+    <div class="card-crm mb-3" style="border-left:4px solid #f59e0b">
+      <div class="card-crm-header">
+        <span class="card-crm-title">⚠️ Expirent dans 30 jours ({{ contrats_30j|length }})</span>
+        <a href="{{ url_for('alertes') }}" class="btn btn-sm btn-outline-secondary">Toutes alertes</a>
+      </div>
+      {% for ct in contrats_30j %}
+      <div class="p-3 {{ 'border-bottom' if not loop.last }} d-flex justify-content-between align-items-center">
+        <div>
+          <div class="fw-600">{{ ct.prenom or '' }} {{ ct.nom }}</div>
+          <div class="text-muted" style="font-size:12px">
+            {{ ct.type_assurance or '' }} · Expire le <strong>{{ ct.date_fin }}</strong>
+            <span class="{{ 'text-danger' if ct.jours <= 7 else 'text-warning' }} fw-700 ms-1">J-{{ ct.jours }}</span>
+          </div>
+        </div>
+        <div class="d-flex gap-1">
+          <a href="{{ url_for('contrat_renouveler', id=ct.id) }}" class="btn btn-sm btn-primary">🔁 Renouveler</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Commissions en retard -->
+    {% if comm_retard %}
+    <div class="card-crm mb-3" style="border-left:4px solid #f97316">
+      <div class="card-crm-header">
+        <span class="card-crm-title">💰 Commissions en retard ({{ comm_retard|length }})</span>
+        <a href="{{ url_for('compta_commissions') }}" class="btn btn-sm btn-outline-secondary">Détail</a>
+      </div>
+      {% for c in comm_retard %}
+      <div class="p-3 {{ 'border-bottom' if not loop.last }}">
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="fw-600">{{ c.compagnie }}</div>
+            <div class="text-muted" style="font-size:12px">{{ c.prenom or '' }} {{ c.nom or '' }} · Prévue le {{ c.date_prevue }}</div>
+          </div>
+          <div class="fw-700" style="color:#c2410c;font-size:15px">{{ "{:,.2f}".format(c.montant_attendu).replace(",", " ") }} €</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Contrats 31-90j -->
+    {% if contrats_90j %}
+    <div class="card-crm mb-3" style="border-left:4px solid #22c55e">
+      <div class="card-crm-header">
+        <span class="card-crm-title">📅 Renouvellements à venir — 31 à 90 jours ({{ contrats_90j|length }})</span>
+      </div>
+      {% for ct in contrats_90j %}
+      <div class="p-2 px-3 {{ 'border-bottom' if not loop.last }} d-flex justify-content-between align-items-center">
+        <div>
+          <div style="font-size:13px;font-weight:600">{{ ct.prenom or '' }} {{ ct.nom }} <span class="text-muted fw-400">— {{ ct.type_assurance or '' }}</span></div>
+          <div class="text-muted" style="font-size:11px">Expire le {{ ct.date_fin }} · <strong>J-{{ ct.jours }}</strong></div>
+        </div>
+        <a href="{{ url_for('contrat_detail', id=ct.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Pièces manquantes -->
+    {% if pieces_manquantes %}
+    <div class="card-crm mb-3" style="border-left:4px solid #8b5cf6">
+      <div class="card-crm-header">
+        <span class="card-crm-title">📋 Dossiers incomplets ({{ pieces_manquantes|length }})</span>
+      </div>
+      {% for ct in pieces_manquantes %}
+      <div class="p-2 px-3 {{ 'border-bottom' if not loop.last }} d-flex justify-content-between align-items-center">
+        <div>
+          <div style="font-size:13px;font-weight:600">{{ ct.prenom or '' }} {{ ct.nom }} — {{ ct.type_assurance or '' }}</div>
+          <div class="text-muted" style="font-size:11px">
+            {{ ct.pieces_recues }}/{{ ct.total_pieces }} pièces ·
+            <span class="text-warning fw-600">{{ ct.total_pieces - ct.pieces_recues }} manquante(s)</span>
+          </div>
+        </div>
+        <a href="{{ url_for('contrat_checklist', id=ct.id) }}" class="btn btn-sm btn-outline-secondary">Checklist</a>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- Auto-refresh badge -->
+<div style="text-align:center;margin-top:8px">
+  <span style="font-size:11px;color:#94a3b8">Données en temps réel · <a href="{{ url_for('aujourdhui') }}" style="color:#94a3b8">Actualiser</a></span>
+</div>
+{% endblock %}

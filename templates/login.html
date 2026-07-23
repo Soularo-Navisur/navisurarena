@@ -1,0 +1,19 @@
+{% extends 'base.html' %}{% block content %}
+<div class="container py-5" style="max-width:420px">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h4 class="mb-3">🔐 NAVISUR — Connexion</h4>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat,msg in messages %}<div class="alert alert-{{'danger' if cat=='error' else cat}}">{{msg}}</div>{% endfor %}
+      {% endwith %}
+      <form method="post">
+        <div class="mb-3"><label class="form-label">Email</label>
+          <input name="email" type="email" class="form-control" required autofocus></div>
+        <div class="mb-3"><label class="form-label">Mot de passe</label>
+          <input name="password" type="password" class="form-control" required></div>
+        <button class="btn btn-primary w-100">Se connecter</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

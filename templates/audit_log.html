@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Journal des modifications — NAVISUR{% endblock %}
+{% block page_title %}Journal des modifications{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📋 Journal des modifications</h1>
+    <p class="page-header-sub">{{ nb_total }} enregistrement(s) au total — traçabilité complète</p>
+  </div>
+</div>
+
+<!-- Filtres -->
+<form method="get" class="search-bar mb-3">
+  <select name="table" class="form-select" style="width:auto">
+    <option value="">Toutes les tables</option>
+    {% for t in tables %}
+    <option value="{{ t }}" {{ 'selected' if table_filter==t }}>{{ t }}</option>
+    {% endfor %}
+  </select>
+  <select name="action" class="form-select" style="width:auto">
+    <option value="">Toutes les actions</option>
+    {% for a in ['INSERT','UPDATE','DELETE','EXPORT'] %}
+    <option value="{{ a }}" {{ 'selected' if action_filter==a }}>{{ a }}</option>
+    {% endfor %}
+  </select>
+  <select name="limit" class="form-select" style="width:auto">
+    {% for l in [50, 100, 250, 500] %}
+    <option value="{{ l }}" {{ 'selected' if limit==l }}>{{ l }} lignes</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-primary">Filtrer</button>
+  {% if table_filter or action_filter %}
+  <a href="{{ url_for('audit_log_list') }}" class="btn btn-outline-secondary">✕ Réinitialiser</a>
+  {% endif %}
+</form>
+
+<div class="card-crm">
+  {% if logs %}
+  <table class="table-crm">
+    <thead>
+      <tr>
+        <th style="width:140px">Date</th>
+        <th style="width:90px">Action</th>
+        <th style="width:100px">Table</th>
+        <th style="width:50px">ID</th>
+        <th style="width:130px">Champ</th>
+        <th>Avant</th>
+        <th>Après</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td class="text-muted" style="font-size:11px;white-space:nowrap">{{ log.date_action[:16] }}</td>
+        <td>
+          {% set action_colors = {'INSERT':'badge-clos','UPDATE':'badge-attendu','DELETE':'badge-resilie','EXPORT':'badge-inactif'} %}
+          <span class="badge-crm {{ action_colors.get(log.action,'badge-inactif') }}" style="font-size:10px">
+            {{ log.action }}
+          </span>
+        </td>
+        <td class="font-mono" style="font-size:11px;color:#8b5cf6">{{ log.table_name }}</td>
+        <td class="text-muted" style="font-size:12px">#{{ log.record_id }}</td>
+        <td style="font-size:12px;font-weight:500">{{ log.champ_modifie or '—' }}</td>
+        <td class="text-muted" style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          {{ log.ancienne_valeur or '—' }}
+        </td>
+        <td style="font-size:12px;font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          {{ log.nouvelle_valeur or '—' }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state py-5">
+    <i class="bi bi-journal-text" style="font-size:48px;opacity:.2"></i>
+    <h5 class="mt-3">Aucune modification enregistrée</h5>
+    <p class="text-muted">Le journal se remplit automatiquement dès que vous modifiez des contrats ou des devis.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

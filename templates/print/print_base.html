@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block doc_title %}Document{% endblock %} — {{ params.get('nom_cabinet', 'Riviera Marine Assurances') }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/print-premium.css') }}">
+  <style>
+    /* Couleurs personnalisées du cabinet */
+    :root {
+      --p-navy:  {{ params.get('print_couleur_principale', '#0f1e3c') }};
+      --p-gold:  {{ params.get('print_couleur_accent', '#c9a84c') }};
+    }
+  </style>
+</head>
+<body class="doc-print">
+
+  <!-- EN-TÊTE -->
+  <div class="doc-header no-print-break">
+    <div class="doc-header-logo">
+      <img src="{{ url_for('static', filename='img/navisur_logo.png') }}" alt="Logo">
+      <div>
+        <div class="cabinet-name">{{ params.get('nom_cabinet', 'Riviera Marine Assurances') }}</div>
+        <div class="cabinet-sub">{{ params.get('print_sous_titre', 'Courtage en assurance plaisance') }}</div>
+      </div>
+    </div>
+    <div class="doc-header-info">
+      {% if params.get('adresse_cabinet') %}<span>{{ params.adresse_cabinet }}</span>{% endif %}
+      {% if params.get('telephone_cabinet') %}<span>📞 {{ params.telephone_cabinet }}</span>{% endif %}
+      {% if params.get('email_cabinet') %}<span>✉️ {{ params.email_cabinet }}</span>{% endif %}
+    </div>
+    <div class="doc-header-right">
+      <div class="doc-type">{{ self.doc_type() }}</div>
+      <div class="doc-date">{{ today }}</div>
+      {% if self.doc_ref() %}<div class="doc-date" style="font-family:monospace;font-weight:700;color:var(--p-navy)">{% block doc_ref %}{% endblock %}</div>{% endif %}
+    </div>
+  </div>
+  <div class="doc-header-bar"></div>
+
+  <!-- CONTENU -->
+  {% block content %}{% endblock %}
+
+  <!-- PIED DE PAGE -->
+  <div class="doc-footer">
+    <div class="footer-brand">{{ params.get('nom_cabinet', 'Riviera Marine Assurances') }}</div>
+    <div>{{ params.get('print_pied_page', '') }}</div>
+    <div class="footer-page"></div>
+  </div>
+
+  <script>
+  // Impression automatique si paramètre auto_print=1
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('auto_print') === '1') {
+    window.addEventListener('load', () => setTimeout(() => window.print(), 300));
+  }
+  </script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% block title %}RGPD — Riviera Marine Assurances{% endblock %}
+{% block page_title %}Conformité RGPD{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('rgpd_demande_nouvelle') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Nouvelle demande</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🔒 Conformité RGPD</h1>
+    <p class="page-header-sub">Suivi des consentements et demandes clients</p>
+  </div>
+  <a href="{{ url_for('rgpd_demande_nouvelle') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Nouvelle demande
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="bi bi-people"></i></div>
+      <div><div class="stat-value">{{ stats.total_clients }}</div><div class="stat-label">Clients total</div></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+      <div><div class="stat-value">{{ stats.consentements }}</div><div class="stat-label">Consentements enregistrés</div></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon orange"><i class="bi bi-hourglass"></i></div>
+      <div><div class="stat-value">{{ stats.demandes_en_cours }}</div><div class="stat-label">Demandes en cours</div></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-archive"></i></div>
+      <div><div class="stat-value">{{ stats.demandes_traitees }}</div><div class="stat-label">Demandes traitées</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- INFO RGPD -->
+<div class="card-crm mb-4" style="border-left:4px solid #1d4ed8">
+  <div class="p-4" style="background:#eff6ff">
+    <div class="fw-600 mb-1" style="color:#1e3a5f">ℹ️ Obligations RGPD pour votre cabinet</div>
+    <div style="font-size:13px;color:#475569;line-height:1.6">
+      En tant que courtier, vous traitez des données personnelles de vos clients (nom, adresse, données financières).
+      Vous devez : <strong>obtenir le consentement explicite</strong> avant tout traitement marketing,
+      <strong>répondre dans 30 jours</strong> aux demandes d'accès ou de suppression,
+      et <strong>tenir ce registre</strong> à disposition en cas de contrôle CNIL.
+    </div>
+  </div>
+</div>
+
+<!-- DEMANDES EN COURS -->
+<div class="card-crm mb-4">
+  <div class="card-crm-header">
+    <span class="card-crm-title"><i class="bi bi-shield-lock me-2"></i>Demandes clients ({{ demandes|length }})</span>
+  </div>
+  {% if demandes %}
+  <table class="table-crm">
+    <thead><tr><th>Client</th><th>Type de demande</th><th>Date</th><th>Statut</th><th>Traité le</th><th></th></tr></thead>
+    <tbody>
+      {% for d in demandes %}
+      <tr>
+        <td>
+          <div class="fw-500">{{ d.prenom or '' }} {{ d.nom }}</div>
+          {% if d.email %}<div class="text-muted" style="font-size:11px">{{ d.email }}</div>{% endif %}
+        </td>
+        <td>{{ d.type_demande or '—' }}</td>
+        <td class="text-muted">{{ d.date_demande }}</td>
+        <td>
+          <span class="badge-crm {% if d.statut == 'traite' %}badge-clos{% else %}badge-attendu{% endif %}">
+            {{ '✓ Traité' if d.statut == 'traite' else '⏳ En cours' }}
+          </span>
+        </td>
+        <td class="text-muted">{{ d.date_traitement or '—' }}</td>
+        <td>
+          {% if d.statut != 'traite' %}
+          <form method="post" action="{{ url_for('rgpd_demande_traiter', id=d.id) }}">
+            <input type="hidden" name="notes" value="">
+            <button type="submit" class="btn btn-sm btn-success">✓ Marquer traitée</button>
+          </form>
+          {% else %}
+          <span class="text-muted" style="font-size:12px">Archivé</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state py-4">
+    <i class="bi bi-shield-check" style="font-size:36px;color:#22c55e"></i>
+    <h5 class="mt-3">Aucune demande en attente</h5>
+    <p class="text-muted small">Toutes les demandes RGPD sont traitées !</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- TYPES DE DEMANDES RGPD -->
+<div class="card-crm">
+  <div class="card-crm-header"><span class="card-crm-title">📘 Types de demandes RGPD</span></div>
+  <div class="p-4">
+    <div class="row g-3">
+      {% for item in [
+        ('Droit d\'accès', 'Le client souhaite consulter ses données', 'bi-eye', '#3b82f6'),
+        ('Droit de rectification', 'Correction de données incorrectes', 'bi-pencil', '#8b5cf6'),
+        ('Droit à l\'effacement', 'Suppression des données (droit à l\'oubli)', 'bi-trash', '#ef4444'),
+        ('Droit à la portabilité', 'Export des données dans un format lisible', 'bi-download', '#f97316'),
+        ('Droit d\'opposition', 'S\'oppose au traitement marketing', 'bi-hand-stop-fill', '#eab308'),
+        ('Retrait de consentement', 'Révocation du consentement donné', 'bi-x-circle', '#64748b'),
+      ] %}
+      <div class="col-md-4">
+        <div style="background:#f8fafc;border-radius:8px;padding:12px;border:1px solid #e2e8f0">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <i class="bi {{ item[2] }}" style="color:{{ item[3] }}"></i>
+            <div class="fw-600" style="font-size:13px">{{ item[0] }}</div>
+          </div>
+          <div class="text-muted" style="font-size:12px">{{ item[1] }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

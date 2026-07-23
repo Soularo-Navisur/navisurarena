@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% block title %}Suivi financier — NAVISUR{% endblock %}
+{% block page_title %}Suivi financier{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">💰 Quittances & Commissions</h1>
+    <p class="page-header-sub">Vue globale de votre portefeuille</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('suivi_financier_export', onglet=onglet, annee=annee_f, compagnie=compagnie_f) }}"
+       class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-file-earmark-excel me-1"></i>Exporter Excel
+    </a>
+  </div>
+</div>
+
+<!-- Filtres -->
+<div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
+  <select class="form-select form-select-sm" style="width:auto"
+          onchange="window.location.href=updateParam('annee',this.value)">
+    <option value="">Toutes les années</option>
+    {% for a in annees_dispo %}
+    <option value="{{ a }}" {{ 'selected' if annee_f == a|string }}>{{ a }}</option>
+    {% endfor %}
+  </select>
+  <select class="form-select form-select-sm" style="width:auto"
+          onchange="window.location.href=updateParam('compagnie',this.value)">
+    <option value="">Toutes les compagnies</option>
+    {% for cp in compagnies_dispo %}
+    <option value="{{ cp }}" {{ 'selected' if compagnie_f == cp }}>{{ cp }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<!-- Onglets -->
+<ul class="nav nav-tabs mb-3">
+  {% for key, label, badge, badge_class in [
+    ('envoyer', '📤 À envoyer', nb_envoyer, 'bg-warning text-dark'),
+    ('attente', '⏳ En attente paiement', none, 'bg-secondary'),
+    ('impayes', '⚠️ Impayées', nb_impayes, 'bg-danger'),
+    ('a_reverser', '💼 À reverser compagnie', nb_a_reverser, 'bg-secondary'),
+    ('tout', '📋 Tout', none, 'bg-secondary'),
+  ] %}
+  <li class="nav-item">
+    <a href="{{ url_for('suivi_financier_global', onglet=key, annee=annee_f, compagnie=compagnie_f) }}"
+       class="nav-link {{ 'active' if onglet == key }}">
+      {{ label }}
+      {% if badge and badge > 0 %}
+        <span class="badge {{ badge_class }} ms-1">{{ badge }}</span>
+      {% endif %}
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+
+<!-- Alertes globales -->
+{% if nb_impayes > 0 %}
+<div class="alert alert-danger py-2 mb-3" style="font-size:13px;border-left:4px solid #dc2626">
+  <i class="bi bi-exclamation-triangle-fill me-1"></i>
+  <strong>{{ nb_impayes }} quittance(s) impayée(s)</strong> — Relances à effectuer.
+</div>
+{% endif %}
+{% if mt_frais > 0 %}
+<div class="alert alert-success py-2 mb-3" style="font-size:13px;border-left:4px solid #16a34a">
+  <i class="bi bi-cash-coin me-1"></i>
+  <strong>{{ "%.2f"|format(mt_frais) }} €</strong> de frais de courtage encaissés — <strong>{{ "%.2f"|format(mt_reverser) }} €</strong> à reverser aux compagnies.
+</div>
+{% endif %}
+{% if nb_prelev_mois > 0 %}
+<div class="alert alert-light py-2 mb-3" style="font-size:13px;border-left:4px solid #94a3b8">
+  <i class="bi bi-calendar-check me-1"></i>
+  <strong>{{ nb_prelev_mois }} prélèvement(s)</strong> prévu(s) ce mois-ci.
+</div>
+{% endif %}
+
+<!-- Tableau principal -->
+<div class="form-card" style="max-width:100%">
+  {% if rows %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle" style="font-size:13px">
+      <thead>
+        <tr>
+          <th>Contrat</th>
+          <th>Client</th>
+          <th>Compagnie</th>
+          <th class="text-center">Période</th>
+          <th class="text-end">Prime TTC</th>
+          <th class="text-end">Frais</th>
+          <th class="text-end">Net compagnie</th>
+          <th>Échéance</th>
+          <th>Paiement</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for q in rows %}
+        <tr class="{{ 'table-danger' if q.statut_paiement == 'impayee' else '' }}">
+          <td>
+            <a href="{{ url_for('contrat_detail', id=q.contrat_id) }}#tab-financier"
+               class="fw-semibold font-mono text-decoration-none" style="color:#1a2e5a">
+              {{ q.ct_numero }}
+            </a>
+            <div class="small text-muted">{{ q.type_assurance or '' }}</div>
+          </td>
+          <td>
+            <span class="fw-semibold">{{ q.nom }} {{ q.prenom or '' }}</span>
+          </td>
+          <td class="small text-muted">{{ q.compagnie or '—' }}</td>
+          <td class="text-center small">
+            {{ q.annee }} — {{ q.numero_quittance }}/{{ q.total_quittances }}
+            <div class="text-muted" style="font-size:10px">{{ q.frequence }}</div>
+          </td>
+          <td class="text-end fw-semibold">{{ "%.2f"|format(q.montant_ttc or 0) }} €</td>
+          <td class="text-end small text-muted">{{ "%.2f"|format(q.frais_courtage or 0) }} €</td>
+          <td class="text-end small fw-semibold" style="color:#16a34a">{{ "%.2f"|format(q.net_a_reverser or (q.montant_ttc or 0) - (q.frais_courtage or 0)) }} €</td>
+          <td class="small {{ 'text-danger fw-bold' if q.date_echeance and q.date_echeance < today and q.statut_paiement == 'en_attente' else '' }}">
+            {{ q.date_echeance or '—' }}
+          </td>
+          <td>
+            {% if q.mode_paiement == 'prelevement' %}
+              <span class="badge bg-light text-dark">🔵 Prélèv.</span>
+            {% elif q.statut_paiement == 'payee' %}
+              <span class="badge bg-success">✅ Payée</span>
+            {% elif q.statut_paiement == 'impayee' %}
+              <span class="badge bg-danger">⚠️ Impayée</span>
+            {% else %}
+              <span class="badge bg-secondary">⏳ Attente</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('quittance_modifier', qid=q.id) }}" class="btn btn-sm btn-outline-secondary" title="Éditer quittance">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{{ url_for('quittance_imprimer', qid=q.id) }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Imprimer quittance">
+                <i class="bi bi-printer"></i>
+              </a>
+              <a href="{{ url_for('contrat_detail', id=q.contrat_id) }}#tab-financier" class="btn btn-sm btn-outline-secondary" title="Contrat">
+                <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="p-2 text-muted small">{{ rows|length }} ligne(s)</div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-check-circle" style="font-size:48px;opacity:.3;color:#22c55e"></i>
+    <p class="mt-3">
+      {% if onglet == 'envoyer' %}Aucune quittance à envoyer dans les 15 prochains jours.
+      {% elif onglet == 'impayes' %}Aucune quittance impayée. 🎉
+      {% elif onglet == 'commissions' %}Toutes les commissions ont été reçues.
+      {% else %}Aucune donnée pour ces filtres.{% endif %}
+    </p>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function updateParam(key, val) {
+  const url = new URL(window.location.href);
+  if (val) url.searchParams.set(key, val);
+  else url.searchParams.delete(key);
+  return url.toString();
+}
+</script>
+{% endblock %}

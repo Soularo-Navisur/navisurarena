@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Modifier' if risque else 'Nouveau' }} risque — NAVISUR{% endblock %}
+{% block page_title %}{{ 'Modifier le risque' if risque else 'Nouveau risque' }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">🗂️ {{ 'Modifier le risque' if risque else 'Nouveau risque assuré' }}</h1>
+  <a href="javascript:history.back()" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+<form method="post" id="form-risque">
+  <div class="form-card" style="max-width:900px">
+    <div class="form-section-title">👤 Propriétaire & Catégorie</div>
+    <div class="row g-3">
+      <div class="col-md-12">
+        <label class="form-label">Client *</label>
+        <select name="client_id" class="form-select" required>
+          <option value="">— Sélectionner un client —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}" {{ 'selected' if (risque and risque.client_id==c.id) or (client_id and client_id|int==c.id) }}>
+            {{ c.prenom or '' }} {{ c.nom }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Catégorie *</label>
+        <select name="categorie" id="sel-categorie" class="form-select" required onchange="updateSousCategories(this.value)">
+          <option value="">— Sélectionner une catégorie —</option>
+          {% for cat in CATEGORIES_RISQUES.keys() %}
+          <option value="{{ cat }}" {{ 'selected' if (risque and risque.categorie==cat) or (not risque and cat=='Bateau') }}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Sous-catégorie *</label>
+        <select name="sous_categorie" id="sel-sous-categorie" class="form-select" required>
+          <option value="">— Sélectionner d'abord une catégorie —</option>
+        </select>
+      </div>
+
+      <div class="col-md-8">
+        <label class="form-label">Désignation / Libellé *</label>
+        <input type="text" name="libelle" class="form-control" required
+               value="{{ risque.libelle if risque else '' }}"
+               placeholder="Ex : Océanis 40 — KAORI, Villa Les Pins, Bureau Antibes...">
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label">Valeur assurée (€)</label>
+        <div class="input-group">
+          <input type="number" name="valeur_assurance" step="100" min="0" class="form-control"
+                 value="{{ risque.valeur_assurance if risque else '' }}">
+          <span class="input-group-text">€</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section-title">📍 Adresse & Localisation (si applicable)</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Adresse / Port d'attache</label>
+        <input type="text" name="adresse" class="form-control"
+               value="{{ risque.adresse if risque else '' }}" placeholder="Port de Cannes, 12 rue de la Paix...">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Code postal</label>
+        <input type="text" name="code_postal" class="form-control"
+               value="{{ risque.code_postal if risque else '' }}" placeholder="06400">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Ville</label>
+        <input type="text" name="ville" class="form-control"
+               value="{{ risque.ville if risque else '' }}" placeholder="Cannes">
+      </div>
+    </div>
+
+    <div class="form-section-title">📝 Notes & Spécificités</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <textarea name="notes" class="form-control" rows="3"
+                  placeholder="Caractéristiques techniques, immatriculation, équipements, remarques particulières...">{{ risque.notes if risque else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if risque else 'Enregistrer le risque' }}
+      </button>
+      <a href="javascript:history.back()" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+
+<script>
+const categoriesData = {{ CATEGORIES_RISQUES | tojson }};
+const currentSousCat = "{{ risque.sous_categorie if risque else '' }}";
+
+function updateSousCategories(cat) {
+  const selSub = document.getElementById('sel-sous-categorie');
+  selSub.innerHTML = '<option value="">— Sélectionner une sous-catégorie —</option>';
+  if (categoriesData[cat]) {
+    categoriesData[cat].forEach(sub => {
+      const opt = document.createElement('option');
+      opt.value = sub;
+      opt.textContent = sub;
+      if (sub === currentSousCat) opt.selected = true;
+      selSub.appendChild(opt);
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const selCat = document.getElementById('sel-categorie');
+  if (selCat && selCat.value) {
+    updateSousCategories(selCat.value);
+  } else if (selCat) {
+    selCat.value = 'Bateau';
+    updateSousCategories('Bateau');
+  }
+});
+</script>
+{% endblock %}

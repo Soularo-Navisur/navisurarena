@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}RGPD — {{ client.prenom }} {{ client.nom }}{% endblock %}
+{% block page_title %}Fiche RGPD client{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <a href="{{ url_for('rgpd_list') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Retour RGPD
+  </a>
+  <a href="{{ url_for('client_detail', id=client.id) }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-person me-1"></i>Fiche client
+  </a>
+</div>
+
+<div class="client-hero mb-4" style="background:linear-gradient(135deg,#1e1b4b,#3730a3)">
+  <div class="client-hero-avatar" style="font-size:28px;background:rgba(255,255,255,.15)">🔒</div>
+  <h2 class="client-hero-name">{{ client.prenom or '' }} {{ client.nom }}</h2>
+  <div class="client-hero-meta">Dossier RGPD — {{ client.email or 'email non renseigné' }}</div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <!-- CONSENTEMENTS -->
+    <div class="card-crm mb-3">
+      <div class="card-crm-header">
+        <span class="card-crm-title">✅ Consentements ({{ consentements|length }})</span>
+      </div>
+      {% if consentements %}
+      <table class="table-crm">
+        <thead><tr><th>Type de traitement</th><th>Consentement</th><th>Date</th><th>Source</th></tr></thead>
+        <tbody>
+          {% for c in consentements %}
+          <tr>
+            <td>{{ c.type_traitement }}</td>
+            <td>
+              {% if c.consentement %}
+                <span class="badge-crm badge-clos">✓ Accordé</span>
+              {% else %}
+                <span class="badge-crm badge-resilie">✗ Refusé</span>
+              {% endif %}
+            </td>
+            <td class="text-muted" style="font-size:12px">{{ c.date_consentement or '—' }}</td>
+            <td class="text-muted" style="font-size:12px">{{ c.source or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state py-4">
+        <i class="bi bi-shield" style="font-size:28px;opacity:.3"></i>
+        <p class="mb-0 mt-2">Aucun consentement enregistré</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- AJOUTER CONSENTEMENT -->
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">+ Enregistrer un consentement</span></div>
+      <div class="p-3">
+        <form method="post" action="{{ url_for('rgpd_consentement_ajouter') }}">
+          <input type="hidden" name="client_id" value="{{ client.id }}">
+          <div class="row g-2">
+            <div class="col-12">
+              <select name="type_traitement" class="form-select form-select-sm" required>
+                <option value="">— Type de traitement —</option>
+                {% for t in ['Traitement des données personnelles','Envoi de communications commerciales','Partage avec des partenaires','Profilage et recommandations','Conservation des données au-delà de la durée légale'] %}
+                <option value="{{ t }}">{{ t }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-5">
+              <select name="consentement" class="form-select form-select-sm">
+                <option value="1">✅ Accordé</option>
+                <option value="0">❌ Refusé</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <input type="date" name="date_consentement" class="form-control form-control-sm"
+                     value="{{ date.today().isoformat() if date else '' }}">
+            </div>
+            <div class="col-md-3">
+              <button type="submit" class="btn btn-primary btn-sm w-100">Ajouter</button>
+            </div>
+            <div class="col-12">
+              <input type="text" name="source" class="form-control form-control-sm"
+                     placeholder="Source : email, formulaire, téléphone...">
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <!-- DEMANDES -->
+    <div class="card-crm">
+      <div class="card-crm-header">
+        <span class="card-crm-title">📋 Demandes RGPD ({{ demandes|length }})</span>
+      </div>
+      {% if demandes %}
+      <table class="table-crm">
+        <thead><tr><th>Type</th><th>Date</th><th>Statut</th><th>Traité le</th></tr></thead>
+        <tbody>
+          {% for d in demandes %}
+          <tr>
+            <td style="font-size:13px">{{ d.type_demande }}</td>
+            <td class="text-muted" style="font-size:12px">{{ d.date_demande }}</td>
+            <td>
+              <span class="badge-crm {% if d.statut=='traite' %}badge-clos{% else %}badge-attendu{% endif %}">
+                {{ '✓ Traité' if d.statut=='traite' else '⏳ En cours' }}
+              </span>
+            </td>
+            <td class="text-muted" style="font-size:12px">{{ d.date_traitement or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state py-4">
+        <i class="bi bi-inbox" style="font-size:28px;opacity:.3"></i>
+        <p class="mb-0 mt-2">Aucune demande</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,500 @@
+{% extends 'base.html' %}
+{% block title %}Tableau de bord — NAVISUR{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+
+{% block content %}
+
+<script>window.__navisur_ca_mois = {{ ca_par_mois }};</script>
+<div data-page="dashboard">
+<!-- ══ ZONE 1 : KPIs ══════════════════════════════════════ -->
+<div class="row g-3 mb-4">
+
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="kpi-label">💶 CA ce mois</div>
+          <div class="kpi-number" data-count="{{ stats.ca_mois | int }}">0</div>
+          <div class="kpi-sub">
+            {% if ca_mois_precedent > 0 %}
+              {% set delta = ((stats.ca_mois - ca_mois_precedent) / ca_mois_precedent * 100) | round(1) %}
+              {% if delta >= 0 %}
+                <span style="color:#22c55e">▲ +{{ delta }}%</span>
+              {% else %}
+                <span style="color:#dc2626">▼ {{ delta }}%</span>
+              {% endif %}
+              vs mois précédent
+            {% else %}
+              <a href="{{ url_for('compta_recettes') }}" style="color:var(--c-gold);font-size:11px">Voir les recettes →</a>
+            {% endif %}
+          </div>
+        </div>
+        <div style="font-size:28px;opacity:.15">💶</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="kpi-label">📄 Contrats actifs</div>
+          <div class="kpi-number" data-count="{{ stats.nb_contrats_actifs }}">0</div>
+          <div class="kpi-sub">
+            <span style="color:var(--c-text-2)">{{ nb_bateaux }} bateaux assurés</span>
+          </div>
+        </div>
+        <div style="font-size:28px;opacity:.15">📄</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="kpi-label">📊 Devis en attente</div>
+          <div class="kpi-number" data-count="{{ devis_attente | length }}">0</div>
+          <div class="kpi-sub">
+            <a href="{{ url_for('devis_list') }}" style="color:var(--c-gold);font-size:11px">Voir les devis →</a>
+          </div>
+        </div>
+        <div style="font-size:28px;opacity:.15">📊</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="kpi-label">👥 Clients</div>
+          <div class="kpi-number" data-count="{{ stats.nb_clients }}">0</div>
+          <div class="kpi-sub">
+            <span style="color:var(--c-text-2)">+ {{ stats.nb_prospects }} prospect(s)</span>
+          </div>
+        </div>
+        <div style="font-size:28px;opacity:.15">👥</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ ZONE 2 : À faire + Activité récente ══════════════════ -->
+<div class="row g-4 mb-4">
+
+  <!-- À faire aujourd'hui -->
+  <div class="col-lg-5">
+    <div class="card-crm h-100">
+      <div class="card-crm-header d-flex justify-content-between align-items-center">
+        <span class="card-crm-title">✅ À faire</span>
+        <span style="font-size:11px;color:var(--c-text-2)">{{ taches_dues|length + relances_dues|length + tacite_a_saisir|length + devis_attente|length }} items</span>
+      </div>
+      <div class="p-3" style="max-height:420px;overflow-y:auto">
+
+        {% set todo_total = taches_dues|length + relances_dues|length + tacite_a_saisir|length %}
+
+        {% if todo_total == 0 and devis_attente|length == 0 %}
+        <div style="text-align:center;padding:32px;color:var(--c-text-2)">
+          <div style="font-size:32px;margin-bottom:8px">🎉</div>
+          <div style="font-size:14px;font-weight:600;color:var(--c-text-1)">Rien à faire !</div>
+          <div style="font-size:12px;margin-top:4px">Bonne journée 🌊</div>
+        </div>
+        {% endif %}
+
+        {% for t in taches_dues[:3] %}
+        <div class="todo-item">
+          <div class="todo-dot" style="background:{% if t.priorite == 'haute' %}#dc2626{% elif t.priorite == 'normale' %}#f59e0b{% else %}#22c55e{% endif %}"></div>
+          <div class="todo-content">
+            <div class="todo-title">{{ t.objet or 'Tâche' }}</div>
+            <div class="todo-sub">{{ t.prenom or '' }} {{ t.nom or '' }} · Échéance {{ t.date_echeance }}</div>
+            <div class="todo-actions">
+              <a href="{{ url_for('tache_terminer', id=t.id) }}" class="btn btn-xs btn-outline-secondary" style="font-size:11px;padding:2px 8px">✓ Terminer</a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% for r in relances_dues[:3] %}
+        <div class="todo-item">
+          <div class="todo-dot" style="background:#f59e0b"></div>
+          <div class="todo-content">
+            <div class="todo-title">Relancer {{ r.prenom or '' }} {{ r.nom }} — {{ r.type_relance or 'relance' }}</div>
+            <div class="todo-sub">{{ r.numero or '' }} · Prévu le {{ r.date_prevue }}</div>
+            <div class="todo-actions">
+              {% if r.email %}<a href="mailto:{{ r.email }}" class="btn btn-xs btn-outline-secondary" style="font-size:11px;padding:2px 8px">📧 Email</a>{% endif %}
+              <a href="{{ url_for('relance_effectuer', id=r.id) }}" class="btn btn-xs btn-outline-success" style="font-size:11px;padding:2px 8px">✓ Faite</a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% for ct in tacite_a_saisir[:3] %}
+        {% if not ct.annee_prime_validee or ct.annee_prime_validee < annee_courante %}
+        <div class="todo-item">
+          <div class="todo-dot" style="background:#3b82f6"></div>
+          <div class="todo-content">
+            <div class="todo-title">🔄 Saisir prime tacite — {{ ct.nom_bateau or ct.numero }}</div>
+            <div class="todo-sub">{{ ct.prenom or '' }} {{ ct.nom }} · Éch. {{ ct.date_fin }}</div>
+            <div class="todo-actions">
+              <a href="{{ url_for('contrat_detail', id=ct.id) }}#tab-financier" class="btn btn-xs btn-outline-primary" style="font-size:11px;padding:2px 8px">Saisir la prime</a>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        {% for d in devis_attente[:2] %}
+        <div class="todo-item">
+          <div class="todo-dot" style="background:#94a3b8"></div>
+          <div class="todo-content">
+            <div class="todo-title">Devis en attente — {{ d.compagnie or '—' }}</div>
+            <div class="todo-sub">{{ d.prenom or '' }} {{ d.nom }} · {{ d.prime_proposee|int }} €</div>
+            <div class="todo-actions">
+              <a href="{{ url_for('client_detail', id=d.client_id) }}#devis" class="btn btn-xs btn-outline-secondary" style="font-size:11px;padding:2px 8px">Voir</a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Activité récente -->
+  <div class="col-lg-7">
+    <div class="card-crm h-100">
+      <div class="card-crm-header d-flex justify-content-between align-items-center">
+        <span class="card-crm-title">🕐 Activité récente</span>
+        <a href="{{ url_for('journal_list') }}" style="font-size:12px;color:var(--c-gold)">Tout voir →</a>
+      </div>
+      <div class="p-3" style="max-height:420px;overflow-y:auto">
+
+        {% set type_icons = {
+          'email': '📧', 'appel': '📞', 'rdv': '📅', 'courrier': '📬',
+          'nouveau_client': '👤', 'note': '📝', 'sms': '💬'
+        } %}
+        {% set type_colors = {
+          'email': '#3b82f6', 'appel': '#22c55e', 'rdv': '#f59e0b',
+          'nouveau_client': '#8b5cf6', 'note': '#64748b'
+        } %}
+
+        {% set last_day = '' %}
+        {% for a in activite_recente %}
+          {% set a_day = a.date_evt[:10] if a.date_evt else '' %}
+          {% if a_day != last_day %}
+            <div class="activity-day-header">
+              {% if a_day == today %}Aujourd'hui
+              {% elif today_yesterday is defined and a_day == today_yesterday %}Hier
+              {% else %}{{ a_day }}{% endif %}
+            </div>
+            {% set last_day = a_day %}
+          {% endif %}
+          <div class="activity-item">
+            <div class="activity-icon" style="background:{{ type_colors.get(a.type_evt,'#64748b') }}22;color:{{ type_colors.get(a.type_evt,'#64748b') }}">
+              {{ type_icons.get(a.type_evt, '📋') }}
+            </div>
+            <div style="flex:1">
+              <div class="activity-text">{{ a.titre or a.nom or '—' }}</div>
+              {% if a.nom %}<div style="font-size:11px;color:var(--c-text-2)">{{ a.prenom or '' }} {{ a.nom }}</div>{% endif %}
+            </div>
+            <div class="activity-time">{{ a.date_evt[11:16] if a.date_evt and ':' in a.date_evt else '' }}</div>
+          </div>
+        {% else %}
+          <div style="text-align:center;padding:32px;color:var(--c-text-2)">
+            <div style="font-size:24px;margin-bottom:8px">📋</div>
+            <div style="font-size:13px">Aucune activité récente</div>
+          </div>
+        {% endfor %}
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ ZONE 3 : Alertes par catégorie ══════════════════════ -->
+<div class="row g-3 mb-4">
+
+  <!-- Échéances -->
+  <div class="col-6 col-lg-4">
+    <div class="dash-alert-card" style="border-left:3px solid {{ '#f59e0b' if (tacite_a_saisir|length + manuel_30j|length) > 0 else '#22c55e' }}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:14px">🔄 Échéances</span>
+        {% if (tacite_a_saisir|length + manuel_30j|length) > 0 %}
+        <span class="badge bg-warning text-dark" style="font-size:11px">{{ tacite_a_saisir|length + manuel_30j|length }}</span>
+        {% else %}
+        <span class="badge bg-success" style="font-size:11px">✅ OK</span>
+        {% endif %}
+      </div>
+      {% if tacite_a_saisir|length > 0 %}<div class="da-label">{{ tacite_a_saisir|length }} prime(s) tacite à saisir</div>{% endif %}
+      {% if manuel_30j|length > 0 %}<div class="da-label">{{ manuel_30j|length }} renouvellement(s) manuel</div>{% endif %}
+      {% if (tacite_a_saisir|length + manuel_30j|length) == 0 %}<div class="da-label">Tout est à jour</div>{% endif %}
+      <a href="{{ url_for('echeances_page') }}" style="font-size:11px;color:var(--c-gold);text-decoration:none;display:block;margin-top:8px">Voir les échéances →</a>
+    </div>
+  </div>
+
+  <!-- Commissions -->
+  <div class="col-6 col-lg-4">
+    <div class="dash-alert-card" style="border-left:3px solid {{ '#f59e0b' if stats.comm_attente_nb > 0 else '#22c55e' }}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:14px">💶 Commissions</span>
+        {% if stats.comm_attente_nb > 0 %}
+        <span class="badge bg-warning text-dark" style="font-size:11px">{{ stats.comm_attente_nb }}</span>
+        {% else %}
+        <span class="badge bg-success" style="font-size:11px">✅ OK</span>
+        {% endif %}
+      </div>
+      {% if stats.comm_attente_nb > 0 %}
+      <div class="da-label">{{ stats.comm_attente_nb }} en attente</div>
+      <div class="da-label">{{ "{:,.0f}".format(stats.comm_attente_mt) }} € attendus</div>
+      {% else %}
+      <div class="da-label">Toutes reçues</div>
+      {% endif %}
+      <a href="{{ url_for('compta_commissions') }}" style="font-size:11px;color:var(--c-gold);text-decoration:none;display:block;margin-top:8px">Voir les commissions →</a>
+    </div>
+  </div>
+
+  <!-- Emails Brevo -->
+  <div class="col-6 col-lg-4">
+    <div class="dash-alert-card" style="border-left:3px solid {{ '#dc2626' if nb_emails_erreur > 0 else '#f59e0b' if nb_emails_non_ouverts > 0 else '#22c55e' }}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:14px">📧 Emails</span>
+        {% if nb_emails_erreur > 0 %}
+        <span class="badge bg-danger" style="font-size:11px">{{ nb_emails_erreur }} erreur(s)</span>
+        {% elif nb_emails_non_ouverts > 0 %}
+        <span class="badge bg-warning text-dark" style="font-size:11px">{{ nb_emails_non_ouverts }} non ouverts</span>
+        {% else %}
+        <span class="badge bg-success" style="font-size:11px">✅ OK</span>
+        {% endif %}
+      </div>
+      {% if nb_emails_erreur > 0 %}<div class="da-label">{{ nb_emails_erreur }} email(s) non envoyé(s)</div>{% endif %}
+      {% if nb_emails_non_ouverts > 0 %}<div class="da-label">{{ nb_emails_non_ouverts }} sans réponse > 7j</div>{% endif %}
+      {% if nb_emails_erreur == 0 and nb_emails_non_ouverts == 0 %}<div class="da-label">Tout envoyé et ouvert</div>{% endif %}
+      <a href="{{ url_for('emails_list') }}" style="font-size:11px;color:var(--c-gold);text-decoration:none;display:block;margin-top:8px">Voir les emails →</a>
+    </div>
+  </div>
+
+  <!-- Quittances -->
+  <div class="col-6 col-lg-4">
+    <div class="dash-alert-card" style="border-left:3px solid {{ '#dc2626' if nb_quitt_impayees > 0 else '#f59e0b' if nb_quitt_envoyer > 0 else '#22c55e' }}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:14px">📋 Quittances</span>
+        {% set q_total = nb_quitt_impayees + nb_quitt_envoyer %}
+        {% if q_total > 0 %}
+        <span class="badge {{ 'bg-danger' if nb_quitt_impayees > 0 else 'bg-warning text-dark' }}" style="font-size:11px">{{ q_total }}</span>
+        {% else %}
+        <span class="badge bg-success" style="font-size:11px">✅ OK</span>
+        {% endif %}
+      </div>
+      {% if nb_quitt_impayees > 0 %}<div class="da-label">{{ nb_quitt_impayees }} impayée(s)</div>{% endif %}
+      {% if nb_quitt_envoyer > 0 %}<div class="da-label">{{ nb_quitt_envoyer }} à envoyer</div>{% endif %}
+      {% if q_total == 0 %}<div class="da-label">Tout est à jour</div>{% endif %}
+      <a href="{{ url_for('suivi_financier_global') }}" style="font-size:11px;color:var(--c-gold);text-decoration:none;display:block;margin-top:8px">Voir le suivi →</a>
+    </div>
+  </div>
+
+  <!-- Primes & Impayés Compagnie -->
+  <div class="col-6 col-lg-4">
+    <div class="dash-alert-card" style="border-left:3px solid {{ '#dc2626' if nb_quitt_impayees > 0 else '#22c55e' }}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:14px">⛵ Primes & Impayés</span>
+        {% if nb_quitt_impayees > 0 %}
+        <span class="badge bg-danger" style="font-size:11px">{{ nb_quitt_impayees }} impayé(s)</span>
+        {% else %}
+        <span class="badge bg-success" style="font-size:11px">✅ À jour</span>
+        {% endif %}
+      </div>
+      <div class="da-label">Gestion directe compagnie</div>
+      {% if nb_quitt_impayees > 0 %}
+      <div class="da-label text-danger fw-600">{{ nb_quitt_impayees }} quittance(s) impayée(s)</div>
+      {% else %}
+      <div class="da-label">Aucun signalement d'impayé</div>
+      {% endif %}
+      <a href="{{ url_for('suivi_financier_global') }}" style="font-size:11px;color:var(--c-gold);text-decoration:none;display:block;margin-top:8px">Suivi primes →</a>
+    </div>
+  </div>
+
+  <!-- Conformité -->
+  <div class="col-6 col-lg-4">
+    <div class="dash-alert-card" style="border-left:3px solid {{ '#f59e0b' if reclamations_retard > 0 or heures_formations < 12 else '#22c55e' }}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:14px">⚖️ Conformité</span>
+        {% if reclamations_retard > 0 or heures_formations < 12 %}
+        <span class="badge bg-warning text-dark" style="font-size:11px">⚠️</span>
+        {% else %}
+        <span class="badge bg-success" style="font-size:11px">✅ OK</span>
+        {% endif %}
+      </div>
+      <div class="da-label">Formation : {{ heures_formations|int }}h / 15h
+        {% if heures_formations < 12 %}<span style="color:#f59e0b"> ⚠️</span>{% endif %}
+      </div>
+      {% if reclamations_retard > 0 %}<div class="da-label">{{ reclamations_retard }} réclamation(s) en retard</div>{% endif %}
+      <a href="{{ url_for('formations_list') }}" style="font-size:11px;color:var(--c-gold);text-decoration:none;display:block;margin-top:8px">Voir la conformité →</a>
+    </div>
+  </div>
+
+  <!-- Sinistres -->
+  <div class="col-6 col-lg-4">
+    <div class="dash-alert-card" style="border-left:3px solid {{ '#dc2626' if stats.nb_sinistres_ouverts > 0 else '#22c55e' }}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:14px">⚠️ Sinistres</span>
+        {% if stats.nb_sinistres_ouverts > 0 %}
+        <span class="badge bg-danger" style="font-size:11px">{{ stats.nb_sinistres_ouverts }}</span>
+        {% else %}
+        <span class="badge bg-success" style="font-size:11px">✅ OK</span>
+        {% endif %}
+      </div>
+      <div class="da-label">{{ stats.nb_sinistres_ouverts }} sinistre(s) ouvert(s)</div>
+      <a href="{{ url_for('sinistres_list') }}" style="font-size:11px;color:var(--c-gold);text-decoration:none;display:block;margin-top:8px">Voir les sinistres →</a>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ ZONE 4 : Graphiques ══════════════════════════════════ -->
+<div class="row g-4 mb-2">
+
+  <!-- CA mensuel -->
+  <div class="col-lg-7">
+    <div class="card-crm">
+      <div class="card-crm-header d-flex justify-content-between align-items-center">
+        <span class="card-crm-title">📈 Évolution du CA</span>
+        <span style="font-size:12px;color:var(--c-text-2)">{{ annee }}</span>
+      </div>
+      <div style="padding:16px">
+        <canvas id="chartCA" height="140"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Portefeuille -->
+  <div class="col-lg-5">
+    <div class="card-crm">
+      <div class="card-crm-header">
+        <span class="card-crm-title">⛵ Portefeuille</span>
+      </div>
+      <div style="padding:16px;display:flex;align-items:center;justify-content:center;min-height:200px">
+        <canvas id="chartPortefeuille" style="max-height:200px"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- fin data-page="dashboard" -->
+<!-- Script animations + graphiques -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ── Animation des compteurs ─────────────────────────────────
+function animateCounter(el, target, suffix) {
+  if (!el || target === 0) { el.textContent = '0' + (suffix||''); return; }
+  let start = 0;
+  const inc = target / 30;
+  const timer = setInterval(() => {
+    start += inc;
+    if (start >= target) {
+      el.textContent = target.toLocaleString('fr-FR') + (suffix||'');
+      clearInterval(timer);
+    } else {
+      el.textContent = Math.floor(start).toLocaleString('fr-FR') + (suffix||'');
+    }
+  }, 16);
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-count]').forEach(el => {
+    const v = parseInt(el.dataset.count) || 0;
+    animateCounter(el, v, '');
+  });
+});
+
+// ── Détecter dark mode pour les graphiques ──────────────────
+const isDark = document.body.classList.contains('dark-mode') ||
+               localStorage.getItem('navisur_dark') === '1';
+const chartTextColor = isDark ? '#94a3b8' : '#64748b';
+const chartGridColor = isDark ? 'rgba(255,255,255,.06)' : 'rgba(15,30,60,.06)';
+
+// ── CA mensuel (courbe) ─────────────────────────────────────
+const caData = {{ ca_par_mois }};
+const moisNoms = {{ mois_noms }};
+const ctxCA = document.getElementById('chartCA');
+if (ctxCA) {
+  new Chart(ctxCA, {
+    type: 'line',
+    data: {
+      labels: moisNoms,
+      datasets: [{
+        label: 'CA {{ annee }}',
+        data: caData,
+        borderColor: '#c9a84c',
+        backgroundColor: 'rgba(201,168,76,.1)',
+        borderWidth: 2.5,
+        fill: true,
+        tension: .4,
+        pointBackgroundColor: '#c9a84c',
+        pointRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: chartTextColor, font: { size: 12 } } },
+        tooltip: { callbacks: { label: ctx => ctx.parsed.y.toLocaleString('fr-FR') + ' €' } }
+      },
+      scales: {
+        x: { ticks: { color: chartTextColor }, grid: { color: chartGridColor } },
+        y: {
+          ticks: { color: chartTextColor, callback: v => v.toLocaleString('fr-FR') + '€' },
+          grid: { color: chartGridColor }
+        }
+      }
+    }
+  });
+}
+
+// ── Portefeuille par type (camembert) ───────────────────────
+const ctxP = document.getElementById('chartPortefeuille');
+if (ctxP) {
+  fetch('/api/stats/portefeuille')
+    .then(r => r.json())
+    .then(d => {
+      new Chart(ctxP, {
+        type: 'doughnut',
+        data: {
+          labels: d.labels,
+          datasets: [{
+            data: d.values,
+            backgroundColor: ['#c9a84c','#3b82f6','#22c55e','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316'],
+            borderWidth: 2,
+            borderColor: isDark ? '#111827' : '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: chartTextColor, font: { size: 11 }, padding: 12 }
+            }
+          }
+        }
+      });
+    })
+    .catch(() => {
+      ctxP.parentElement.innerHTML = '<div style="text-align:center;color:var(--c-text-2);font-size:13px;padding:40px">Aucune donnée portefeuille</div>';
+    });
+}
+
+// today is available as Jinja var
+// Sparkline CA (les données sont déjà dans window.__navisur_ca_mois)
+if (window.__navisur_ca_mois && window.buildSparkline) {
+  buildSparkline('sparkline-ca', window.__navisur_ca_mois.slice(-8));
+} else if (window.__navisur_ca_mois) {
+  // Fallback si navisur-premium.js chargé après
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.buildSparkline) buildSparkline('sparkline-ca', window.__navisur_ca_mois.slice(-8));
+  });
+}
+</script>
+{% endblock %}

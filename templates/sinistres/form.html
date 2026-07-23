@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — Riviera Marine Assurances{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">{{ titre }}</h1>
+  <a href="{{ url_for('sinistres_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+<form method="post">
+  <div class="form-card">
+    <div class="form-section-title">Identification du sinistre</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Client *</label>
+        <select name="client_id" class="form-select" required id="select-client">
+          <option value="">— Sélectionner —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}" {{ 'selected' if sinistre and sinistre.client_id == c.id }}>
+            {{ c.prenom or '' }} {{ c.nom }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Bateau concerné</label>
+        <select name="bateau_id" class="form-select" id="select-bateau">
+          <option value="">— Sélectionner un bateau —</option>
+          {% for b in bateaux %}
+          <option value="{{ b.id }}" {{ 'selected' if sinistre and sinistre.bateau_id == b.id }}>
+            ⚓ {{ b.nom_bateau or '(sans nom)' }} — {{ b.marque or '' }} ({{ b.nom }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Contrat lié</label>
+        <select name="contrat_id" class="form-select" id="select-contrat">
+          <option value="">— Optionnel —</option>
+          {% for ct in contrats %}
+          <option value="{{ ct.id }}" {{ 'selected' if sinistre and sinistre.contrat_id == ct.id }}>
+            {{ ct.numero or 'Sans n°' }} — {{ ct.type_assurance or '?' }} ({{ ct.nom }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">N° de sinistre</label>
+        <input type="text" name="numero" class="form-control"
+               value="{{ sinistre.numero if sinistre else '' }}" placeholder="SIN-2024-001">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Type de sinistre</label>
+        <select name="type_sinistre" class="form-select">
+          <option value="">— Sélectionner —</option>
+          {% set types = ['Abordage / Collision', 'Échouage / Talonnage', 'Voie d\'eau', 'Chavirage',
+            'Tempête / Coup de vent', 'Incendie / Explosion', 'Vol / Vandalisme',
+            'Dommages matériels à quai', 'Dommages moteur', 'RC (tiers)',
+            'Dommages équipements', 'Corps mort / Amarrage', 'Accident de navigation',
+            'Pollution / Carburant', 'Autre'] %}
+          {% for t in types %}
+          <option value="{{ t }}" {{ 'selected' if sinistre and sinistre.type_sinistre == t }}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section-title">Dates & Lieu</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Date du sinistre</label>
+        <input type="date" name="date_sinistre" class="form-control"
+               value="{{ sinistre.date_sinistre if sinistre else '' }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Date de déclaration</label>
+        <input type="date" name="date_declaration" class="form-control"
+               value="{{ sinistre.date_declaration if sinistre else '' }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Lieu du sinistre</label>
+        <input type="text" name="lieu_sinistre" class="form-control"
+               value="{{ sinistre.lieu_sinistre if sinistre else '' }}"
+               placeholder="Port de Marseille, Rade de Toulon...">
+      </div>
+    </div>
+
+    <div class="form-section-title">Montants & Statut</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Montant estimé (€)</label>
+        <div class="input-group">
+          <input type="number" name="montant_estime" class="form-control" step="0.01" min="0"
+                 value="{{ sinistre.montant_estime if sinistre else '' }}" placeholder="0.00">
+          <span class="input-group-text">€</span>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Montant indemnisé (€)</label>
+        <div class="input-group">
+          <input type="number" name="montant_indemnise" class="form-control" step="0.01" min="0"
+                 value="{{ sinistre.montant_indemnise if sinistre else '' }}" placeholder="0.00">
+          <span class="input-group-text">€</span>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Statut du dossier</label>
+        <select name="statut" class="form-select">
+          <option value="declare"          {{ 'selected' if not sinistre or sinistre.statut == 'declare' }}>🔔 Déclaré</option>
+          <option value="ouvert"            {{ 'selected' if sinistre and sinistre.statut == 'ouvert' }}>🔴 Ouvert / Instruit</option>
+          <option value="expertise"         {{ 'selected' if sinistre and sinistre.statut == 'expertise' }}>🔍 En expertise</option>
+          <option value="accord_indemnisat" {{ 'selected' if sinistre and sinistre.statut == 'accord_indemnisat' }}>🤝 Accord d'indemnisation</option>
+          <option value="clos_indemnise"    {{ 'selected' if sinistre and sinistre.statut == 'clos_indemnise' }}>✅ Clôturé — Indemnisé</option>
+          <option value="clos_refuse"       {{ 'selected' if sinistre and sinistre.statut == 'clos_refuse' }}>❌ Clôturé — Refusé</option>
+          <option value="recours"           {{ 'selected' if sinistre and sinistre.statut == 'recours' }}>⚖️ En recours</option>
+          <option value="clos"              {{ 'selected' if sinistre and sinistre.statut == 'clos' }}>✅ Clos</option>
+        </select>
+      </div>
+    </div>
+
+
+    <div class="form-section-title">🏢 Suivi compagnie</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">N° sinistre compagnie</label>
+        <input type="text" name="numero_sinistre_cie" class="form-control font-mono"
+               value="{{ sinistre.numero_sinistre_cie if sinistre else '' }}"
+               placeholder="N° attribué par la compagnie">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Gestionnaire compagnie</label>
+        <input type="text" name="gestionnaire_cie" class="form-control"
+               value="{{ sinistre.gestionnaire_cie if sinistre else '' }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Téléphone gestionnaire</label>
+        <input type="tel" name="telephone_gestionnaire" class="form-control"
+               value="{{ sinistre.telephone_gestionnaire if sinistre else '' }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Déclaré à la cie le</label>
+        <input type="date" name="date_declaration_cie" class="form-control"
+               value="{{ sinistre.date_declaration_cie if sinistre else '' }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Date d'expertise</label>
+        <input type="date" name="date_expertise" class="form-control"
+               value="{{ sinistre.date_expertise if sinistre else '' }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Date de clôture</label>
+        <input type="date" name="date_cloture" class="form-control"
+               value="{{ sinistre.date_cloture if sinistre else '' }}">
+      </div>
+      <div class="col-md-3 d-flex align-items-end pb-1">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="recours_possible" value="1"
+                 id="cb-recours" {{ 'checked' if sinistre and sinistre.recours_possible }}
+                 onchange="document.getElementById('zone-recours').style.display=this.checked?'flex':'none'">
+          <label class="form-check-label" for="cb-recours">Recours possible</label>
+        </div>
+      </div>
+      <div id="zone-recours" class="col-12 row g-2" style="display:{{ 'flex' if sinistre and sinistre.recours_possible else 'none' }}">
+        <div class="col-md-3">
+          <label class="form-label">Date recours</label>
+          <input type="date" name="recours_date" class="form-control"
+                 value="{{ sinistre.recours_date if sinistre else '' }}">
+        </div>
+        <div class="col-md-9">
+          <label class="form-label">Notes recours</label>
+          <input type="text" name="recours_notes" class="form-control"
+                 value="{{ sinistre.recours_notes if sinistre else '' }}"
+                 placeholder="Motif du recours, avocat, démarches...">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section-title">Description & Notes</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label">Description des circonstances</label>
+        <textarea name="description" class="form-control" rows="3"
+          placeholder="Décrivez les circonstances du sinistre : conditions météo, lieu précis, déroulement...">{{ sinistre.description if sinistre else '' }}</textarea>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Notes internes (expertises, démarches effectuées...)</label>
+        <textarea name="notes" class="form-control" rows="2"
+          placeholder="Actions réalisées, interlocuteurs compagnie, n° dossier expert...">{{ sinistre.notes if sinistre else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary" data-loading-title="Déclaration du sinistre..." data-loading-sub="Enregistrement en cours">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if sinistre else 'Déclarer le sinistre' }}
+      </button>
+      <a href="{{ url_for('sinistres_list') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Dynamic boat loading by client
+  const selClient = document.getElementById('select-client');
+  const selBateau = document.getElementById('select-bateau');
+  if (selClient && selBateau) {
+    selClient.addEventListener('change', function() {
+      const cid = this.value;
+      if (!cid) return;
+      fetch(`/api/bateaux_client/${cid}`)
+        .then(r => r.json())
+        .then(bateaux => {
+          selBateau.innerHTML = '<option value="">— Sélectionner un bateau —</option>';
+          bateaux.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b.id;
+            opt.textContent = `⚓ ${b.nom_bateau || '(sans nom)'} — ${b.marque || ''} ${b.modele || ''}`;
+            selBateau.appendChild(opt);
+          });
+        });
+    });
+  }
+</script>
+{% endblock %}

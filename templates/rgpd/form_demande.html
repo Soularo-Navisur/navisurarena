@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Nouvelle demande RGPD — Riviera Marine Assurances{% endblock %}
+{% block page_title %}Nouvelle demande RGPD{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">🔒 Nouvelle demande RGPD</h1>
+  <a href="{{ url_for('rgpd_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+<form method="post">
+  <div class="form-card">
+    <div class="form-section-title">Demande</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Client *</label>
+        <select name="client_id" class="form-select" required>
+          <option value="">— Sélectionner —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}">{{ c.prenom or '' }} {{ c.nom }} — {{ c.email or 'sans email' }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Type de demande *</label>
+        <select name="type_demande" class="form-select" required>
+          <option value="">— Sélectionner —</option>
+          {% for t in ["Droit d'accès", "Droit de rectification", "Droit à l'effacement", "Droit à la portabilité", "Droit d'opposition", "Retrait de consentement", "Autre"] %}
+          <option value="{{ t }}">{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Date de la demande</label>
+        <input type="date" name="date_demande" class="form-control" value="{{ today }}">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Notes</label>
+        <textarea name="notes" class="form-control" rows="3"
+          placeholder="Canal de la demande (email, courrier, téléphone), détails..."></textarea>
+      </div>
+    </div>
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>Enregistrer la demande
+      </button>
+      <a href="{{ url_for('rgpd_list') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

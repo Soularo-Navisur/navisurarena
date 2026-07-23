@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block title %}Tâches & Rappels — Riviera Marine Assurances{% endblock %}
+{% block page_title %}Tâches & Rappels{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('tache_nouvelle') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Nouvelle tâche</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">✅ Tâches & Rappels</h1>
+    <p class="page-header-sub">Gérez vos relances et actions à mener</p>
+  </div>
+  <a href="{{ url_for('tache_nouvelle') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Nouvelle tâche
+  </a>
+</div>
+
+<!-- COMPTEURS -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('taches_list') }}?statut=a_faire" class="stat-card text-decoration-none {% if statut == 'a_faire' %}border-primary{% endif %}">
+      <div class="stat-icon blue"><i class="bi bi-clock"></i></div>
+      <div><div class="stat-value">{{ counts.a_faire }}</div><div class="stat-label">À faire</div></div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('taches_list') }}?statut=en_cours" class="stat-card text-decoration-none {% if statut == 'en_cours' %}border-primary{% endif %}">
+      <div class="stat-icon purple"><i class="bi bi-arrow-repeat"></i></div>
+      <div><div class="stat-value">{{ counts.en_cours }}</div><div class="stat-label">En cours</div></div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('taches_list') }}?statut=a_faire&priorite=urgente" class="stat-card text-decoration-none">
+      <div class="stat-icon red"><i class="bi bi-alarm"></i></div>
+      <div><div class="stat-value">{{ counts.en_retard }}</div><div class="stat-label">En retard</div></div>
+    </a>
+  </div>
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('taches_list') }}?statut=terminee" class="stat-card text-decoration-none {% if statut == 'terminee' %}border-primary{% endif %}">
+      <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+      <div><div class="stat-value">{{ counts.terminee }}</div><div class="stat-label">Terminées</div></div>
+    </a>
+  </div>
+</div>
+
+<!-- FILTRES -->
+<div class="search-bar mb-4">
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('taches_list') }}?statut=a_faire" class="btn btn-sm {% if statut == 'a_faire' %}btn-primary{% else %}btn-outline-secondary{% endif %}">À faire</a>
+    <a href="{{ url_for('taches_list') }}?statut=en_cours" class="btn btn-sm {% if statut == 'en_cours' %}btn-primary{% else %}btn-outline-secondary{% endif %}">En cours</a>
+    <a href="{{ url_for('taches_list') }}?statut=terminee" class="btn btn-sm {% if statut == 'terminee' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Terminées</a>
+    <div class="ms-auto d-flex gap-2">
+      <a href="{{ url_for('taches_list') }}?statut={{ statut }}&priorite=urgente" class="btn btn-sm {% if priorite == 'urgente' %}btn-danger{% else %}btn-outline-danger{% endif %}">🔴 Urgente</a>
+      <a href="{{ url_for('taches_list') }}?statut={{ statut }}&priorite=haute" class="btn btn-sm {% if priorite == 'haute' %}btn-warning{% else %}btn-outline-warning{% endif %}">🟠 Haute</a>
+      <a href="{{ url_for('taches_list') }}?statut={{ statut }}&priorite=normale" class="btn btn-sm {% if priorite == 'normale' %}btn-info{% else %}btn-outline-secondary{% endif %}">🔵 Normale</a>
+      {% if priorite %}<a href="{{ url_for('taches_list') }}?statut={{ statut }}" class="btn btn-sm btn-outline-secondary">✕ Tout afficher</a>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card-crm">
+  {% if taches %}
+  <table class="table-crm">
+    <thead>
+      <tr><th>Priorité</th><th>Tâche</th><th>Client lié</th><th>Échéance</th><th>Statut</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for t in taches %}
+      {% set is_late = t.date_echeance and t.date_echeance < today and t.statut != 'terminee' %}
+      <tr class="{{ 'table-danger-light' if is_late }}">
+        <td>
+          {% if t.priorite == 'urgente' %}
+            <span class="badge-crm" style="background:#fee2e2;color:#b91c1c">🔴 Urgente</span>
+          {% elif t.priorite == 'haute' %}
+            <span class="badge-crm" style="background:#fff7ed;color:#c2410c">🟠 Haute</span>
+          {% elif t.priorite == 'basse' %}
+            <span class="badge-crm" style="background:#f1f5f9;color:#64748b">⚪ Basse</span>
+          {% else %}
+            <span class="badge-crm" style="background:#eff6ff;color:#1d4ed8">🔵 Normale</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="fw-500">{{ t.titre }}</div>
+          {% if t.description %}<div class="text-muted" style="font-size:12px">{{ t.description[:80] }}{% if t.description|length > 80 %}…{% endif %}</div>{% endif %}
+        </td>
+        <td>
+          {% if t.nom %}
+            <a href="{{ url_for('client_detail', id=t.client_id) }}" class="text-decoration-none">{{ t.prenom or '' }} {{ t.nom }}</a>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if t.date_echeance %}
+            <span class="{{ 'text-danger fw-600' if is_late else 'text-muted' }}">
+              {% if is_late %}⚠️ {% endif %}{{ t.date_echeance }}
+            </span>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if t.statut == 'terminee' %}
+            <span class="badge-crm badge-clos">✓ Terminée</span>
+          {% elif t.statut == 'en_cours' %}
+            <span class="badge-crm badge-en_cours">En cours</span>
+          {% else %}
+            <span class="badge-crm badge-attendu">À faire</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            {% if t.statut != 'terminee' %}
+            <form method="post" action="{{ url_for('tache_terminer', id=t.id) }}">
+              <button type="submit" class="btn btn-sm btn-success" title="Marquer terminée">
+                <i class="bi bi-check-lg"></i>
+              </button>
+            </form>
+            {% endif %}
+            <a href="{{ url_for('tache_modifier', id=t.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{{ url_for('tache_supprimer', id=t.id) }}" onsubmit="return confirm('Supprimer ?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-check2-all"></i>
+    <h5>{% if statut == 'terminee' %}Aucune tâche terminée{% else %}Aucune tâche en cours{% endif %}</h5>
+    {% if statut != 'terminee' %}
+    <a href="{{ url_for('tache_nouvelle') }}" class="btn btn-primary">Créer une tâche</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

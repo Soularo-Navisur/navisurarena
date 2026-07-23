@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Sauvegardes — NAVISUR{% endblock %}
+{% block page_title %}Sauvegardes{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">☁️ Sauvegardes</h1>
+    <p class="page-header-sub">Sécurisez vos données · Sauvegarde automatique quotidienne</p>
+  </div>
+  <form method="post" action="{{ url_for('sauvegarde_creer') }}" style="margin:0">
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-cloud-upload me-2"></i>Créer une sauvegarde maintenant
+    </button>
+  </form>
+</div>
+
+<!-- Info -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-database-check"></i></div>
+      <div>
+        <div class="stat-value">{{ "%.1f"|format(db_size / 1024 / 1024) }} Mo</div>
+        <div class="stat-label">Taille base de données</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="bi bi-archive"></i></div>
+      <div>
+        <div class="stat-value">{{ backups|length }}</div>
+        <div class="stat-label">Sauvegardes disponibles</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon orange"><i class="bi bi-clock-history"></i></div>
+      <div>
+        <div class="stat-value">{{ backups[0].date if backups else '—' }}</div>
+        <div class="stat-label">Dernière sauvegarde</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card-crm mb-4">
+  <div class="card-crm-header"><span class="card-crm-title">💡 Comment sauvegarder automatiquement sur OneDrive / réseau ?</span></div>
+  <div class="p-4" style="font-size:13px;color:#475569;line-height:1.8">
+    Le dossier <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:12px">{{ backup_dir }}</code>
+    contient toutes vos sauvegardes. Pour les protéger automatiquement :
+    <ul class="mt-2" style="line-height:2">
+      <li>📁 <strong>OneDrive / Google Drive :</strong> déplacez le dossier <code>crm-courtage</code> entier dans votre dossier synchronisé</li>
+      <li>🌐 <strong>Réseau :</strong> redirigez le dossier sauvegardes vers un partage réseau</li>
+      <li>⏰ <strong>Automatique :</strong> une sauvegarde <code>auto_YYYYMMDD.db</code> est créée chaque jour au démarrage (30 jours conservés)</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Liste des sauvegardes -->
+<div class="card-crm">
+  <div class="card-crm-header"><span class="card-crm-title">📂 Sauvegardes disponibles</span></div>
+  {% if backups %}
+  <table class="table-crm">
+    <thead><tr><th>Nom du fichier</th><th>Date</th><th>Taille</th><th>Type</th><th></th></tr></thead>
+    <tbody>
+      {% for b in backups %}
+      <tr>
+        <td class="font-mono" style="font-size:12px">{{ b.nom }}</td>
+        <td class="text-muted" style="font-size:12px">{{ b.date }}</td>
+        <td class="text-muted" style="font-size:12px">{{ "%.1f"|format(b.taille / 1024) }} Ko</td>
+        <td>
+          {% if b.nom.startswith('auto_') %}
+          <span class="badge-crm badge-attendu" style="font-size:11px">🤖 Auto</span>
+          {% else %}
+          <span class="badge-crm badge-clos" style="font-size:11px">👤 Manuelle</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{{ url_for('sauvegarde_telecharger', nom=b.nom) }}" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-download"></i>
+            </a>
+            <form method="post" action="{{ url_for('sauvegarde_supprimer', nom=b.nom) }}"
+                  onsubmit="return confirm('Supprimer cette sauvegarde ?')" style="margin:0">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state py-5">
+    <i class="bi bi-cloud-slash" style="font-size:48px;opacity:.2"></i>
+    <h5 class="mt-3">Aucune sauvegarde</h5>
+    <form method="post" action="{{ url_for('sauvegarde_creer') }}" style="margin:0">
+      <button type="submit" class="btn btn-primary mt-2">Créer la première sauvegarde</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

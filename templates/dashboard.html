@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% block title %}Tableau de bord — Riviera Marine Assurances{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">Bonjour ⚓</h1>
+    <p class="page-header-sub">{{ now.strftime('%A %d %B %Y') }} — Vue d'ensemble de votre cabinet</p>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <a href="{{ url_for('clients_list') }}" class="stat-card text-decoration-none">
+      <div class="stat-icon blue"><i class="bi bi-people-fill"></i></div>
+      <div><div class="stat-value">{{ stats.total_clients }}</div><div class="stat-label">Clients actifs</div></div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a href="{{ url_for('bateaux_list') }}" class="stat-card text-decoration-none">
+      <div class="stat-icon purple"><i class="bi bi-water"></i></div>
+      <div><div class="stat-value">{{ stats.total_bateaux }}</div><div class="stat-label">Bateaux / Risques</div></div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a href="{{ url_for('contrats_list') }}" class="stat-card text-decoration-none">
+      <div class="stat-icon green"><i class="bi bi-file-earmark-text-fill"></i></div>
+      <div><div class="stat-value">{{ stats.total_contrats }}</div><div class="stat-label">Contrats en cours</div></div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a href="{{ url_for('sinistres_list') }}" class="stat-card text-decoration-none">
+      <div class="stat-icon orange"><i class="bi bi-exclamation-triangle-fill"></i></div>
+      <div><div class="stat-value">{{ stats.total_sinistres }}</div><div class="stat-label">Sinistres ouverts</div></div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a href="{{ url_for('commissions_list') }}" class="stat-card text-decoration-none">
+      <div class="stat-icon gold"><i class="bi bi-percent"></i></div>
+      <div><div class="stat-value">{{ "%.0f"|format(stats.commissions_mois) }} €</div><div class="stat-label">Commissions ce mois</div></div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a href="{{ url_for('factures_list') }}?statut=envoyee" class="stat-card text-decoration-none">
+      <div class="stat-icon red"><i class="bi bi-receipt"></i></div>
+      <div><div class="stat-value">{{ "%.0f"|format(stats.factures_impayees) }} €</div><div class="stat-label">Factures impayées</div></div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a href="{{ url_for('taches_list') }}?statut=a_faire&priorite=urgente" class="stat-card text-decoration-none">
+      <div class="stat-icon red"><i class="bi bi-alarm-fill"></i></div>
+      <div><div class="stat-value">{{ stats.taches_urgentes }}</div><div class="stat-label">Tâches urgentes</div></div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a href="{{ url_for('taches_list') }}?statut=a_faire" class="stat-card text-decoration-none">
+      <div class="stat-icon orange"><i class="bi bi-clock-history"></i></div>
+      <div><div class="stat-value">{{ stats.taches_en_retard }}</div><div class="stat-label">Tâches en retard</div></div>
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card-crm mb-3">
+      <div class="card-crm-header">
+        <span class="card-crm-title"><i class="bi bi-people me-2 text-primary"></i>Derniers clients</span>
+        <a href="{{ url_for('clients_list') }}" class="btn btn-sm btn-outline-secondary">Voir tout</a>
+      </div>
+      {% if derniers_clients %}
+      <table class="table-crm">
+        <tbody>
+          {% for c in derniers_clients %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar avatar-blue">{{ c.nom[0] }}{{ c.prenom[0] if c.prenom else '' }}</div>
+                <div>
+                  <div class="fw-500">{{ c.prenom or '' }} {{ c.nom }}</div>
+                  <div class="text-muted" style="font-size:12px">{{ c.email or '—' }}</div>
+                </div>
+              </div>
+            </td>
+            <td><span class="badge-crm badge-{{ c.statut }}">{{ c.statut|title }}</span></td>
+            <td><a href="{{ url_for('client_detail', id=c.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-right"></i></a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><i class="bi bi-people"></i><h5>Aucun client encore</h5><a href="{{ url_for('client_nouveau') }}" class="btn btn-primary btn-sm">Ajouter</a></div>
+      {% endif %}
+    </div>
+
+    <div class="card-crm">
+      <div class="card-crm-header">
+        <span class="card-crm-title"><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Sinistres ouverts</span>
+        <a href="{{ url_for('sinistres_list') }}" class="btn btn-sm btn-outline-secondary">Voir tout</a>
+      </div>
+      {% if derniers_sinistres %}
+      <table class="table-crm">
+        <tbody>
+          {% for s in derniers_sinistres %}
+          <tr>
+            <td>
+              <div class="fw-500">{{ s.nom }} {{ s.prenom or '' }}</div>
+              <div class="text-muted" style="font-size:12px">{{ s.nom_bateau or s.type_sinistre or '—' }}</div>
+            </td>
+            <td class="text-money">{{ "%.0f"|format(s.montant_estime) }} €</td>
+            <td><span class="badge-crm badge-ouvert">Ouvert</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><i class="bi bi-shield-check"></i><h5>Aucun sinistre ouvert</h5></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card-crm mb-3">
+      <div class="card-crm-header">
+        <span class="card-crm-title"><i class="bi bi-check2-square me-2 text-success"></i>Tâches prioritaires</span>
+        <a href="{{ url_for('taches_list') }}" class="btn btn-sm btn-outline-secondary">Voir tout</a>
+      </div>
+      {% if taches_proches %}
+      <table class="table-crm">
+        <tbody>
+          {% for t in taches_proches %}
+          {% set is_late = t.date_echeance and t.date_echeance < today %}
+          <tr>
+            <td>
+              <div class="fw-500">
+                {% if t.priorite == 'urgente' %}🔴{% elif t.priorite == 'haute' %}🟠{% else %}🔵{% endif %}
+                {{ t.titre }}
+              </div>
+              {% if t.nom %}<div class="text-muted" style="font-size:12px">{{ t.prenom or '' }} {{ t.nom }}</div>{% endif %}
+            </td>
+            <td>
+              {% if t.date_echeance %}
+                <span class="{{ 'text-danger fw-600' if is_late else 'text-muted' }}" style="font-size:12px">
+                  {{ t.date_echeance }}
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              <form method="post" action="{{ url_for('tache_terminer', id=t.id) }}">
+                <button type="submit" class="btn btn-sm btn-success" title="Terminer">✓</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><i class="bi bi-check2-all"></i><h5>Aucune tâche en attente</h5></div>
+      {% endif %}
+    </div>
+
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">⚡ Accès rapides</span></div>
+      <div class="p-3 d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('client_nouveau') }}" class="btn btn-primary btn-sm"><i class="bi bi-person-plus me-1"></i>Nouveau client</a>
+        <a href="{{ url_for('bateau_nouveau') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-water me-1"></i>Nouveau bateau</a>
+        <a href="{{ url_for('contrat_nouveau') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-plus me-1"></i>Nouveau contrat</a>
+        <a href="{{ url_for('sinistre_nouveau') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-exclamation-triangle me-1"></i>Sinistre</a>
+        <a href="{{ url_for('tache_nouvelle') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-check2-square me-1"></i>Nouvelle tâche</a>
+        <a href="{{ url_for('facture_nouvelle') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-receipt me-1"></i>Quittance</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

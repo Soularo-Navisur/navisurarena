@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Modifier quittance — NAVISUR{% endblock %}
+{% block page_title %}Modifier quittance{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🧾 Modifier quittance</h1>
+    <p class="page-header-sub">{{ q.prenom or '' }} {{ q.nom }} — {{ q.type_assurance or '' }} — {{ q.police or '' }}</p>
+  </div>
+  <a href="{{ url_for('contrat_detail', id=q.contrat_id) }}#tab-financier" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+<div class="form-card" style="max-width:560px">
+  <form method="post">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">N° Facture</label>
+        <input type="text" name="numero_facture" class="form-control" value="{{ q.numero_facture or '' }}" placeholder="Auto si vide">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Date facture</label>
+        <input type="date" name="date_facture" class="form-control" value="{{ q.date_facture or today }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Prime HT (€)</label>
+        <input type="number" step="0.01" name="prime_ht" class="form-control" value="{{ q.prime_ht or '' }}" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Taux taxe compagnie (%)</label>
+        <input type="number" step="0.01" name="taux_taxe" class="form-control" value="{{ q.taux_taxe or '' }}" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Frais de courtage (€)</label>
+        <input type="number" step="0.01" name="frais_courtage" class="form-control" value="{{ q.frais_courtage or '' }}" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Prime TTC (€)</label>
+        <input type="number" step="0.01" name="prime_ttc" class="form-control" value="{{ q.montant_ttc or '' }}" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Taux TVA (%)</label>
+        <input type="number" step="0.01" name="taux_tva" class="form-control" value="{{ q.taux_tva or '20' }}" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">RIB du courtier</label>
+        <input type="text" name="rib_courtier" class="form-control" value="{{ q.rib_courtier or rib_defaut }}" required>
+      </div>
+    </div>
+    <div class="mt-4 d-flex gap-2">
+      <button class="btn btn-primary">Enregistrer</button>
+      <a href="{{ url_for('quittance_imprimer', qid=q.id) }}" target="_blank" class="btn btn-outline-secondary">
+        <i class="bi bi-printer me-1"></i>Aperçu PDF
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}

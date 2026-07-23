@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — NAVISUR{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">📣 {{ titre }}</h1>
+  <a href="{{ url_for('relances_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+<form method="post">
+  <div class="form-card">
+    <div class="form-section-title">Contrat & Client</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Client *</label>
+        <select name="client_id" class="form-select" required id="sel-client-relance">
+          <option value="">— Sélectionner —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}" {{ 'selected' if preselect_client and preselect_client|int==c.id }}>{{ c.prenom or '' }} {{ c.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Contrat *</label>
+        <select name="contrat_id" class="form-select" required id="sel-contrat-relance">
+          <option value="">— Sélectionner —</option>
+          {% for ct in contrats %}
+          <option value="{{ ct.id }}" {{ 'selected' if preselect_contrat and preselect_contrat|int==ct.id }}>
+            {{ ct.numero or 'Sans n°' }} — {{ ct.type_assurance or '' }} ({{ ct.nom }})
+            {% if ct.date_fin %} | Éch. {{ ct.date_fin }}{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section-title">Planification</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Type de relance</label>
+        <select name="type_relance" class="form-select">
+          <option value="echeance">📅 Échéance / Renouvellement</option>
+          <option value="impaye">💳 Prime impayée</option>
+          <option value="piece_manquante">📄 Pièce manquante</option>
+          <option value="signature">✍️ Signature en attente</option>
+          <option value="devis">📋 Suivi de devis</option>
+          <option value="autre">💬 Autre</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Moyen de contact</label>
+        <select name="moyen" class="form-select">
+          <option value="email">✉️ Email</option>
+          <option value="telephone">📞 Téléphone</option>
+          <option value="courrier">📮 Courrier</option>
+          <option value="sms">💬 SMS</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Date prévue</label>
+        <input type="date" name="date_prevue" class="form-control" value="{{ today }}">
+      </div>
+    </div>
+
+    <div class="form-section-title">Message <span class="text-muted fw-normal">(facultatif)</span></div>
+    <div class="row g-3">
+      <div class="col-12">
+        <textarea name="message" class="form-control" rows="3"
+                  placeholder="Contenu du message de relance, points à aborder..."></textarea>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Planifier</button>
+      <a href="{{ url_for('relances_list') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const selClient = document.getElementById('sel-client-relance');
+const selContrat = document.getElementById('sel-contrat-relance');
+if (selClient && selContrat) {
+  selClient.addEventListener('change', function() {
+    const cid = this.value;
+    if (!cid) { selContrat.innerHTML = '<option value="">— Sélectionner —</option>'; return; }
+    fetch('/api/contrats_client/' + cid)
+      .then(r => r.json())
+      .then(data => {
+        let opts = '<option value="">— Sélectionner —</option>';
+        data.forEach(ct => {
+          opts += `<option value="${ct.id}">${ct.numero || 'Sans n°'} — ${ct.type_assurance || ''}</option>`;
+        });
+        selContrat.innerHTML = opts;
+      });
+  });
+}
+</script>
+{% endblock %}

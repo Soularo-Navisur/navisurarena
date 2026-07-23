@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><title>Facture {{ q.numero_facture or 'Brouillon' }}</title>
+<style>
+@page { size:A4; margin:14mm 16mm; }
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',sans-serif;font-size:13px;color:#1a2e5a}
+.page{width:100%;max-width:210mm;margin:0 auto;padding:10mm}
+.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a2e5a;padding-bottom:16px;margin-bottom:24px}
+.logo-zone{font-size:18px;font-weight:800;color:#1a2e5a;max-width:60%}
+.logo-zone .subtitle{font-size:11px;color:#64748b;font-weight:400;margin-top:4px;line-height:1.5}
+.doc-type{font-family:serif;font-size:26px;font-weight:600;color:#1a2e5a}
+.doc-num{font-size:13px;color:#c9a84c;font-weight:700;margin-top:4px;font-family:monospace}
+.doc-date{font-size:11px;color:#64748b;margin-top:6px}
+.addresses{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+.box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px}
+.box-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:6px}
+.box-name{font-size:15px;font-weight:700;color:#1a2e5a;margin-bottom:4px}
+.box-detail{font-size:11.5px;color:#475569;line-height:1.6}
+.objet{background:#f0f4ff;border-left:4px solid #1a2e5a;border-radius:0 6px 6px 0;padding:10px 14px;margin-bottom:20px;font-size:12px}
+table{width:100%;border-collapse:collapse;margin-bottom:20px}
+th{background:#1a2e5a;color:#fff;padding:10px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;text-align:left}
+td{padding:12px;border-bottom:1px solid #f1f5f9;font-size:12px}
+td:last-child,th:last-child{text-align:right}
+.totals{display:flex;justify-content:flex-end;margin-bottom:20px}
+.totals-box{width:300px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden}
+.t-row{display:flex;justify-content:space-between;padding:8px 14px;font-size:12px;border-bottom:1px solid #f1f5f9}
+.t-row:last-child{background:#1a2e5a;color:#fff;font-weight:700;font-size:14px;border:none}
+.t-row .tl{color:#64748b}.t-row:last-child .tl{color:rgba(255,255,255,.7)}
+.mentions{font-size:10px;color:#64748b;line-height:1.6;margin-top:24px;border-top:1px solid #e2e8f0;padding-top:12px}
+.mentions strong{color:#1a2e5a}
+.footer{text-align:center;font-size:10px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px;margin-top:24px}
+@media print{body{background:#fff!important}}
+@media screen{body{background:#f1f5f9}.page{box-shadow:0 4px 24px rgba(0,0,0,.12);background:#fff;margin:20px auto}}
+</style></head>
+<body>
+<div class="page">
+
+<div class="header">
+  <div class="logo-zone">
+    {{ params.cabinet_nom or 'Riviera Marine Assurances' }}
+    <div class="subtitle">
+      Courtier en assurance plaisance<br>
+      {% if params.cabinet_adresse %}{{ params.cabinet_adresse }}<br>{% endif %}
+      {% if params.cabinet_cp or params.cabinet_ville %}{{ params.cabinet_cp or '' }} {{ params.cabinet_ville or '' }}<br>{% endif %}
+      {% if params.cabinet_telephone %}Tél : {{ params.cabinet_telephone }}<br>{% endif %}
+      {% if params.cabinet_email %}{{ params.cabinet_email }}<br>{% endif %}
+      {% if params.cabinet_siren %}SIREN : {{ params.cabinet_siren }}{% endif %}
+    </div>
+  </div>
+  <div style="text-align:right">
+    <div class="doc-type">FACTURE</div>
+    <div class="doc-num">{{ q.numero_facture or 'N° —' }}</div>
+    <div class="doc-date">Date : {{ q.date_facture or now.strftime('%d/%m/%Y') }}</div>
+  </div>
+</div>
+
+<div class="addresses">
+  <div class="box">
+    <div class="box-title">Prestataire — Émetteur</div>
+    <div class="box-name">{{ params.cabinet_nom or 'Riviera Marine Assurances' }}</div>
+    <div class="box-detail">
+      {% if params.cabinet_adresse %}{{ params.cabinet_adresse }}<br>{% endif %}
+      {% if params.cabinet_cp or params.cabinet_ville %}{{ params.cabinet_cp or '' }} {{ params.cabinet_ville or '' }}<br>{% endif %}
+      {% if params.cabinet_orias %}<strong>ORIAS n° {{ params.cabinet_orias }}</strong><br>{% endif %}
+      {% if params.cabinet_siren %}SIREN : {{ params.cabinet_siren }}<br>{% endif %}
+      {% if params.cabinet_tva %}N° TVA : {{ params.cabinet_tva }}<br>{% endif %}
+    </div>
+  </div>
+  <div class="box">
+    <div class="box-title">Client — Adressé à</div>
+    <div class="box-name">{{ q.prenom or '' }} {{ q.nom }}</div>
+    <div class="box-detail">
+      {% if q.adresse %}{{ q.adresse }}<br>{% endif %}
+      {% if q.code_postal or q.ville %}{{ q.code_postal or '' }} {{ q.ville or '' }}<br>{% endif %}
+      {% if q.email %}{{ q.email }}<br>{% endif %}
+      {% if q.telephone %}{{ q.telephone }}{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="objet">
+  <strong>Objet :</strong> Frais de courtage — {{ q.type_assurance or '' }} — Période {{ q.annee }}<br>
+  <span style="font-size:11px;color:#64748b">Police / Contrat : {{ q.police or '—' }} — Compagnie : {{ q.compagnie or '—' }}</span>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:55%">Désignation</th>
+      <th style="text-align:center">Qté</th>
+      <th style="text-align:right">P.U. HT</th>
+      <th style="text-align:right">Total HT</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <strong>Frais de courtage</strong><br>
+        <span style="font-size:11px;color:#64748b">Courtage en assurance plaisance — Gestion du contrat, conseil, souscription et suivi sinistres.<br>
+        Contrat réf. {{ q.police or '—' }} — Compagnie {{ q.compagnie or '—' }}</span>
+      </td>
+      <td style="text-align:center">1</td>
+      <td style="text-align:right">{{ "%.2f"|format(q.frais_courtage or 0) }} €</td>
+      <td style="text-align:right">{{ "%.2f"|format(q.frais_courtage or 0) }} €</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="totals">
+  <div class="totals-box">
+    <div class="t-row"><span class="tl">Total HT</span><span>{{ "%.2f"|format(q.frais_courtage or 0) }} €</span></div>
+    {% set tva = q.tva_collectee or ((q.frais_courtage or 0) * (q.taux_tva or 20) / 100) %}
+    <div class="t-row"><span class="tl">TVA {{ q.taux_tva or 20 }} %</span><span>{{ "%.2f"|format(tva) }} €</span></div>
+    <div class="t-row"><span class="tl">Total TTC</span><span>{{ "%.2f"|format((q.frais_courtage or 0) + tva) }} €</span></div>
+    <div class="t-row"><span class="tl">NET À PAYER</span><span>{{ "%.2f"|format((q.frais_courtage or 0) + tva) }} €</span></div>
+  </div>
+</div>
+
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:20px">
+  <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:6px">🏦 Modalités de règlement</div>
+  <div style="font-family:monospace;font-size:14px;font-weight:700;color:#1a2e5a;letter-spacing:1px">{{ q.rib_courtier or params.cabinet_iban or 'RIB À RENSEIGNER' }}</div>
+  <div style="font-size:11px;color:#64748b;margin-top:4px">Virement bancaire — Référence obligatoire : <strong>{{ q.numero_facture or q.numero_quittance }}</strong></div>
+  <div style="font-size:11px;color:#64748b;margin-top:4px">Échéance : {{ q.date_echeance or '—' }}</div>
+</div>
+
+<div class="mentions">
+  <strong>Mentions légales :</strong><br>
+  {{ params.cabinet_nom or 'Riviera Marine Assurances' }} est un courtier en assurance immatriculé à l'ORIAS
+  {% if params.cabinet_orias %}sous le n° {{ params.cabinet_orias }}{% endif %}.<br>
+  {% if params.cabinet_siren %}SIREN : {{ params.cabinet_siren }}. {% endif %}
+  {% if params.cabinet_tva %}N° TVA intracommunautaire : {{ params.cabinet_tva }}. {% endif %}
+  Les frais de courtage couvrent les prestations de conseil, d'analyse des besoins, de comparaison d'offres, de souscription et de suivi du contrat d'assurance.<br>
+  Tout retard de paiement entraînera l'application de pénalités de retard au taux de 3 fois le taux d'intérêt légal, ainsi qu'une indemnité forfaitaire de 40 € pour frais de recouvrement (art. L441-6 du Code de commerce).
+</div>
+
+<div class="footer">
+  <strong>{{ params.cabinet_nom or 'Riviera Marine Assurances' }}</strong>
+  {% if params.cabinet_orias %} — ORIAS n° {{ params.cabinet_orias }}{% endif %}
+  <br>Document émis le {{ now.strftime('%d/%m/%Y') }} — Facture générée via NAVISUR
+</div>
+
+</div>
+</body></html>

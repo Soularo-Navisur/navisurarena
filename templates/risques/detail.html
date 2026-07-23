@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}{{ risque.libelle }} — NAVISUR{% endblock %}
+{% block page_title %}Fiche risque{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">{{ types_map.get(risque.type_risque, risque.type_risque) }}</h1>
+    <p class="page-header-sub">{{ risque.libelle }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('risque_modifier', id=risque.id) }}" class="btn btn-primary btn-sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+    <a href="{{ url_for('client_detail', id=risque.client_id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Retour client</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">📋 Informations générales</span></div>
+      <div class="p-3">
+        {% for label, val in [
+          ('Client', (risque.prenom or '') + ' ' + risque.nom),
+          ('Type', types_map.get(risque.type_risque, risque.type_risque)),
+          ('Désignation', risque.libelle),
+          ('Valeur assurée', '{:,.0f} €'.format(risque.valeur_assurance) if risque.valeur_assurance else '—'),
+          ('Valeur à neuf', '{:,.0f} €'.format(risque.valeur_a_neuf) if risque.valeur_a_neuf else '—'),
+        ] %}
+        <div class="info-row"><span class="info-label">{{ label }}</span><span class="info-value">{{ val }}</span></div>
+        {% endfor %}
+        {% if risque.adresse %}
+        <div class="info-row"><span class="info-label">Adresse</span><span class="info-value">{{ risque.adresse }}, {{ risque.code_postal }} {{ risque.ville }}</span></div>
+        {% endif %}
+        {% if risque.notes %}
+        <div class="mt-3 p-2" style="background:#f8fafc;border-radius:6px;font-size:12px">{{ risque.notes }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">🔍 Caractéristiques techniques</span></div>
+      <div class="p-3">
+        {% set nautique = ['bateau','jet_ski','peniche','yacht'] %}
+        {% if risque.type_risque in nautique %}
+          {% for k, lbl in [
+            ('immatriculation','Immatriculation'), ('marque','Marque / Chantier'),
+            ('modele','Modèle'), ('annee','Année'), ('longueur','Longueur'),
+            ('type_coque','Type de coque'), ('pavillon','Pavillon'),
+            ('port_attache',"Port d'attache"), ('zone_navigation','Zone navigation'),
+            ('usage','Usage'), ('moteur_type','Propulsion'),
+            ('moteur_marque','Marque moteur'), ('moteur_puissance','Puissance (CV)'),
+            ('moteur_serie','N° série moteur'),
+          ] %}
+          {% if details.get(k) %}
+          <div class="info-row"><span class="info-label">{{ lbl }}</span><span class="info-value">{{ details[k] }}</span></div>
+          {% endif %}
+          {% endfor %}
+          {% if risque.type_risque == 'peniche' and details.get('tirant_eau') %}
+          <div class="info-row"><span class="info-label">Tirant d'eau</span><span class="info-value">{{ details.tirant_eau }} m</span></div>
+          <div class="info-row"><span class="info-label">Usage</span><span class="info-value">{{ details.get('usage_peniche','—') }}</span></div>
+          {% endif %}
+          {% if risque.type_risque == 'yacht' %}
+          {% if details.get('nb_cabines') %}<div class="info-row"><span class="info-label">Cabines</span><span class="info-value">{{ details.nb_cabines }}</span></div>{% endif %}
+          <div class="info-row">
+            <span class="info-label">Personnel à bord</span>
+            <span class="info-value {{ 'text-warning fw-600' if details.get('personnel_bord') }}">
+              {{ '⚠️ Oui — ' + details.get('nb_equipage','') + ' équipants' if details.get('personnel_bord') else 'Non' }}
+            </span>
+          </div>
+          {% if details.get('personnel_bord') %}
+          <div class="p-2 mt-2" style="background:#fef9c3;border-radius:6px;font-size:12px;color:#92400e">
+            ⚠️ <strong>Contrat P&I / RC Passagers {{ 'prévu' if details.get('contrat_pi_prevu') else 'NON prévu' }}</strong>
+            — Personnel à bord : vérifier la couverture RC envers l'équipage.
+          </div>
+          {% endif %}
+          {% endif %}
+        {% elif risque.type_risque in ('local_pro','pro_nautisme') %}
+          {% for k, lbl in [('activite','Activité'),('forme_juridique','Forme juridique'),('ca_annuel','CA annuel'),('nb_employes','Employés'),('surface_m2','Surface'),('type_bail','Bail')] %}
+          {% if details.get(k) %}<div class="info-row"><span class="info-label">{{ lbl }}</span><span class="info-value">{{ details[k] }}{{ ' €' if k=='ca_annuel' else '' }}{{ ' m²' if k=='surface_m2' else '' }}</span></div>{% endif %}
+          {% endfor %}
+          {% if risque.type_risque == 'pro_nautisme' %}
+          {% if details.get('nb_bateaux_flotte') %}<div class="info-row"><span class="info-label">Bateaux flotte</span><span class="info-value">{{ details.nb_bateaux_flotte }} ({{ '{:,.0f}'.format(details.valeur_flotte|float) }} € de valeur)</span></div>{% endif %}
+          <div class="info-row">
+            <span class="info-label">Garanties</span>
+            <span class="info-value">
+              {% for k, lbl in [('garanties_rc','RC'),('garanties_locaux','Locaux'),('garanties_flotte','Flotte'),('garanties_pj','PJ')] %}
+              {% if details.get(k) %}<span class="badge-crm badge-clos me-1" style="font-size:11px">{{ lbl }}</span>{% endif %}
+              {% endfor %}
+            </span>
+          </div>
+          {% endif %}
+        {% elif risque.type_risque == 'habitation' %}
+          {% for k, lbl in [('type_bien','Type'),('statut_occupant','Occupant'),('surface_m2','Surface'),('nb_pieces_principales','Pièces'),('etage','Étage'),('annee_construction','Construction'),('type_chauffage','Chauffage'),('valeur_mobilier','Mobilier')] %}
+          {% if details.get(k) %}<div class="info-row"><span class="info-label">{{ lbl }}</span><span class="info-value">{{ details[k] }}{{ ' m²' if k=='surface_m2' else '' }}{{ ' €' if k=='valeur_mobilier' else '' }}</span></div>{% endif %}
+          {% endfor %}
+          <div class="info-row">
+            <span class="info-label">Options</span>
+            <span class="info-value">
+              {% for k, lbl in [('alarme','Alarme'),('piscine','Piscine'),('dependances','Dépendances')] %}
+              {% if details.get(k) %}<span class="badge-crm badge-clos me-1" style="font-size:11px">✓ {{ lbl }}</span>{% endif %}
+              {% endfor %}
+            </span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Contrats liés -->
+    {% if contrats %}
+    <div class="card-crm mt-3">
+      <div class="card-crm-header"><span class="card-crm-title">📄 Contrats liés</span></div>
+      <table class="table-crm">
+        <thead><tr><th>N°</th><th>Produit</th><th>Compagnie</th><th class="text-end">Prime</th><th>Statut</th></tr></thead>
+        <tbody>
+          {% for ct in contrats %}
+          <tr>
+            <td><a href="{{ url_for('contrat_detail', id=ct.id) }}" class="font-mono">{{ ct.numero or '—' }}</a></td>
+            <td style="font-size:12px">{{ ct.type_assurance or '—' }}</td>
+            <td style="font-size:12px">{{ ct.compagnie or '—' }}</td>
+            <td class="text-end fw-600">{{ "{:,.0f}".format(ct.prime_annuelle) }} €</td>
+            <td><span class="badge-crm badge-{{ ct.statut }}">{{ ct.statut|replace('_',' ')|title }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

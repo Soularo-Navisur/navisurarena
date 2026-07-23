@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — Riviera Marine Assurances{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">{{ titre }}</h1>
+  <a href="{{ url_for('taches_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+<form method="post">
+  <div class="form-card">
+    <div class="form-section-title">Tâche</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label">Titre *</label>
+        <input type="text" name="titre" class="form-control" required
+               value="{{ tache.titre if tache else '' }}"
+               placeholder="Rappeler M. Dupont pour renouvellement contrat plaisance...">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-control" rows="3"
+          placeholder="Détails, informations utiles...">{{ tache.description if tache else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="form-section-title">Priorité & Échéance</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Priorité</label>
+        <select name="priorite" class="form-select">
+          <option value="basse" {{ 'selected' if tache and tache.priorite == 'basse' }}>⚪ Basse</option>
+          <option value="normale" {{ 'selected' if not tache or tache.priorite == 'normale' }}>🔵 Normale</option>
+          <option value="haute" {{ 'selected' if tache and tache.priorite == 'haute' }}>🟠 Haute</option>
+          <option value="urgente" {{ 'selected' if tache and tache.priorite == 'urgente' }}>🔴 Urgente</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Date d'échéance</label>
+        <input type="date" name="date_echeance" class="form-control"
+               value="{{ tache.date_echeance if tache else today }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Statut</label>
+        <select name="statut" class="form-select">
+          <option value="a_faire" {{ 'selected' if not tache or tache.statut == 'a_faire' }}>À faire</option>
+          <option value="en_cours" {{ 'selected' if tache and tache.statut == 'en_cours' }}>En cours</option>
+          <option value="terminee" {{ 'selected' if tache and tache.statut == 'terminee' }}>Terminée ✓</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section-title">Lien (optionnel)</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Client associé</label>
+        <select name="client_id" class="form-select">
+          <option value="">— Aucun —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}"
+            {{ 'selected' if (tache and tache.client_id == c.id) or (preselect_client and preselect_client|int == c.id) }}>
+            {{ c.prenom or '' }} {{ c.nom }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Contrat associé</label>
+        <select name="contrat_id" class="form-select">
+          <option value="">— Aucun —</option>
+          {% for ct in contrats %}
+          <option value="{{ ct.id }}" {{ 'selected' if tache and tache.contrat_id == ct.id }}>
+            {{ ct.numero or 'Sans n°' }} — {{ ct.type_assurance or '?' }} ({{ ct.nom }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if tache else 'Créer la tâche' }}
+      </button>
+      <a href="{{ url_for('taches_list') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+{% endblock %}
