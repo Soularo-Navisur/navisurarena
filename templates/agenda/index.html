@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}Agenda — NAVISUR{% endblock %}
+{% block page_title %}Agenda{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('rdv_nouveau') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Nouveau RDV</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🗓️ Agenda</h1>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    <a href="{{ url_for('agenda', mois=prev_mois, annee=prev_annee) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i></a>
+    <span class="fw-600" style="font-size:16px;min-width:160px;text-align:center">{{ mois_nom }} {{ annee }}</span>
+    <a href="{{ url_for('agenda', mois=next_mois, annee=next_annee) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-right"></i></a>
+    <a href="{{ url_for('rdv_nouveau') }}" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i>Nouveau RDV</a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- CALENDRIER -->
+  <div class="col-lg-8">
+    <div class="card-crm">
+      <table class="cal-grid">
+        <thead>
+          <tr>
+            {% for j in ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'] %}
+            <th>{{ j }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for week in cal %}
+          <tr>
+            {% for day in week %}
+            {% set day_str = '%04d-%02d-%02d'|format(annee, mois, day) if day > 0 else '' %}
+            <td class="cal-day {{ 'empty' if day == 0 else ('today' if day_str == today else '') }}"
+                {% if day > 0 %}onclick="window.location='{{ url_for('rdv_nouveau') }}?date={{ day_str }}'"{% endif %}>
+              {% if day > 0 %}
+              <div class="cal-day-num">{{ day }}</div>
+              {% set rdvs_jour = rdv_par_jour.get(day, []) %}
+              {% for r in rdvs_jour[:3] %}
+              <div class="cal-rdv-pill {{ r.type_rdv }}" title="{{ r.titre }}"
+                   onclick="event.stopPropagation(); window.location='{{ url_for('rdv_modifier', id=r.id) }}'">
+                {% if r.heure_debut %}{{ r.heure_debut[:5] }} {% endif %}{{ r.titre[:18] }}{% if r.titre|length > 18 %}…{% endif %}
+              </div>
+              {% endfor %}
+              {% if rdvs_jour|length > 3 %}
+              <div style="font-size:10px;color:#94a3b8">+{{ rdvs_jour|length - 3 }} autre(s)</div>
+              {% endif %}
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PROCHAINS RDV -->
+  <div class="col-lg-4">
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">📅 Prochains rendez-vous</span></div>
+      {% if a_venir %}
+      <div class="p-2">
+        {% for r in a_venir %}
+        <div class="p-3 {{ 'border-bottom' if not loop.last }}" style="cursor:pointer"
+             onclick="window.location='{{ url_for('rdv_modifier', id=r.id) }}'">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-600" style="font-size:13px">{{ r.titre }}</div>
+              <div class="text-muted" style="font-size:11px;margin-top:2px">
+                📅 {{ r.date_rdv }}{% if r.heure_debut %} à {{ r.heure_debut[:5] }}{% endif %}
+              </div>
+              {% if r.nom %}<div class="text-muted" style="font-size:11px">👤 {{ r.prenom or '' }} {{ r.nom }}</div>{% endif %}
+              {% if r.lieu %}<div class="text-muted" style="font-size:11px">📍 {{ r.lieu }}</div>{% endif %}
+            </div>
+            <span class="cal-rdv-pill {{ r.type_rdv }}" style="flex-shrink:0">
+              {% if r.type_rdv == 'appel' %}📞
+              {% elif r.type_rdv == 'reunion' %}🤝
+              {% elif r.type_rdv == 'visite' %}🏠
+              {% else %}📅{% endif %}
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state py-4">
+        <i class="bi bi-calendar3" style="font-size:32px;opacity:.3"></i>
+        <p class="mb-0 mt-2">Aucun rendez-vous à venir</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Légende types -->
+    <div class="card-crm mt-3">
+      <div class="card-crm-header"><span class="card-crm-title">Légende</span></div>
+      <div class="p-3 d-flex flex-column gap-1">
+        {% for type, label, icon in [('appel','Appel téléphonique','📞'),('reunion','Réunion','🤝'),('visite','Visite','🏠'),('autre','Autre','📅')] %}
+        <div class="d-flex align-items-center gap-2">
+          <span class="cal-rdv-pill {{ type }}" style="font-size:11px">{{ icon }} {{ label }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

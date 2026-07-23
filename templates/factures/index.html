@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Quittances — Riviera Marine Assurances{% endblock %}
+{% block page_title %}Quittances{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('facture_nouvelle') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Nouvelle</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">Quittances</h1>
+    <p class="page-header-sub">{{ quittances|length }} facture(s)</p>
+  </div>
+  <a href="{{ url_for('facture_nouvelle') }}" class="btn btn-primary">
+    <i class="bi bi-receipt me-2"></i>Nouvelle quittance
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="stat-card">
+      <div class="stat-icon red"><i class="bi bi-hourglass-split"></i></div>
+      <div>
+        <div class="stat-value">{{ "%.2f"|format(total_impaye) }} €</div>
+        <div class="stat-label">Montant impayé — Factures envoyées</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="get" class="search-bar">
+  <select name="statut" class="form-select" style="width:auto">
+    <option value="">Tous les statuts</option>
+    <option value="brouillon" {{ 'selected' if statut=='brouillon' }}>📝 Brouillon</option>
+    <option value="envoyee"  {{ 'selected' if statut=='envoyee' }}>📤 Envoyée</option>
+    <option value="payee"    {{ 'selected' if statut=='payee' }}>✅ Payée</option>
+    <option value="annulee"  {{ 'selected' if statut=='annulee' }}>❌ Annulée</option>
+  </select>
+  <button type="submit" class="btn btn-primary">Filtrer</button>
+  {% if statut %}
+    <a href="{{ url_for('factures_list') }}" class="btn btn-outline-secondary">Réinitialiser</a>
+  {% endif %}
+</form>
+
+<div class="card-crm">
+  {% if quittances %}
+  <table class="table-crm">
+    <thead>
+      <tr>
+        <th>Numéro</th>
+        <th>Client</th>
+        <th>Objet</th>
+        <th>Émission</th>
+        <th>Échéance</th>
+        <th>HT</th>
+        <th>TTC</th>
+        <th>Statut</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in quittances %}
+      <tr>
+        <td class="fw-500 font-mono">{{ f.numero or '—' }}</td>
+        <td>{{ f.prenom or '' }} {{ f.nom }}</td>
+        <td class="text-muted" style="font-size:12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          {{ f.objet or '—' }}
+        </td>
+        <td class="text-muted">{{ f.date_emission or '—' }}</td>
+        <td class="text-muted">{{ f.date_echeance or '—' }}</td>
+        <td class="text-money">{{ "%.2f"|format(f.montant_ht) }} €</td>
+        <td class="text-money fw-600">{{ "%.2f"|format(f.montant_ttc) }} €</td>
+        <td>
+          <span class="badge-crm badge-{{ f.statut }}">{{ f.statut|title }}</span>
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{{ url_for('facture_imprimer', id=f.id) }}" target="_blank"
+               class="btn btn-sm btn-outline-secondary" title="Imprimer / PDF">
+              <i class="bi bi-printer"></i>
+            </a>
+            <a href="{{ url_for('facture_modifier', id=f.id) }}"
+               class="btn btn-sm btn-outline-secondary" title="Modifier">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <form method="post" action="{{ url_for('facture_supprimer', id=f.id) }}"
+                  onsubmit="return confirm('Supprimer cette quittance ?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-receipt"></i>
+    <h5>Aucune quittance</h5>
+    <p class="text-muted">{% if statut %}Aucune quittance avec ce statut{% else %}Créez votre première facture{% endif %}</p>
+    <a href="{{ url_for('facture_nouvelle') }}" class="btn btn-primary">Créer une quittance</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

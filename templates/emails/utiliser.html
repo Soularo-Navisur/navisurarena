@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% block title %}Envoyer — {{ template.titre }} — NAVISUR{% endblock %}
+{% block page_title %}Composer un email{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">✉️ {{ template.titre }}</h1>
+    <p class="page-header-sub">Envoi via Brevo (direct) ou votre messagerie (fallback)</p>
+  </div>
+  <a href="{{ url_for('emails_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Modèles</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">👤 Destinataire</span></div>
+      <div class="p-3">
+        <div class="mb-3">
+          <label class="form-label">Client *</label>
+          <select id="sel-client" class="form-select" onchange="onClientChange()">
+            <option value="">— Sélectionner —</option>
+            {% for c in clients %}
+            <option value="{{ c.id }}" data-email="{{ c.email or '' }}" data-nom="{{ (c.prenom or '') + ' ' + c.nom }}">
+              {{ c.prenom or '' }} {{ c.nom }}{% if c.email %} ({{ c.email }}){% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Contrat lié <span class="text-muted">(facultatif)</span></label>
+          <select id="sel-contrat" class="form-select" onchange="currentContratId=this.value">
+            <option value="">— Aucun —</option>
+            {% for ct in contrats %}
+            <option value="{{ ct.id }}" data-client="{{ ct.cid }}">
+              {{ ct.numero or 'Sans n°' }} — {{ ct.nom }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="button" onclick="chargerApercu()" class="btn btn-primary w-100">
+          <i class="bi bi-magic me-1"></i>Personnaliser avec les données client
+        </button>
+      </div>
+    </div>
+    <div class="card-crm mt-3">
+      <div class="card-crm-header"><span class="card-crm-title">🔖 Variables</span></div>
+      <div class="p-3" style="max-height:280px;overflow-y:auto">
+        {% for var, desc in variables.items() %}
+        <div class="d-flex justify-content-between py-1" style="font-size:11px;border-bottom:1px solid #f8fafc">
+          <code style="color:#8b5cf6">{{ var }}</code>
+          <span class="text-muted">{{ desc }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card-crm">
+      <div class="card-crm-header">
+        <span class="card-crm-title">📧 Message</span>
+        <span id="dest-badge" style="display:none;background:#eff6ff;color:#1a2e5a;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:600"></span>
+      </div>
+      <div class="p-4">
+        <div class="row g-2 mb-3 p-2" style="background:#f8fafc;border-radius:8px;font-size:13px">
+          <div class="col-md-6">
+            <span class="text-muted">De :</span>
+            <strong>Riviera Marine Assurances</strong><br>
+            <span style="font-size:11px;color:#94a3b8">contact@rivieramarine-assurances.fr</span>
+          </div>
+          <div class="col-md-6">
+            <span class="text-muted">À :</span>
+            <span id="dest-affichage" class="fw-semibold"><span class="text-muted fst-italic">Sélectionnez un client</span></span>
+          </div>
+        </div>
+        <div id="alerte-email-manquant" style="display:none" class="alert alert-warning py-2 mb-2" style="font-size:13px">
+          <i class="bi bi-exclamation-triangle me-1"></i><strong>Email non renseigné</strong> — Saisissez l'adresse avant d'envoyer.
+          <input type="email" id="email-manuel" class="form-control form-control-sm mt-1" placeholder="email@exemple.fr">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Sujet</label>
+          <input type="text" id="preview-sujet" class="form-control" value="{{ template.sujet or '' }}">
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-semibold">Corps <span class="text-muted fw-normal">(modifiable)</span></label>
+          <textarea id="preview-corps" class="form-control" rows="12" style="font-size:13px;line-height:1.7">{{ template.corps or '' }}</textarea>
+        </div>
+        <div id="envoi-zone" style="display:none">
+          <div id="quota-bar" class="p-2 mb-3" style="background:#f0f9ff;border-radius:8px;font-size:12px;color:#0369a1">
+            <i class="bi bi-envelope-check me-1"></i><span id="quota-texte">Chargement...</span>
+          </div>
+          <div class="d-flex gap-2 flex-wrap mb-2">
+            <button onclick="envoyerBrevo()" id="btn-brevo" class="btn btn-primary flex-grow-1" style="padding:11px">
+              <i class="bi bi-send-fill me-2"></i><strong>Envoyer via Brevo</strong>
+            </button>
+            <button onclick="ouvrirMailto()" class="btn btn-outline-secondary" title="Zoho Mail ou autre client">
+              <i class="bi bi-envelope me-1"></i>Ma messagerie
+            </button>
+          </div>
+          <div id="envoi-result" class="mb-2"></div>
+          <div class="d-flex gap-2">
+            <button onclick="copierMessage()" class="btn btn-sm btn-outline-secondary"><i class="bi bi-clipboard me-1"></i>Copier</button>
+            <button onclick="enregistrerJournal()" class="btn btn-sm btn-outline-secondary"><i class="bi bi-journal-text me-1"></i>+ Journal</button>
+          </div>
+        </div>
+        <div id="envoi-attente">
+          <div class="p-3 text-center" style="background:#f8fafc;border-radius:8px;color:#94a3b8;font-size:13px">
+            Sélectionnez un client puis cliquez "Personnaliser"
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form id="form-journal" method="post" action="{{ url_for('email_envoyer', id=template.id) }}" style="display:none">
+  <input type="hidden" name="client_id" id="form-client-id">
+  <input type="hidden" name="contrat_id" id="form-contrat-id">
+  <input type="hidden" name="sujet" id="form-sujet">
+  <input type="hidden" name="corps" id="form-corps">
+  <input type="hidden" name="email_dest" id="form-email-dest">
+  <input type="hidden" name="nom_dest" id="form-nom-dest">
+  <input type="hidden" name="modele_nom" value="{{ template.titre }}">
+  <input type="hidden" name="force_mailto" value="1">
+</form>
+
+<script>
+let currentEmail='', currentNom='', currentClientId='', currentContratId='';
+
+function onClientChange(){
+  const sel=document.getElementById('sel-client');
+  const opt=sel.options[sel.selectedIndex];
+  currentEmail=opt.dataset.email||''; currentNom=opt.dataset.nom||''; currentClientId=sel.value;
+  const div=document.getElementById('dest-affichage');
+  const al=document.getElementById('alerte-email-manquant');
+  const b=document.getElementById('dest-badge');
+  if(!currentClientId){div.innerHTML='<span class="text-muted fst-italic">Sélectionnez un client</span>';al.style.display='none';return;}
+  if(currentEmail){div.innerHTML=`<strong>${currentNom}</strong> &lt;<span class="font-mono text-muted">${currentEmail}</span>&gt;`;b.textContent=currentEmail;b.style.display='';al.style.display='none';}
+  else{div.innerHTML=`<strong>${currentNom}</strong>`;al.style.display='';b.style.display='none';}
+}
+
+function getEmailEff(){
+  const m=document.getElementById('email-manuel');
+  return(!currentEmail&&m&&m.value)?m.value.trim():currentEmail;
+}
+
+function chargerApercu(){
+  if(!currentClientId){alert('Sélectionnez un client.');return;}
+  const btn=event.target; btn.disabled=true; btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Personnalisation...';
+  const fd=new FormData(); fd.append('client_id',currentClientId); fd.append('contrat_id',currentContratId||'');
+  fetch('{{ url_for("email_apercu_brevo", id=template.id) }}',{method:'POST',body:fd})
+    .then(r=>r.json()).then(d=>{
+      btn.disabled=false; btn.innerHTML='<i class="bi bi-magic me-1"></i>Personnaliser avec les données client';
+      if(d.error){alert(d.error);return;}
+      document.getElementById('preview-sujet').value=d.sujet;
+      document.getElementById('preview-corps').value=d.corps;
+      if(d.email_dest)currentEmail=d.email_dest;
+      if(d.nom_dest)currentNom=d.nom_dest;
+      document.getElementById('envoi-zone').style.display='';
+      document.getElementById('envoi-attente').style.display='none';
+      chargerQuota();
+    }).catch(()=>{btn.disabled=false;btn.innerHTML='<i class="bi bi-magic me-1"></i>Personnaliser';});
+}
+
+function chargerQuota(){
+  fetch('/brevo/quota').then(r=>r.json()).then(d=>{
+    const t=document.getElementById('quota-texte');
+    if(d.erreur){t.textContent='Quota indisponible';return;}
+    t.textContent=`Quota Brevo : ${d.aujourd_hui}/${d.quota_jour} emails aujourd'hui · ${d.ce_mois}/${d.quota_mois} ce mois`;
+    if(d.aujourd_hui/d.quota_jour>=0.85)t.style.color='#dc2626';
+  }).catch(()=>{});
+}
+
+function envoyerBrevo(){
+  const email=getEmailEff(); if(!email){alert('Email manquant.');return;}
+  const btn=document.getElementById('btn-brevo'); btn.disabled=true; btn.innerHTML='<span class="spinner-border spinner-border-sm me-1"></span>Envoi...';
+  fetch('/brevo/envoyer',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({client_id:currentClientId,contrat_id:currentContratId,email_dest:email,nom_dest:currentNom,
+      sujet:document.getElementById('preview-sujet').value,corps:document.getElementById('preview-corps').value,
+      modele_nom:'{{ template.titre }}'})
+  }).then(r=>r.json()).then(d=>{
+    btn.disabled=false; btn.innerHTML='<i class="bi bi-send-fill me-2"></i><strong>Envoyer via Brevo</strong>';
+    const res=document.getElementById('envoi-result');
+    if(d.succes){res.innerHTML='<div class="alert alert-success py-2">✅ Email envoyé via Brevo !</div>';chargerQuota();}
+    else if(d.fallback_mailto&&d.mailto_url){res.innerHTML='<div class="alert alert-info py-2">Brevo indisponible — ouverture messagerie...</div>';setTimeout(()=>{window.location.href=d.mailto_url;},700);}
+    else{res.innerHTML=`<div class="alert alert-warning py-2">Erreur : ${d.erreur||'inconnue'}</div>`;}
+  }).catch(()=>{btn.disabled=false;document.getElementById('envoi-result').innerHTML='<div class="alert alert-warning py-2">Erreur réseau</div>';});
+}
+
+function ouvrirMailto(){
+  const email=getEmailEff();
+  const params=new URLSearchParams({subject:document.getElementById('preview-sujet').value,body:document.getElementById('preview-corps').value});
+  enregistrerJournal();
+  window.location.href='mailto:'+encodeURIComponent(email)+'?'+params.toString();
+}
+
+function copierMessage(){
+  navigator.clipboard.writeText(document.getElementById('preview-sujet').value+'\n\n'+document.getElementById('preview-corps').value)
+    .then(()=>alert('Copié !'));
+}
+
+function enregistrerJournal(){
+  document.getElementById('form-client-id').value=currentClientId;
+  document.getElementById('form-contrat-id').value=currentContratId;
+  document.getElementById('form-sujet').value=document.getElementById('preview-sujet').value;
+  document.getElementById('form-corps').value=document.getElementById('preview-corps').value;
+  document.getElementById('form-email-dest').value=getEmailEff();
+  document.getElementById('form-nom-dest').value=currentNom;
+  const fd=new FormData(document.getElementById('form-journal'));
+  fetch(document.getElementById('form-journal').action,{method:'POST',body:fd})
+    .then(()=>{document.getElementById('envoi-result').innerHTML='<div class="alert alert-success py-2">✅ Journal mis à jour</div>';});
+}
+</script>
+{% endblock %}

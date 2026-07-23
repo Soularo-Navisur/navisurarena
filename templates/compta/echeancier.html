@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% block title %}Échéancier fiscal — NAVISUR{% endblock %}
+{% block page_title %}Échéancier fiscal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📅 Échéancier fiscal {{ annee }}</h1>
+    <p class="page-header-sub">Obligations réglementaires · Alertes et rappels</p>
+  </div>
+  <form method="get" class="d-flex gap-2">
+    <select name="annee" class="form-select form-select-sm" onchange="this.form.submit()">
+      {% for a in annees %}<option value="{{ a }}" {{ 'selected' if a==annee }}>{{ a }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
+
+<!-- Résumé -->
+{% set nb_fait = items|selectattr('fait')|list|length %}
+{% set nb_retard = items|selectattr('retard')|list|length %}
+{% set nb_urgence = items|selectattr('urgence')|list|length %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+      <div><div class="stat-value">{{ nb_fait }}</div><div class="stat-label">Accomplies</div></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card" style="{{ 'border-left:3px solid #dc2626' if nb_retard > 0 else '' }}">
+      <div class="stat-icon red"><i class="bi bi-alarm"></i></div>
+      <div><div class="stat-value">{{ nb_retard }}</div><div class="stat-label">En retard</div></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card" style="{{ 'border-left:3px solid #f59e0b' if nb_urgence > 0 else '' }}">
+      <div class="stat-icon orange"><i class="bi bi-exclamation-triangle"></i></div>
+      <div><div class="stat-value">{{ nb_urgence }}</div><div class="stat-label">Dans les 15 jours</div></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="bi bi-list-check"></i></div>
+      <div><div class="stat-value">{{ items|length }}</div><div class="stat-label">Échéances total</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="card-crm">
+  <div class="card-crm-header">
+    <span class="card-crm-title">Calendrier des obligations {{ annee }}</span>
+    <span class="text-muted" style="font-size:12px">Cliquez sur ✓ pour marquer une échéance comme accomplie</span>
+  </div>
+  <table class="table-crm">
+    <thead>
+      <tr><th style="width:110px">Date limite</th><th>Obligation</th><th>Détails</th><th>Catégorie</th><th style="width:120px">Statut</th></tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      {% set row_bg = 'prime-paye' if item.fait else ('prime-retard' if item.retard else ('prime-attendu' if item.urgence else '')) %}
+      <tr class="{{ row_bg }}" id="row-{{ item.cle }}">
+        <td>
+          <span class="{{ 'text-danger fw-700' if item.retard else ('text-warning fw-600' if item.urgence else 'text-muted') }}" style="font-size:12px">
+            {% if item.retard %}🔴 {% elif item.urgence %}🟠 {% endif %}
+            {{ item.date }}
+          </span>
+        </td>
+        <td class="fw-600">{{ item.label }}</td>
+        <td class="text-muted" style="font-size:12px">{{ item.details }}</td>
+        <td>
+          {% set cat_icons = {'urssaf':'🏛️','orias':'⚓','assurance':'🛡️','impots':'💰','formation':'📚','compta':'📊'} %}
+          {% set cat_labels = {'urssaf':'URSSAF','orias':'ORIAS','assurance':'Assurance','impots':'Impôts','formation':'Formation','compta':'Comptabilité'} %}
+          <span class="badge-crm" style="background:#f1f5f9;color:#374151;font-size:11px">
+            {{ cat_icons.get(item.categorie,'📋') }} {{ cat_labels.get(item.categorie, item.categorie) }}
+          </span>
+        </td>
+        <td>
+          {% if item.fait %}
+          <span class="badge-crm badge-clos">✅ Accomplie</span>
+          <button class="btn btn-xs btn-outline-secondary ms-1" style="font-size:10px;padding:2px 6px"
+                  onclick="toggleEcheance('{{ item.cle }}', '0')">↺</button>
+          {% elif item.retard %}
+          <span class="badge-crm badge-ouvert">🔴 En retard</span>
+          <button class="btn btn-xs btn-success ms-1" style="font-size:10px;padding:2px 8px"
+                  onclick="toggleEcheance('{{ item.cle }}', '1')">✓</button>
+          {% elif item.urgence %}
+          <span class="badge-crm badge-devis">⚠️ Urgent</span>
+          <button class="btn btn-xs btn-success ms-1" style="font-size:10px;padding:2px 8px"
+                  onclick="toggleEcheance('{{ item.cle }}', '1')">✓ Fait</button>
+          {% else %}
+          <span class="badge-crm badge-attendu">⏳ À faire</span>
+          <button class="btn btn-xs btn-outline-success ms-1" style="font-size:10px;padding:2px 8px"
+                  onclick="toggleEcheance('{{ item.cle }}', '1')">✓ Fait</button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Liens utiles -->
+<div class="card-crm mt-3">
+  <div class="card-crm-header"><span class="card-crm-title">🔗 Liens utiles</span></div>
+  <div class="p-3 d-flex gap-3 flex-wrap">
+    {% for url, label, icon in [
+      ('https://www.autoentrepreneur.urssaf.fr', 'URSSAF Auto-entrepreneur', 'building-check'),
+      ('https://www.orias.fr', 'ORIAS', 'shield-check'),
+      ('https://www.impots.gouv.fr', 'Impots.gouv.fr', 'cash'),
+      ('https://www.orias.fr/web/guest/formation', 'Formation DDA (ORIAS)', 'mortarboard'),
+    ] %}
+    <a href="{{ url }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-{{ icon }} me-1"></i>{{ label }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+function toggleEcheance(cle, val) {
+  fetch('/compta/echeancier/toggle', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: `cle=${encodeURIComponent(cle)}&val=${val}`
+  }).then(() => location.reload());
+}
+</script>
+{% endblock %}

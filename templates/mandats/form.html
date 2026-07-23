@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — Riviera Marine Assurances{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">{{ titre }}</h1>
+  <a href="{{ url_for('mandats_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+<form method="post">
+  <div class="form-card">
+    <div class="form-section-title">🏢 Compagnie</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Compagnie *</label>
+        <input type="text" name="compagnie" class="form-control" required
+               value="{{ mandat.compagnie if mandat else '' }}"
+               placeholder="Pantaenius, Generali, Allianz...">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Type de mandat</label>
+        <select name="type_mandat" class="form-select">
+          <option value="">—</option>
+          {% for t in ['Mandataire','Agent général','Courtier coassureur','Porteur de risque','Apporteur'] %}
+          <option value="{{ t }}" {{ 'selected' if mandat and mandat.type_mandat == t }}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">N° de mandat</label>
+        <input type="text" name="numero_mandat" class="form-control font-mono"
+               value="{{ mandat.numero_mandat if mandat else '' }}" placeholder="MAN-001">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Produits couverts par ce mandat</label>
+        <textarea name="produits" class="form-control" rows="2"
+          placeholder="Plaisance, Yacht, Fluvial, Jet Ski, RC Nautique...">{{ mandat.produits if mandat else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="form-section-title">👤 Contact compagnie</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Nom du contact</label>
+        <input type="text" name="contact_nom" class="form-control"
+               value="{{ mandat.contact_nom if mandat else '' }}" placeholder="Marie Dupont">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Email</label>
+        <input type="email" name="contact_email" class="form-control"
+               value="{{ mandat.contact_email if mandat else '' }}" placeholder="m.dupont@compagnie.fr">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Téléphone</label>
+        <input type="text" name="contact_telephone" class="form-control"
+               value="{{ mandat.contact_telephone if mandat else '' }}" placeholder="01 23 45 67 89">
+      </div>
+    </div>
+
+    <div class="form-section-title">📅 Validité & Statut</div>
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Date de début</label>
+        <input type="date" name="date_debut" class="form-control" value="{{ mandat.date_debut if mandat else '' }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Date de fin</label>
+        <input type="date" name="date_fin" class="form-control" value="{{ mandat.date_fin if mandat else '' }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Statut</label>
+        <select name="statut" class="form-select">
+          <option value="actif" {{ 'selected' if not mandat or mandat.statut == 'actif' }}>✅ Actif</option>
+          <option value="suspendu" {{ 'selected' if mandat and mandat.statut == 'suspendu' }}>⏸️ Suspendu</option>
+          <option value="resilie" {{ 'selected' if mandat and mandat.statut == 'resilie' }}>❌ Résilié</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section-title">📝 Notes</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <textarea name="notes" class="form-control" rows="2"
+          placeholder="Conditions particulières, taux de commission, remarques...">{{ mandat.notes if mandat else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if mandat else 'Enregistrer le mandat' }}
+      </button>
+      <a href="{{ url_for('mandats_list') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

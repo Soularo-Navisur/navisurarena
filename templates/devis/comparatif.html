@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% block title %}Comparatif devis — {{ client.prenom or '' }} {{ client.nom }} — NAVISUR
+<style>
+@media print {
+  .no-print, nav, .sidebar, .topbar { display: none !important; }
+  body { font-size: 11px; }
+  .card-crm { break-inside: avoid; box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
+  .page-header { margin-bottom: 12px; }
+  @page { size: A4 landscape; margin: 12mm; }
+}
+</style>
+
+{% endblock %}
+{% block page_title %}Comparatif devis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📊 Comparatif devis</h1>
+    <p class="page-header-sub">{{ client.prenom or '' }} {{ client.nom }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <button onclick="window.print()" class="btn btn-outline-secondary btn-sm no-print">
+      <i class="bi bi-printer me-1"></i>Imprimer / PDF
+    </button>
+    <a href="{{ url_for('devis_multi_nouveau') }}?client_id={{ client.id }}" class="btn btn-primary btn-sm no-print">
+      <i class="bi bi-plus me-1"></i>Ajouter des devis
+    </a>
+    <a href="{{ url_for('client_detail', id=client.id) }}" class="btn btn-outline-secondary btn-sm no-print">
+      <i class="bi bi-arrow-left me-1"></i>Retour client
+    </a>
+  </div>
+</div>
+
+{% if not devis_list %}
+<div class="card-crm">
+  <div class="empty-state py-5">
+    <i class="bi bi-clipboard" style="font-size:48px;opacity:.2"></i>
+    <h5 class="mt-3">Aucun devis pour ce client</h5>
+    <a href="{{ url_for('devis_multi_nouveau') }}?client_id={{ client.id }}" class="btn btn-primary btn-sm mt-2">
+      Saisir des propositions
+    </a>
+  </div>
+</div>
+{% else %}
+
+<!-- Résumé -->
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="bi bi-clipboard"></i></div>
+      <div><div class="stat-value">{{ devis_list|length }}</div><div class="stat-label">Propositions</div></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f0fdf4;color:#16a34a"><i class="bi bi-check-circle"></i></div>
+      <div>
+        <div class="stat-value">{{ devis_list|selectattr('statut','eq','accepte')|list|length }}</div>
+        <div class="stat-label">Accepté(s)</div>
+      </div>
+    </div>
+  </div>
+  {% if devis_list %}
+  {% set primes = devis_list|selectattr('prime_proposee')|map(attribute='prime_proposee')|list %}
+  {% if primes %}
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fef9c3;color:#92400e"><i class="bi bi-arrow-down-circle"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:16px">{{ "{:,.0f}".format(primes|min).replace(",", " ") }} €</div>
+        <div class="stat-label">Prime la plus basse</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fef2f2;color:#dc2626"><i class="bi bi-arrow-up-circle"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:16px">{{ "{:,.0f}".format(primes|max).replace(",", " ") }} €</div>
+        <div class="stat-label">Prime la plus haute</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% endif %}
+</div>
+
+<!-- Tableau comparatif -->
+<div class="card-crm" style="overflow-x:auto">
+  <table class="table-crm" style="min-width:700px">
+    <thead>
+      <tr style="background:#1a2e5a;color:white">
+        <th style="width:180px">Compagnie</th>
+        <th>Produit / Risque</th>
+        <th class="text-end" style="width:120px">Prime annuelle</th>
+        <th style="width:90px">Franchise</th>
+        <th style="width:110px">Envoyé le</th>
+        <th style="width:90px">Statut</th>
+        <th style="width:110px">Note conseil</th>
+        <th style="width:80px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set badge_map = {'en_attente':'badge-attendu','accepte':'badge-clos','refuse':'badge-resilie','sans_suite':'badge-inactif','expire':'badge-echu'} %}
+      {% set label_map = {'en_attente':'⏳ En attente','accepte':'✅ Retenu','refuse':'❌ Refusé','sans_suite':'⛔ Sans suite','expire':'⏰ Expiré'} %}
+      {% set min_prime = devis_list|selectattr('prime_proposee')|map(attribute='prime_proposee')|list|min if devis_list|selectattr('prime_proposee')|list else 0 %}
+      {% for d in devis_list %}
+      <tr style="{{ 'background:#f0fdf4;' if d.statut=='accepte' else 'background:#fff5f5;' if d.statut=='refuse' else '' }}">
+        <td class="fw-700" style="{{ 'color:#16a34a' if d.statut=='accepte' else '' }}">
+          {{ d.compagnie or '—' }}
+        </td>
+        <td style="font-size:12px">
+          <div>{{ d.type_assurance or '—' }}</div>
+          {% if d.risque_libelle %}
+          <div class="text-muted" style="font-size:11px">{{ d.risque_libelle[:35] }}</div>
+          {% endif %}
+          {% if d.garanties %}
+          <div class="text-muted" style="font-size:10px">{{ d.garanties[:50] }}{% if d.garanties|length > 50 %}…{% endif %}</div>
+          {% endif %}
+        </td>
+        <td class="text-end" style="font-size:16px;font-weight:800;{{ 'color:#16a34a' if d.prime_proposee == min_prime and min_prime > 0 else 'color:#1a2e5a' }}">
+          {% if d.prime_proposee %}
+          {{ "{:,.0f}".format(d.prime_proposee).replace(",", " ") }} €
+          {% if d.prime_proposee == min_prime and min_prime > 0 %}
+          <div style="font-size:9px;color:#16a34a;font-weight:600">▼ MOINS CHER</div>
+          {% endif %}
+          {% else %}—{% endif %}
+        </td>
+        <td style="font-size:12px;color:#64748b">
+          {% if d.franchise_proposee and d.franchise_proposee > 0 %}{{ "{:,.0f}".format(d.franchise_proposee).replace(",", " ") }} €{% else %}—{% endif %}
+        </td>
+        <td style="font-size:11px;color:#94a3b8">
+          {{ d.date_envoi_client or d.date_devis or '—' }}
+          {% if d.date_expiration and d.date_expiration < today %}
+          <div style="color:#dc2626;font-size:10px">⏰ Expiré</div>
+          {% endif %}
+        </td>
+        <td>
+          <span class="badge-crm {{ badge_map.get(d.statut,'badge-inactif') }}" style="font-size:11px">
+            {{ label_map.get(d.statut, d.statut) }}
+          </span>
+        </td>
+        <td style="font-size:11px;max-width:110px">
+          {% if d.note_conseil %}
+          <span title="{{ d.note_conseil }}" style="cursor:help;color:#475569">
+            {{ d.note_conseil[:40] }}{% if d.note_conseil|length > 40 %}…{% endif %}
+          </span>
+          {% else %}
+          <span style="color:#f59e0b;font-size:10px">⚠️ Manquante</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="d-flex gap-1 flex-column">
+            <a href="{{ url_for('devis_modifier', id=d.id) }}" class="btn btn-xs btn-outline-secondary" style="padding:2px 7px;font-size:11px"><i class="bi bi-pencil"></i></a>
+            {% if d.statut == 'en_attente' %}
+            <form method="post" action="{{ url_for('devis_accepter', id=d.id) }}" style="margin:0" data-loading-title="Création du contrat..." data-loading-sub="Association du devis et du client">
+              <button class="btn btn-xs btn-success" style="padding:2px 7px;font-size:11px">✓ Retenir</button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Légende note conseil -->
+{% if devis_list|selectattr('note_conseil')|list|length < devis_list|length %}
+<div class="p-3 mt-2" style="background:#fffbeb;border-radius:8px;border-left:3px solid #f59e0b;font-size:12px;color:#92400e">
+  <strong>⚠️ DDA :</strong> {{ devis_list|selectattr('note_conseil')|list|length }}/{{ devis_list|length }} devis ont une note de conseil.
+  La note de conseil est obligatoire pour justifier votre recommandation en cas de contrôle ACPR.
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

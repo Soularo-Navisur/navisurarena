@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% block title %}Dépenses — NAVISUR{% endblock %}
+{% block page_title %}Registre des dépenses{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('compta_depense_nouvelle') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Nouvelle</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📉 Registre des dépenses</h1>
+    <p class="page-header-sub">Suivi des charges professionnelles · Pilotage de la rentabilité</p>
+  </div>
+  <a href="{{ url_for('compta_depense_nouvelle') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Saisir une dépense
+  </a>
+</div>
+
+<!-- Filtres -->
+<form method="get" class="search-bar">
+  <select name="annee" class="form-select" style="width:auto" onchange="this.form.submit()">
+    {% for a in annees %}<option value="{{ a }}" {{ 'selected' if a==annee }}>{{ a }}</option>{% endfor %}
+  </select>
+  <select name="categorie" class="form-select" style="width:auto">
+    <option value="">Toutes catégories</option>
+    {% for val, label in categories %}
+    <option value="{{ val }}" {{ 'selected' if categorie==val }}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-primary">Filtrer</button>
+  {% if categorie %}<a href="{{ url_for('compta_depenses', annee=annee) }}" class="btn btn-outline-secondary">Réinitialiser</a>{% endif %}
+</form>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon red"><i class="bi bi-cart3"></i></div>
+      <div>
+        <div class="stat-value">{{ "{:,.2f}".format(total).replace(",", " ") }} €</div>
+        <div class="stat-label">Total dépenses {{ annee }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon orange"><i class="bi bi-list-ul"></i></div>
+      <div>
+        <div class="stat-value">{{ depenses|length }}</div>
+        <div class="stat-label">Nombre de dépenses</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="bi bi-tags"></i></div>
+      <div>
+        <div class="stat-value">{{ totaux_cat|length }}</div>
+        <div class="stat-label">Catégories utilisées</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Répartition par catégorie -->
+  {% if totaux_cat %}
+  <div class="col-lg-4">
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">Répartition par catégorie</span></div>
+      <div class="p-3">
+        {% set cats_dict = dict(categories) %}
+        {% for cat, mt in totaux_cat %}
+        <div class="mb-2">
+          <div class="d-flex justify-content-between mb-1" style="font-size:12px">
+            <span class="fw-500">{{ cats_dict.get(cat, cat) }}</span>
+            <span class="fw-700">{{ "{:,.2f}".format(mt).replace(",", " ") }} €</span>
+          </div>
+          <div style="background:#e2e8f0;border-radius:4px;height:6px">
+            <div style="height:6px;border-radius:4px;background:#1a2e5a;width:{{ [(mt/total*100)|int, 100]|min if total > 0 else 0 }}%"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Liste dépenses -->
+  <div class="{{ 'col-lg-8' if totaux_cat else 'col-12' }}">
+    <div class="card-crm">
+      {% if depenses %}
+      <table class="table-crm">
+        <thead>
+          <tr><th>Date</th><th>Fournisseur</th><th>Catégorie</th><th class="text-end">Montant</th><th>Récurrence</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% set cats_dict = dict(categories) %}
+          {% for d in depenses %}
+          <tr>
+            <td class="text-muted" style="font-size:12px;white-space:nowrap">{{ d.date_depense }}</td>
+            <td>
+              <div class="fw-500">{{ d.fournisseur or '—' }}</div>
+              {% if d.notes %}<div class="text-muted" style="font-size:11px">{{ d.notes[:40] }}</div>{% endif %}
+            </td>
+            <td>
+              <span class="badge-crm" style="background:#f1f5f9;color:#374151;font-size:11px">
+                {{ cats_dict.get(d.categorie, d.categorie) }}
+              </span>
+            </td>
+            <td class="text-end fw-700" style="color:#dc2626">{{ "{:,.2f}".format(d.montant).replace(",", " ") }} €</td>
+            <td class="text-muted" style="font-size:12px">
+              {% if d.recurrence == 'mensuel' %}🔄 Mensuel
+              {% elif d.recurrence == 'trimestriel' %}📅 Trimestriel
+              {% elif d.recurrence == 'annuel' %}📆 Annuel
+              {% else %}⚡ Ponctuel{% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{{ url_for('compta_depense_modifier', id=d.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                <form method="post" action="{{ url_for('compta_depense_supprimer', id=d.id) }}" onsubmit="return confirm('Supprimer ?')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          <tr style="background:#fef2f2;font-weight:700">
+            <td colspan="3" class="text-end" style="color:#dc2626;font-size:12px;text-transform:uppercase;letter-spacing:.05em">Total</td>
+            <td class="text-end" style="color:#dc2626;font-size:16px">{{ "{:,.2f}".format(total).replace(",", " ") }} €</td>
+            <td colspan="2"></td>
+          </tr>
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">
+        <i class="bi bi-cart3"></i>
+        <h5>Aucune dépense pour {{ annee }}</h5>
+        <a href="{{ url_for('compta_depense_nouvelle') }}" class="btn btn-primary">Saisir une dépense</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

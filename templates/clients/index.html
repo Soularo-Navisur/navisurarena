@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+{% block title %}Clients — NAVISUR{% endblock %}
+{% block page_title %}Clients & Prospects{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('client_nouveau') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-person-plus me-1"></i>Nouveau
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">👥 Clients &amp; Prospects</h1>
+    <p class="page-header-sub">{{ clients|length }} enregistrement(s)</p>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    <!-- Toggle liste / cartes -->
+    <div class="btn-group btn-group-sm" role="group" id="view-toggle">
+      <button type="button" class="btn btn-outline-secondary" id="btn-liste" onclick="setView('liste')" title="Vue liste">
+        <i class="bi bi-list-ul"></i>
+      </button>
+      <button type="button" class="btn btn-outline-secondary" id="btn-cartes" onclick="setView('cartes')" title="Vue cartes">
+        <i class="bi bi-grid-3x3-gap"></i>
+      </button>
+    </div>
+    <a href="{{ url_for('clients_export_excel') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-download me-1"></i>Export
+    </a>
+    <a href="{{ url_for('client_nouveau') }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-person-plus me-1"></i>Nouveau client
+    </a>
+  </div>
+</div>
+
+<!-- Filtres statut -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  {% for val, label, nb in [('','Tous',totals.tous),('client','Clients',totals.client),('prospect','Prospects',totals.prospect),('inactif','Inactifs',totals.inactif)] %}
+  <a href="{{ url_for('clients_list') }}?statut={{ val }}{% if search %}&q={{ search }}{% endif %}"
+     class="badge-crm {% if statut==val %}badge-clos{% else %}badge-inactif{% endif %}"
+     style="text-decoration:none;padding:6px 14px;font-size:13px;cursor:pointer">
+    {{ label }} <span style="font-weight:800">{{ nb }}</span>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Filtres de recherche -->
+<form method="get" class="search-bar mb-3" style="flex-wrap:wrap;gap:8px">
+  <div class="search-input-wrap" style="flex:1;min-width:180px">
+    <i class="bi bi-search"></i>
+    <input type="text" name="q" class="form-control" placeholder="Nom, email, téléphone..." value="{{ search }}">
+  </div>
+  <select name="permis" class="form-select" style="width:auto">
+    <option value="">Tous permis</option>
+    <option value="cotier"    {{ 'selected' if permis=='cotier' }}>🚤 Côtier</option>
+    <option value="hauturier" {{ 'selected' if permis=='hauturier' }}>⛵ Hauturier</option>
+    <option value="les_deux"  {{ 'selected' if permis=='les_deux' }}>Côtier+Hauturier</option>
+    <option value="fluvial"   {{ 'selected' if permis=='fluvial' }}>🛶 Fluvial</option>
+  </select>
+  {% if statut %}<input type="hidden" name="statut" value="{{ statut }}">{% endif %}
+  <button type="submit" class="btn btn-primary">Filtrer</button>
+  {% if search or compagnie_filter or permis or ville_filter %}
+  <a href="{{ url_for('clients_list') }}{% if statut %}?statut={{ statut }}{% endif %}" class="btn btn-outline-secondary">✕</a>
+  {% endif %}
+</form>
+
+{% if not clients %}
+<div class="card-crm">
+  <div class="empty-state">
+    <i class="bi bi-people" style="font-size:48px;opacity:.2"></i>
+    <h5 class="mt-3">Aucun client trouvé</h5>
+    <p class="text-muted">{% if search or statut %}Modifiez vos filtres{% else %}Commencez par ajouter votre premier client{% endif %}</p>
+    {% if not search and not statut %}
+    <a href="{{ url_for('client_nouveau') }}" class="btn btn-primary mt-2">Ajouter un client</a>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+
+<!-- ── VUE LISTE ── -->
+<div id="view-liste" class="card-crm">
+  <table class="table-crm">
+    <thead>
+      <tr>
+        <th>Client</th>
+        <th>Téléphone</th>
+        <th>Ville</th>
+        <th>Bateaux</th>
+        <th>Contrats</th>
+        <th>Prime totale</th>
+        <th>Statut</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set permis_icons = {'cotier':'🚤','hauturier':'⛵','les_deux':'🚤⛵','fluvial':'🛶'} %}
+      {% for c in clients %}
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div class="avatar avatar-{{ 'green' if c.statut == 'prospect' else 'blue' }}" style="width:34px;height:34px;font-size:12px;flex-shrink:0">
+              {{ c.nom[0] }}{{ c.prenom[0] if c.prenom else '' }}
+            </div>
+            <div>
+              <div class="fw-600">
+                {% if c.pays_code and c.pays_code != 'FR' %}{{ c.pays_code }} {% endif %}
+                {{ c.civilite or '' }} {{ c.prenom or '' }} {{ c.nom }}
+              </div>
+              <div class="text-muted" style="font-size:11px">{{ c.email or '' }}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-size:13px">
+          {% if c.telephone %}<a href="tel:{{ c.telephone }}" style="color:inherit;text-decoration:none">{{ c.telephone }}</a>{% else %}—{% endif %}
+        </td>
+        <td class="text-muted" style="font-size:12px">{{ c.ville or '—' }}</td>
+        <td style="font-size:13px">
+          {% if c.nb_bateaux > 0 %}
+            <span title="{{ c.noms_bateaux or '' }}">⛵ {{ c.nb_bateaux }}</span>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          {% if c.nb_contrats_actifs > 0 %}
+          <span class="badge-crm badge-clos">{{ c.nb_contrats_actifs }} contrat{{ 's' if c.nb_contrats_actifs > 1 }}</span>
+          {% else %}
+          <span class="text-muted" style="font-size:12px">Aucun</span>
+          {% endif %}
+        </td>
+        <td style="font-size:13px;font-weight:600;color:var(--c-gold)">
+          {% if c.prime_totale and c.prime_totale > 0 %}
+            {{ "{:,.0f}".format(c.prime_totale) }} €
+          {% else %}—{% endif %}
+        </td>
+        <td><span class="badge-crm badge-{{ c.statut }}">{{ c.statut|title }}</span></td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{{ url_for('client_detail', id=c.id) }}" class="btn btn-sm btn-outline-secondary" title="Voir"><i class="bi bi-eye"></i></a>
+            <a href="{{ url_for('client_modifier', id=c.id) }}" class="btn btn-sm btn-outline-secondary" title="Modifier"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{{ url_for('client_supprimer', id=c.id) }}" onsubmit="return confirm('Supprimer ce client et toutes ses données ?')" style="margin:0">
+              <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ── VUE CARTES ── -->
+<div id="view-cartes" style="display:none">
+  <div class="row g-4">
+    {% for c in clients %}
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="client-card {{ 'prospect' if c.statut == 'prospect' else '' }}"
+           onclick="window.location='{{ url_for('client_detail', id=c.id) }}'">
+
+        <!-- Nom + contact -->
+        <div class="d-flex align-items-start gap-3">
+          <div class="avatar avatar-{{ 'green' if c.statut == 'prospect' else 'blue' }}" style="width:44px;height:44px;font-size:15px;flex-shrink:0">
+            {{ c.nom[0] }}{{ c.prenom[0] if c.prenom else '' }}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="cc-name">
+              {% if c.pays_code and c.pays_code != 'FR' %}
+              <span style="font-size:14px">{{ c.pays_code }}</span>
+              {% endif %}
+              {{ c.civilite or '' }} {{ c.prenom or '' }} {{ c.nom }}
+            </div>
+            {% if c.email %}
+            <div class="cc-meta"><i class="bi bi-envelope" style="font-size:10px"></i>
+              <a href="mailto:{{ c.email }}" onclick="event.stopPropagation()" style="color:var(--c-text-2);text-decoration:none">{{ c.email }}</a>
+            </div>
+            {% endif %}
+            {% if c.telephone %}
+            <div class="cc-meta"><i class="bi bi-telephone" style="font-size:10px"></i>
+              <a href="tel:{{ c.telephone }}" onclick="event.stopPropagation()" style="color:var(--c-text-2);text-decoration:none">{{ c.telephone }}</a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="cc-sep"></div>
+
+        <!-- Bateaux + contrats -->
+        <div>
+          {% if c.nb_bateaux and c.nb_bateaux > 0 %}
+          <div class="cc-stat">
+            <span style="font-size:14px">⛵</span>
+            <strong>{{ c.nb_bateaux }}</strong> bateau{{ 's' if c.nb_bateaux > 1 }}
+            {% if c.noms_bateaux %}
+            <div class="cc-meta mt-1">{{ c.noms_bateaux[:60] }}{% if c.noms_bateaux|length > 60 %}…{% endif %}</div>
+            {% endif %}
+          </div>
+          {% endif %}
+          {% if c.nb_contrats_actifs > 0 %}
+          <div class="cc-stat mt-1">
+            <span style="font-size:14px">📄</span>
+            <strong>{{ c.nb_contrats_actifs }}</strong> contrat{{ 's' if c.nb_contrats_actifs > 1 }} actif{{ 's' if c.nb_contrats_actifs > 1 }}
+            {% if c.compagnies_actives %}
+            <div class="cc-meta mt-1">{{ c.compagnies_actives[:60] }}</div>
+            {% endif %}
+          </div>
+          {% elif c.statut == 'prospect' %}
+          <div class="cc-stat mt-1" style="color:var(--c-text-2);font-style:italic;font-size:12px">Aucun contrat</div>
+          {% endif %}
+          {% if c.prime_totale and c.prime_totale > 0 %}
+          <div class="mt-2" style="font-size:14px;font-weight:700;color:var(--c-gold)">
+            💶 {{ "{:,.0f}".format(c.prime_totale) }} € / an
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="cc-sep"></div>
+
+        <!-- Statut + ancienneté + actions -->
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <span class="badge-crm badge-{{ c.statut }}" style="font-size:11px">{{ c.statut|title }}</span>
+            {% if c.date_creation %}
+            <div class="cc-meta mt-1">Depuis {{ c.date_creation[:4] }}</div>
+            {% endif %}
+          </div>
+          <div class="d-flex gap-1" onclick="event.stopPropagation()">
+            <a href="{{ url_for('client_detail', id=c.id) }}" class="btn btn-sm btn-outline-secondary" title="Voir">
+              <i class="bi bi-eye"></i>
+            </a>
+            {% if c.email %}
+            <a href="mailto:{{ c.email }}" class="btn btn-sm btn-outline-secondary" title="Email">
+              <i class="bi bi-envelope"></i>
+            </a>
+            {% endif %}
+            {% if c.telephone %}
+            <a href="tel:{{ c.telephone }}" class="btn btn-sm btn-outline-secondary" title="Appeler">
+              <i class="bi bi-telephone"></i>
+            </a>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endif %}
+
+<script>
+function setView(v) {
+  const liste  = document.getElementById('view-liste');
+  const cartes = document.getElementById('view-cartes');
+  const btnL   = document.getElementById('btn-liste');
+  const btnC   = document.getElementById('btn-cartes');
+  if (!liste || !cartes) return;
+  if (v === 'cartes') {
+    liste.style.display  = 'none';
+    cartes.style.display = 'block';
+    btnL.classList.remove('active');
+    btnC.classList.add('active');
+  } else {
+    liste.style.display  = 'block';
+    cartes.style.display = 'none';
+    btnC.classList.remove('active');
+    btnL.classList.add('active');
+  }
+  localStorage.setItem('navisur_clients_view', v);
+}
+
+// Restaurer le choix au chargement
+(function(){
+  const saved = localStorage.getItem('navisur_clients_view') || 'liste';
+  setView(saved);
+})();
+</script>
+{% endblock %}

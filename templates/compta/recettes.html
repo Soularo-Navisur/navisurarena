@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% block title %}Livre des recettes — NAVISUR{% endblock %}
+{% block page_title %}Livre des recettes{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('compta_recette_nouvelle') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Saisir</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📖 Livre des recettes</h1>
+    <p class="page-header-sub">
+      Registre légal obligatoire · Micro-entreprise BNC ·
+      <strong class="text-success">TVA non applicable, art. 293 B CGI</strong>
+    </p>
+  </div>
+  <a href="{{ url_for('compta_recette_nouvelle') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Nouvelle recette
+  </a>
+</div>
+
+<!-- FILTRES -->
+<form method="get" class="search-bar">
+  <select name="annee" class="form-select" style="width:auto" onchange="this.form.submit()">
+    {% for a in annees %}<option value="{{ a }}" {{ 'selected' if a==annee }}>{{ a }}</option>{% endfor %}
+  </select>
+  <select name="mois" class="form-select" style="width:auto">
+    <option value="">Tous les mois</option>
+    {% for m in mois_noms %}
+    <option value="{{ loop.index }}" {{ 'selected' if mois and mois|int==loop.index }}>{{ m }}</option>
+    {% endfor %}
+  </select>
+  <select name="statut" class="form-select" style="width:auto">
+    <option value="">Tous</option>
+    <option value="valide" {{ 'selected' if statut=='valide' }}>✅ Validées</option>
+    <option value="brouillon" {{ 'selected' if statut=='brouillon' }}>📝 Brouillons</option>
+  </select>
+  <button type="submit" class="btn btn-primary">Filtrer</button>
+</form>
+
+<!-- TOTAL -->
+<div class="row g-3 mb-3">
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#eff6ff;color:#1a2e5a"><i class="bi bi-cash-stack"></i></div>
+      <div>
+        <div class="stat-value">{{ "{:,.2f}".format(total).replace(",", " ") }} €</div>
+        <div class="stat-label">Total recettes {{ annee }}{% if mois %} — {{ mois_noms[mois|int-1] }}{% endif %}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+      <div>
+        <div class="stat-value">{{ recettes|selectattr('valide')|list|length }}</div>
+        <div class="stat-label">Écritures validées / verrouillées</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon orange"><i class="bi bi-pencil-square"></i></div>
+      <div>
+        <div class="stat-value">{{ recettes|rejectattr('valide')|list|length }}</div>
+        <div class="stat-label">Brouillons à valider</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card-crm">
+  {% if recettes %}
+  <div style="overflow-x:auto">
+  <table class="table-crm" style="min-width:900px">
+    <thead>
+      <tr style="background:#1a2e5a;color:white">
+        <th style="color:white;background:#1a2e5a">N°</th>
+        <th style="color:white;background:#1a2e5a">Date</th>
+        <th style="color:white;background:#1a2e5a">Référence</th>
+        <th style="color:white;background:#1a2e5a">Payeur / Client</th>
+        <th style="color:white;background:#1a2e5a">Nature</th>
+        <th style="color:white;background:#1a2e5a;text-align:right">Montant</th>
+        <th style="color:white;background:#1a2e5a">Règlement</th>
+        <th style="color:white;background:#1a2e5a">Statut</th>
+        <th style="color:white;background:#1a2e5a"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set ns = namespace(cumul=0) %}
+      {% for r in recettes %}
+      {% set ns.cumul = ns.cumul + r.montant %}
+      <tr class="{{ 'prime-paye' if r.valide else '' }}">
+        <td class="fw-700 font-mono" style="color:#1a2e5a">{{ '%04d'|format(r.numero_ordre) }}</td>
+        <td class="text-muted" style="white-space:nowrap">{{ r.date_encaissement }}</td>
+        <td class="font-mono" style="font-size:12px">{{ r.reference or '—' }}</td>
+        <td>
+          {% if r.nom %}
+          <div class="fw-500" style="font-size:13px">{{ r.prenom or '' }} {{ r.nom }}</div>
+          {% elif r.compagnie %}
+          <div class="fw-500" style="font-size:13px">{{ r.compagnie }}</div>
+          {% else %}—{% endif %}
+          {% if r.contrat_num %}<div class="text-muted" style="font-size:11px">📄 {{ r.contrat_num }}</div>{% endif %}
+        </td>
+        <td>
+          {% set natures_dict = dict(natures) %}
+          <span class="badge-crm" style="background:#eff6ff;color:#1a2e5a;font-size:11px">
+            {{ natures_dict.get(r.nature_recette, r.nature_recette) }}
+          </span>
+          {% if r.periode_couverte %}<div class="text-muted" style="font-size:11px">{{ r.periode_couverte }}</div>{% endif %}
+        </td>
+        <td style="text-align:right;font-weight:700;color:#1a2e5a;font-size:15px">
+          {{ "{:,.2f}".format(r.montant).replace(",", " ") }} €
+        </td>
+        <td class="text-muted" style="font-size:12px">
+          {% if r.mode_reglement == 'virement' %}🏦 Virement
+          {% elif r.mode_reglement == 'cheque' %}📝 Chèque
+          {% elif r.mode_reglement == 'especes' %}💵 Espèces
+          {% elif r.mode_reglement == 'prelevement' %}🔄 Prélèvement
+          {% else %}{{ r.mode_reglement }}{% endif %}
+        </td>
+        <td>
+          {% if r.valide %}
+          <span class="badge-crm badge-clos" style="font-size:11px">🔒 Validée</span>
+          {% else %}
+          <span class="badge-crm badge-attendu" style="font-size:11px">📝 Brouillon</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            {% if not r.valide %}
+            <a href="{{ url_for('compta_recette_modifier', id=r.id) }}" class="btn btn-sm btn-outline-secondary" title="Modifier"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{{ url_for('compta_recette_valider', id=r.id) }}">
+              <button type="submit" class="btn btn-sm btn-success" title="Valider et verrouiller">🔒</button>
+            </form>
+            <form method="post" action="{{ url_for('compta_recette_supprimer', id=r.id) }}" onsubmit="return confirm('Supprimer ?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+            {% else %}
+            <span class="text-muted" style="font-size:11px;padding:4px 8px">Verrouillé</span>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      <!-- TOTAL -->
+      <tr style="background:#1a2e5a;color:white;font-weight:700">
+        <td colspan="5" style="text-align:right;padding:12px 16px;color:rgba(255,255,255,.7);font-size:12px;text-transform:uppercase;letter-spacing:.05em">
+          TOTAL PÉRIODE
+        </td>
+        <td style="text-align:right;padding:12px 16px;font-size:18px;color:#c9a84c">
+          {{ "{:,.2f}".format(total).replace(",", " ") }} €
+        </td>
+        <td colspan="3"></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <!-- Mention légale -->
+  <div class="p-3" style="background:#f0fdf4;font-size:12px;color:#166534;border-top:1px solid #e2e8f0">
+    <i class="bi bi-shield-check me-1"></i>
+    <strong>TVA non applicable, article 293 B du CGI</strong> ·
+    Registre tenu en application de l'article 50-0 du CGI ·
+    Durée de conservation : 10 ans minimum
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-journal-text"></i>
+    <h5>Aucune recette pour {{ annee }}</h5>
+    <a href="{{ url_for('compta_recette_nouvelle') }}" class="btn btn-primary">Saisir la première recette</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

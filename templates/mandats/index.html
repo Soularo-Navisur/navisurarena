@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Mandats compagnies — Riviera Marine Assurances{% endblock %}
+{% block page_title %}Mandats compagnies{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('mandat_nouveau') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Nouveau</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🏢 Registre des mandats</h1>
+    <p class="page-header-sub">Vos partenaires compagnies d'assurance plaisance</p>
+  </div>
+  <a href="{{ url_for('mandat_nouveau') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Nouveau mandat
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <a href="{{ url_for('mandats_list') }}" class="stat-card text-decoration-none {% if not statut %}border-primary{% endif %}">
+      <div class="stat-icon blue"><i class="bi bi-building"></i></div>
+      <div><div class="stat-value">{{ mandats|length }}</div><div class="stat-label">Total mandats</div></div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{{ url_for('mandats_list') }}?statut=actif" class="stat-card text-decoration-none {% if statut=='actif' %}border-primary{% endif %}">
+      <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+      <div><div class="stat-value">{{ mandats|selectattr('statut','eq','actif')|list|length }}</div><div class="stat-label">Actifs</div></div>
+    </a>
+  </div>
+  <div class="col-md-4">
+    <a href="{{ url_for('mandats_list') }}?statut=suspendu" class="stat-card text-decoration-none">
+      <div class="stat-icon orange"><i class="bi bi-pause-circle"></i></div>
+      <div><div class="stat-value">{{ mandats|selectattr('statut','eq','suspendu')|list|length }}</div><div class="stat-label">Suspendus</div></div>
+    </a>
+  </div>
+</div>
+
+<div class="card-crm">
+  {% if mandats %}
+  <table class="table-crm">
+    <thead>
+      <tr><th>Compagnie</th><th>Type mandat</th><th>N° Mandat</th><th>Produits couverts</th><th>Contact</th><th>Validité</th><th>Statut</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for m in mandats %}
+      <tr>
+        <td class="fw-600" style="font-size:14px">🏢 {{ m.compagnie }}</td>
+        <td class="text-muted">{{ m.type_mandat or '—' }}</td>
+        <td class="font-mono fw-500">{{ m.numero_mandat or '—' }}</td>
+        <td style="font-size:12px;max-width:180px">{{ m.produits[:60] + '…' if m.produits and m.produits|length > 60 else (m.produits or '—') }}</td>
+        <td style="font-size:12px">
+          {% if m.contact_nom %}<div class="fw-500">{{ m.contact_nom }}</div>{% endif %}
+          {% if m.contact_email %}<div class="text-muted">{{ m.contact_email }}</div>{% endif %}
+          {% if m.contact_telephone %}<div class="text-muted">{{ m.contact_telephone }}</div>{% endif %}
+          {% if not m.contact_nom and not m.contact_email %}—{% endif %}
+        </td>
+        <td style="font-size:12px" class="text-muted">
+          {% if m.date_debut %}Du {{ m.date_debut }}{% endif %}
+          {% if m.date_fin %}<br>au {{ m.date_fin }}{% endif %}
+        </td>
+        <td>
+          <span class="badge-crm {% if m.statut == 'actif' %}badge-clos{% elif m.statut == 'suspendu' %}badge-attendu{% else %}badge-resilie{% endif %}">
+            {{ m.statut|title }}
+          </span>
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{{ url_for('mandat_modifier', id=m.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{{ url_for('mandat_supprimer', id=m.id) }}" onsubmit="return confirm('Supprimer ce mandat ?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-building"></i>
+    <h5>Aucun mandat enregistré</h5>
+    <a href="{{ url_for('mandat_nouveau') }}" class="btn btn-primary">Ajouter un mandat</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

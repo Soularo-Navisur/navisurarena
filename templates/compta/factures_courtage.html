@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Facturation — NAVISUR{% endblock %}
+{% block page_title %}Facturation courtage{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('compta_facture_nouvelle') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Nouvelle facture</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🧾 Facturation frais de courtage</h1>
+    <p class="page-header-sub">Honoraires & frais de courtage · <strong class="text-success">TVA non applicable, art. 293 B CGI</strong></p>
+  </div>
+  <a href="{{ url_for('compta_facture_nouvelle') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Nouvelle facture
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  {% for key, label, icon, color in [('emises','Émises','send','blue'),('payees','Payées','check-circle','green'),('retard','En retard','exclamation-triangle','red')] %}
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-icon {{ color }}"><i class="bi bi-{{ icon }}"></i></div>
+      <div>
+        <div class="stat-value">{{ "{:,.2f}".format(totaux[key]).replace(",", " ") }} €</div>
+        <div class="stat-label">{{ label }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<form method="get" class="search-bar">
+  <select name="annee" class="form-select" style="width:auto" onchange="this.form.submit()">
+    {% for a in annees %}<option value="{{ a }}" {{ 'selected' if a==annee }}>{{ a }}</option>{% endfor %}
+  </select>
+  <select name="statut" class="form-select" style="width:auto">
+    <option value="">Tous statuts</option>
+    {% for val, lbl in [('brouillon','📝 Brouillon'),('emise','📤 Émise'),('payee','✅ Payée'),('retard','⚠️ En retard'),('annulee','❌ Annulée')] %}
+    <option value="{{ val }}" {{ 'selected' if statut==val }}>{{ lbl }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-primary">Filtrer</button>
+</form>
+
+<div class="card-crm">
+  {% if factures %}
+  <table class="table-crm">
+    <thead><tr><th>N° Facture</th><th>Client</th><th>Objet</th><th>Date émission</th><th>Échéance</th><th class="text-end">Montant</th><th>Statut</th><th></th></tr></thead>
+    <tbody>
+      {% for f in factures %}
+      <tr>
+        <td class="fw-700 font-mono" style="color:#1a2e5a">{{ f.numero }}</td>
+        <td>
+          {% if f.nom %}<div class="fw-500">{{ f.prenom or '' }} {{ f.nom }}</div>{% else %}<span class="text-muted">—</span>{% endif %}
+        </td>
+        <td style="font-size:12px">{{ f.objet or '—' }}</td>
+        <td class="text-muted" style="font-size:12px">{{ f.date_emission or '—' }}</td>
+        <td class="{{ 'text-danger fw-600' if f.statut=='retard' else 'text-muted' }}" style="font-size:12px">
+          {{ f.date_echeance or '—' }}
+        </td>
+        <td class="text-end fw-700" style="font-size:15px;color:#1a2e5a">
+          {{ "{:,.2f}".format(f.montant_ttc).replace(",", " ") }} €
+        </td>
+        <td>
+          {% set badge_c = {'brouillon':'badge-inactif','emise':'badge-attendu','payee':'badge-clos','retard':'badge-ouvert','annulee':'badge-resilie'} %}
+          {% set badge_l = {'brouillon':'📝 Brouillon','emise':'📤 Émise','payee':'✅ Payée','retard':'⚠️ En retard','annulee':'❌ Annulée'} %}
+          <span class="badge-crm {{ badge_c.get(f.statut,'') }}">{{ badge_l.get(f.statut, f.statut) }}</span>
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{{ url_for('compta_facture_imprimer', id=f.id) }}" target="_blank"
+               class="btn btn-sm btn-outline-secondary" title="Imprimer"><i class="bi bi-printer"></i></a>
+            <a href="{{ url_for('compta_facture_modifier', id=f.id) }}"
+               class="btn btn-sm btn-outline-secondary" title="Modifier"><i class="bi bi-pencil"></i></a>
+            {% if f.statut != 'payee' %}
+            <form method="post" action="{{ url_for('compta_facture_payer', id=f.id) }}" style="margin:0">
+              <button type="submit" class="btn btn-sm btn-success" title="Marquer payée">✓</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{{ url_for('compta_facture_supprimer', id=f.id) }}"
+                  onsubmit="return confirm('Supprimer cette facture ?')" style="margin:0">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-file-earmark-text"></i>
+    <h5>Aucune facture pour {{ annee }}</h5>
+    <a href="{{ url_for('compta_facture_nouvelle') }}" class="btn btn-primary">Créer une facture</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

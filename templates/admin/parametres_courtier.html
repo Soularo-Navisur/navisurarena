@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% block title %}Paramètres courtier — NAVISUR{% endblock %}
+{% block page_title %}Paramètres courtier{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🏢 Paramètres du courtier</h1>
+    <p class="page-header-sub">Ces informations apparaissent dans vos emails et documents</p>
+  </div>
+</div>
+
+<form method="post">
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="form-card" style="max-width:100%">
+        <div class="form-section-title">🧑 Identité professionnelle</div>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold">Nom complet / Raison sociale *</label>
+            <input type="text" name="nom" class="form-control"
+                   value="{{ courtier.get('nom','') }}"
+                   placeholder="Riviera Marine Assurances">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Titre / Spécialité</label>
+            <input type="text" name="titre" class="form-control"
+                   value="{{ courtier.get('titre','') }}"
+                   placeholder="Courtier en assurance plaisance">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Email professionnel</label>
+            <input type="email" name="email" class="form-control"
+                   value="{{ courtier.get('email','') }}"
+                   placeholder="contact@rivieramarine-assurances.fr">
+            <div class="form-text">Utilisé comme expéditeur Brevo</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Téléphone</label>
+            <input type="text" name="telephone" class="form-control"
+                   value="{{ courtier.get('telephone','') }}"
+                   placeholder="04 94 XX XX XX">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Adresse du cabinet</label>
+            <input type="text" name="adresse" class="form-control"
+                   value="{{ courtier.get('adresse','') }}"
+                   placeholder="12 avenue de la Mer, 83400 Hyères">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">N° ORIAS</label>
+            <input type="text" name="orias" class="form-control font-mono"
+                   value="{{ courtier.get('orias','') }}"
+                   placeholder="00 000 000">
+            <div class="form-text">Apparaît dans tous les emails et documents</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Site web</label>
+            <input type="text" name="site_web" class="form-control"
+                   value="{{ courtier.get('site_web','') }}"
+                   placeholder="https://www.rivieramarine-assurances.fr">
+          </div>
+        </div>
+
+        <div class="form-section-title mt-4">✍️ Signature email</div>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold">Signature automatique</label>
+            <p class="text-muted small mb-2">
+              Insérée automatiquement dans tous vos emails Brevo via la variable <code>{{signature}}</code>
+            </p>
+            <textarea name="signature" class="form-control font-mono" rows="6"
+                      id="signature_textarea"
+                      placeholder="Cordialement,&#10;&#10;Votre Nom&#10;Courtier en assurance plaisance&#10;contact@rivieramarine-assurances.fr&#10;N° ORIAS : 00 000 000">{{ courtier.get('signature','') }}</textarea>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Enregistrer
+          </button>
+          <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalApercu">
+            <i class="bi bi-eye me-1"></i>Aperçu signature
+          </button>
+          <button type="button" onclick="genererSignature()" class="btn btn-outline-secondary">
+            <i class="bi bi-stars me-1"></i>Générer automatiquement
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card-crm mb-3">
+        <div class="card-crm-header"><span class="card-crm-title">💡 Variables email disponibles</span></div>
+        <div class="p-3 small">
+          <p class="text-muted mb-2">Utilisez ces variables dans vos modèles d'email :</p>
+          {% for v, d in [
+            ('{{courtier_nom}}','Votre nom / raison sociale'),
+            ('{{courtier_tel}}','Votre téléphone'),
+            ('{{courtier_email}}','Votre email pro'),
+            ('{{numero_orias}}','Votre N° ORIAS'),
+            ('{{signature}}','Signature complète'),
+            ('{{date_du_jour}}','Date du jour'),
+          ] %}
+          <div class="d-flex justify-content-between py-1" style="border-bottom:1px solid #f8fafc">
+            <code style="color:#8b5cf6">{{ v }}</code>
+            <span class="text-muted">{{ d }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="card-crm">
+        <div class="card-crm-header"><span class="card-crm-title">📧 Configuration Brevo</span></div>
+        <div class="p-3 small text-muted">
+          <p>L'email expéditeur Brevo est :<br>
+          <strong>contact@rivieramarine-assurances.fr</strong></p>
+          <p>Pour modifier la clé API Brevo :<br>
+          <a href="{{ url_for('admin_api_config') }}" class="text-primary">Admin → API externes →</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- Modale aperçu signature -->
+<div class="modal fade" id="modalApercu" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Aperçu signature</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="apercu-sig" style="font-family:Arial,sans-serif;font-size:13px;white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:8px;border-left:3px solid #c9a84c">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('modalApercu').addEventListener('show.bs.modal', () => {
+  document.getElementById('apercu-sig').textContent =
+    document.getElementById('signature_textarea').value || '(aucune signature saisie)';
+});
+
+function genererSignature() {
+  const nom  = document.querySelector('[name=nom]').value || 'Riviera Marine Assurances';
+  const titre = document.querySelector('[name=titre]').value || 'Courtier en assurance plaisance';
+  const email = document.querySelector('[name=email]').value || '';
+  const tel   = document.querySelector('[name=telephone]').value || '';
+  const orias = document.querySelector('[name=orias]').value || '';
+  const site  = document.querySelector('[name=site_web]').value || '';
+  let sig = `Cordialement,\n\n${nom}\n${titre}`;
+  if (tel)   sig += `\n${tel}`;
+  if (email) sig += `\n${email}`;
+  if (orias) sig += `\nN° ORIAS : ${orias}`;
+  if (site)  sig += `\n${site}`;
+  document.getElementById('signature_textarea').value = sig;
+}
+</script>
+{% endblock %}

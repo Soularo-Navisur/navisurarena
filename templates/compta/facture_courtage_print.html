@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Facture {{ fc.numero }} — {{ params.get('cabinet_nom','Riviera Marine Assurances') }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=EB+Garamond:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --c-primary: {{ params.get('print_couleur_principale', 'var(--c-primary)') }};
+      --c-accent:  {{ params.get('print_couleur_accent', 'var(--c-accent)') }};
+    }
+        @page { size: A4; margin: 0mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Sora', sans-serif; font-size: 13px; color: var(--c-primary); background: white; }
+
+    .print-bar { position: fixed; top:0; left:0; right:0; background:var(--c-primary); color:white;
+                 padding:10px 24px; display:flex; justify-content:space-between; align-items:center;
+                 z-index:999; font-size:13px; }
+    .btn-print { background:var(--c-accent); color:var(--c-primary); border:none; padding:8px 20px;
+                 border-radius:6px; font-weight:700; cursor:pointer; }
+    .spacer { height: 52px; }
+
+    .page { width:210mm; margin:0 auto; padding:16mm 18mm; min-height:297mm; background:white; }
+    @media screen { .page { box-shadow:0 4px 40px rgba(0,0,0,.12); margin:20px auto; border-radius:4px; background:#fff; } .spacer { display:block; } }
+    @media print { .print-bar, .spacer { display:none !important; } .page { margin:0; padding:12mm 16mm; box-shadow:none; } }
+
+    .doc-header { display:flex; justify-content:space-between; align-items:flex-start;
+                  border-bottom:3px solid var(--c-primary); padding-bottom:18px; margin-bottom:24px; }
+    .logo-zone img { max-width:200px; max-height:66px; object-fit:contain; }
+    .doc-meta { text-align:right; }
+    .doc-type { font-family:'EB Garamond',serif; font-size:30px; font-weight:600; color:var(--c-primary); }
+    .doc-num { font-family:'Courier New',monospace; font-size:16px; font-weight:700; color:var(--c-accent); margin-top:4px; letter-spacing:1px; }
+    .doc-date { font-size:12px; color:#64748b; margin-top:6px; line-height:1.7; }
+
+    .addresses { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
+    .addr-box { border:1px solid #e2e8f0; border-radius:8px; padding:14px 18px; }
+    .addr-box.emetteur { border-top:3px solid var(--c-primary); }
+    .addr-box.client   { border-top:3px solid var(--c-accent); }
+    .addr-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; color:#94a3b8; margin-bottom:8px; }
+    .addr-name  { font-size:15px; font-weight:700; color:var(--c-primary); font-family:'EB Garamond',serif; margin-bottom:6px; }
+    .addr-detail { font-size:12px; color:#475569; line-height:1.7; }
+
+    .objet-box { background:#f0f4ff; border-left:4px solid var(--c-primary); border-radius:0 8px 8px 0;
+                 padding:12px 18px; margin-bottom:22px; font-size:13px; color:var(--c-primary); }
+
+    table.items { width:100%; border-collapse:collapse; margin-bottom:20px; }
+    table.items thead th { background:var(--c-primary); color:white; padding:10px 14px;
+                           font-size:10px; text-transform:uppercase; letter-spacing:.08em; }
+    table.items thead th:last-child { text-align:right; }
+    table.items tbody td { padding:12px 14px; border-bottom:1px solid #f1f5f9; font-size:13px; }
+    table.items tbody td:last-child { text-align:right; font-weight:600; color:var(--c-primary); }
+
+    .totals { display:flex; justify-content:flex-end; margin-bottom:24px; }
+    .totals-box { width:260px; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; }
+    .total-row { display:flex; justify-content:space-between; padding:9px 16px; border-bottom:1px solid #f1f5f9; font-size:13px; }
+    .total-row:last-child { background:var(--c-primary); color:white; font-size:15px; font-weight:700; border:none; }
+    .total-row:last-child .tl { color:rgba(255,255,255,.7); }
+
+    .mentions { font-size:10.5px; color:#475569; line-height:1.7; border-top:1px solid #e2e8f0;
+                padding-top:14px; margin-bottom:14px; }
+    .mention-tva { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px;
+                   padding:8px 14px; font-size:11px; color:#166534; font-weight:700; margin-top:10px; }
+
+    .doc-footer { text-align:center; font-size:10px; color:#94a3b8; border-top:1px solid #e2e8f0;
+                  padding-top:12px; margin-top:20px; }
+  </style>
+</head>
+<body>
+<div class="print-bar">
+  <div>
+    <strong>{{ fc.numero }}</strong> —
+    {% if fc.nom %}{{ fc.prenom or '' }} {{ fc.nom }}{% endif %} ·
+    <span style="opacity:.7">{{ "{:,.2f}".format(fc.montant_ttc) }} €</span>
+  </div>
+  <button class="btn-print" onclick="window.print()">🖨️ Imprimer / PDF</button>
+</div>
+<div class="spacer"></div>
+
+<div class="page">
+  <div class="doc-header">
+    <div class="logo-zone">
+      <img src="{{ url_for('static', filename='img/logo-horizontal.png') }}"
+           alt="{{ params.get('cabinet_nom','Riviera Marine Assurances') }}">
+      <div style="font-size:10px;color:#94a3b8;margin-top:6px">Courtier en assurance plaisance</div>
+    </div>
+    <div class="doc-meta">
+      <div class="doc-type">Facture</div>
+      <div class="doc-num">{{ fc.numero }}</div>
+      <div class="doc-date">
+        Émise le : <strong>{{ fc.date_emission or '—' }}</strong><br>
+        {% if fc.date_echeance %}Échéance : <strong>{{ fc.date_echeance }}</strong><br>{% endif %}
+        {% if fc.date_paiement %}Payée le : <strong>{{ fc.date_paiement }}</strong>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="addresses">
+    <div class="addr-box emetteur">
+      <div class="addr-label">Émetteur</div>
+      <div class="addr-name">{{ params.get('cabinet_nom','Riviera Marine Assurances') }}</div>
+      <div class="addr-detail">
+        {% if params.get('cabinet_adresse') %}{{ params.get('cabinet_adresse') }}<br>{% endif %}
+        {% if params.get('cabinet_cp') or params.get('cabinet_ville') %}{{ params.get('cabinet_cp','') }} {{ params.get('cabinet_ville','') }}<br>{% endif %}
+        {% if params.get('cabinet_siren') %}<strong>SIRET : {{ params.get('cabinet_siren') }}</strong><br>{% endif %}
+        {% if params.get('cabinet_orias') %}ORIAS n° {{ params.get('cabinet_orias') }}<br>{% endif %}
+        {% if params.get('cabinet_email') %}{{ params.get('cabinet_email') }}{% endif %}
+      </div>
+    </div>
+    <div class="addr-box client">
+      <div class="addr-label">Destinataire</div>
+      <div class="addr-name">{{ fc.prenom or '' }} {{ fc.nom or '—' }}</div>
+      <div class="addr-detail">
+        {% if fc.adresse %}{{ fc.adresse }}<br>{% endif %}
+        {% if fc.code_postal or fc.ville %}{{ fc.code_postal or '' }} {{ fc.ville or '' }}<br>{% endif %}
+        {% if fc.email %}{{ fc.email }}<br>{% endif %}
+        {% if fc.telephone %}{{ fc.telephone }}<br>{% endif %}
+        {% if fc.siren %}SIRET : {{ fc.siren }}{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="objet-box"><strong>Objet :</strong> {{ fc.objet or 'Prestation de courtage' }}</div>
+
+  <table class="items">
+    <thead><tr><th style="width:60%">Désignation</th><th style="text-align:center">Qté</th><th style="text-align:right">Prix unitaire</th><th>Total HT</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>{{ fc.objet or 'Prestation de courtage en assurance plaisance' }}</td>
+        <td style="text-align:center">1</td>
+        <td style="text-align:right">{{ "{:,.2f}".format(fc.montant_ht) }} €</td>
+        <td>{{ "{:,.2f}".format(fc.montant_ht) }} €</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div class="totals-box">
+      <div class="total-row"><span class="tl">Montant HT</span><span>{{ "{:,.2f}".format(fc.montant_ht) }} €</span></div>
+      <div class="total-row"><span class="tl">TVA</span><span>Non applicable</span></div>
+      <div class="total-row"><span class="tl">Total TTC</span><span style="color:var(--c-accent)">{{ "{:,.2f}".format(fc.montant_ttc) }} €</span></div>
+    </div>
+  </div>
+
+  <div class="mentions">
+    <div class="mention-tva">TVA NON APPLICABLE — Article 293 B du Code Général des Impôts</div>
+    <div class="mt-3">
+      <strong>Conditions de paiement :</strong>
+      {% if fc.date_echeance %}Paiement à réception, au plus tard le {{ fc.date_echeance }}.
+      {% else %}Paiement à réception de la facture.{% endif %}
+      <br>
+      <strong>Pénalités de retard :</strong> En cas de retard de paiement, des pénalités au taux de 3 fois le taux légal seront appliquées.
+      Une indemnité forfaitaire de recouvrement de <strong>40 €</strong> sera également due (art. L.441-6 du Code de commerce).
+    </div>
+    {% if fc.notes %}
+    <div class="mt-2"><strong>Notes :</strong> {{ fc.notes }}</div>
+    {% endif %}
+  </div>
+
+  {% if params.get('cabinet_iban') %}
+  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin-bottom:14px">
+    <div style="font-size:10px;color:#94a3b8;font-weight:600;text-transform:uppercase;margin-bottom:4px">Règlement par virement</div>
+    <div style="font-family:'Courier New',monospace;font-size:14px;font-weight:700;color:var(--c-primary)">{{ params.get('cabinet_iban') }}</div>
+    <div style="font-size:11px;color:#64748b;margin-top:2px">Référence obligatoire : <strong>{{ fc.numero }}</strong></div>
+  </div>
+  {% endif %}
+
+  <div class="doc-footer">
+      {% if params.get('print_pied_page') %}<div style="margin-bottom:4px;font-weight:500;color:#64748b">{{ params.get('print_pied_page') }}</div>{% endif %}
+    <strong>{{ params.get('cabinet_nom','Riviera Marine Assurances') }}</strong>
+    {% if params.get('cabinet_orias') %} · ORIAS n° {{ params.get('cabinet_orias') }}{% endif %}
+    {% if params.get('cabinet_siren') %} · SIRET {{ params.get('cabinet_siren') }}{% endif %}
+    <br>Document émis le {{ now.strftime('%d/%m/%Y') }} via NAVISUR
+  </div>
+</div>
+</body>
+</html>

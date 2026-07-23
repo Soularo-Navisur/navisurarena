@@ -1,0 +1,446 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — Riviera Marine Assurances{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1 class="page-header-title">{{ titre }}</h1></div>
+  <a href="{{ url_for('clients_list') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+<form method="post" id="formClient">
+  <div class="form-card">
+
+    <div class="form-section-title">👤 Informations générales</div>
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Type *</label>
+        <select name="type" id="type_client" class="form-select" required onchange="togglePro()">
+          <option value="particulier" {{ 'selected' if client and client.type=='particulier' }}>Particulier</option>
+          <option value="professionnel" {{ 'selected' if client and client.type=='professionnel' }}>Professionnel</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Statut *</label>
+        <select name="statut" class="form-select" required>
+          <option value="prospect" {{ 'selected' if client and client.statut=='prospect' }}>Prospect</option>
+          <option value="client" {{ 'selected' if client and client.statut=='client' }}>Client</option>
+          <option value="inactif" {{ 'selected' if client and client.statut=='inactif' }}>Inactif</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Civilité</label>
+        <select name="civilite" class="form-select">
+          <option value="" {{ 'selected' if not client or not client.get('civilite') }}>—</option>
+          <option value="M." {{ 'selected' if client and client.get('civilite')=='M.' }}>M.</option>
+          <option value="Mme" {{ 'selected' if client and client.get('civilite')=='Mme' }}>Mme</option>
+          <option value="Dr" {{ 'selected' if client and client.get('civilite')=='Dr' }}>Dr</option>
+          <option value="Me" {{ 'selected' if client and client.get('civilite')=='Me' }}>Me</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Prénom</label>
+        <input type="text" name="prenom" class="form-control"
+               value="{{ client.prenom if client else '' }}" placeholder="Jean">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Nom *</label>
+        <input type="text" name="nom" class="form-control" required
+               value="{{ client.nom if client else '' }}" placeholder="Dupont">
+      </div>
+    </div>
+
+    <!-- Section PRO : SIRET -->
+    <div id="section-pro" style="display:none" class="mt-3">
+      <div class="form-section-title">🏢 Entreprise (SIRET)</div>
+      <div class="row g-3">
+        <div class="col-md-5">
+          <label class="form-label fw-semibold">SIRET (14 chiffres)</label>
+          <div class="input-group">
+            <input type="text" name="siren" id="siret_input" class="form-control font-mono"
+                   value="{{ client.siren if client else '' }}" placeholder="12345678901234"
+                   maxlength="18" oninput="onSiretInput(this.value)">
+            <span class="input-group-text" id="siret_spinner" style="display:none">
+              <span class="spinner-border spinner-border-sm"></span>
+            </span>
+          </div>
+          <div id="siret_result" class="mt-2"></div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Forme juridique</label>
+          <input type="text" name="forme_juridique" id="forme_juridique" class="form-control"
+                 value="{{ client.get('forme_juridique','') if client else '' }}" placeholder="SARL, SAS...">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Code NAF</label>
+          <input type="text" name="code_naf" id="code_naf" class="form-control"
+                 value="{{ client.get('code_naf','') if client else '' }}" placeholder="7732Z">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Nom du dirigeant</label>
+          <input type="text" name="nom_dirigeant" id="nom_dirigeant" class="form-control"
+                 value="{{ client.get('nom_dirigeant','') if client else '' }}" placeholder="Jean Dupont">
+        </div>
+      </div>
+    </div>
+
+    <!-- Coordonnées -->
+    <div class="form-section-title mt-3">📍 Coordonnées</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Email</label>
+        <div class="input-group">
+          <input type="email" name="email" id="email_input" class="form-control"
+                 value="{{ client.email if client else '' }}" placeholder="jean.dupont@email.fr"
+                 onblur="validateEmail(this.value)" oninput="scheduleEmailValidation(this.value)">
+          <span class="input-group-text" id="email_icon" style="min-width:36px;justify-content:center">
+            {{ '✅' if client and client.get('email_statut')=='valide' else '⚠️' if client and client.get('email_statut')=='invalide' else '' }}
+          </span>
+        </div>
+        <div id="email_feedback" class="form-text"
+             style="color:{{ '#dc2626' if client and client.get('email_statut')=='invalide' else '#22c55e' if client and client.get('email_statut')=='valide' else '' }}">
+          {{ '✅ Email vérifié' if client and client.get('email_statut')=='valide' else '⚠️ Email signalé invalide' if client and client.get('email_statut')=='invalide' else '' }}
+        </div>
+        <input type="hidden" name="email_statut" id="email_statut"
+               value="{{ client.get('email_statut','') if client else '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">📱 Téléphone mobile</label>
+        <div class="input-group">
+          <input type="tel" name="telephone" id="tel_input" class="form-control"
+                 value="{{ (client.get('telephone_formate') if client else '') or (client.telephone if client else '') }}"
+                 placeholder="06 12 34 56 78" onblur="validateTel(this.value)">
+          <span class="input-group-text" id="tel_icon" style="min-width:36px;justify-content:center"></span>
+        </div>
+        <div id="tel_feedback" class="form-text text-muted"></div>
+        <input type="hidden" name="telephone_pays" id="telephone_pays"
+               value="{{ client.get('telephone_pays','FR') if client else 'FR' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">📱 2ème mobile (optionnel)</label>
+        <div class="input-group">
+          <input type="tel" name="telephone2" id="tel2_input" class="form-control"
+                 value="{{ client.get('telephone2','') if client else '' }}"
+                 placeholder="07 XX XX XX XX" onblur="validateTel2(this.value)">
+          <span class="input-group-text" id="tel2_icon" style="min-width:36px;justify-content:center"></span>
+        </div>
+        <div id="tel2_feedback" class="form-text text-muted"></div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">☎️ Téléphone fixe (optionnel)</label>
+        <input type="tel" name="telephone_fixe" class="form-control"
+               value="{{ client.get('telephone_fixe','') if client else '' }}" placeholder="04 93 XX XX XX">
+      </div>
+      <div class="col-12">
+        <label class="form-label fw-semibold">Adresse</label>
+        <div class="position-relative">
+          <input type="text" name="adresse" id="adresse_input" class="form-control"
+                 value="{{ client.adresse if client else '' }}" placeholder="12 rue de la Paix"
+                 autocomplete="off" oninput="onAdresseInput(this.value)">
+          <div id="adresse_spinner" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%)">
+            <span class="spinner-border spinner-border-sm text-muted"></span>
+          </div>
+          <ul id="adresse_dropdown" class="list-group shadow"
+              style="position:absolute;z-index:1000;width:100%;display:none;max-height:220px;overflow-y:auto"></ul>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Code postal</label>
+        <input type="text" name="code_postal" id="code_postal" class="form-control"
+               value="{{ client.code_postal if client else '' }}" placeholder="06200">
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">Ville</label>
+        <input type="text" name="ville" id="ville" class="form-control"
+               value="{{ client.ville if client else '' }}" placeholder="Nice">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Pays</label>
+        <div class="input-group">
+          <span class="input-group-text" id="pays_flag" style="font-size:18px">
+            {%- if client and client.get('pays_code') -%}
+              {%- for pays in (pays_list if pays_list is defined else load_pays_cache()) -%}
+                {%- if pays.code == client.get('pays_code','FR') -%}{{ pays.emoji }}{%- endif -%}
+              {%- endfor -%}
+            {%- else -%}🇫🇷{%- endif -%}
+          </span>
+          <select name="pays_code" id="pays_select" class="form-select" onchange="updatePaysNom()">
+            {% for pays in (pays_list if pays_list is defined else load_pays_cache()) %}
+            <option value="{{ pays.code }}"
+                    data-nom="{{ pays.nom_fr }}"
+                    data-emoji="{{ pays.emoji }}"
+                    {{ 'selected' if (client and client.get('pays_code','FR') == pays.code) or (not client and pays.code == 'FR') }}>
+              {{ pays.emoji }} {{ pays.nom_fr }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <input type="hidden" name="pays_nom" id="pays_nom"
+               value="{{ client.get('pays_nom','France') if client else 'France' }}">
+      </div>
+    </div>
+
+    <!-- Identité & Permis -->
+    <div class="form-section-title mt-3">🪪 Identité &amp; Permis mer</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Date de naissance</label>
+        <input type="date" name="date_naissance" class="form-control"
+               value="{{ client.date_naissance if client else '' }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Commune de naissance</label>
+        <div class="position-relative">
+          <input type="text" name="commune_naissance" id="commune_input" class="form-control"
+                 value="{{ client.commune_naissance if client else '' }}" placeholder="Paris, Nice..."
+                 autocomplete="off" oninput="onCommuneInput(this.value)">
+          <ul id="commune_dropdown" class="list-group shadow"
+              style="position:absolute;z-index:1000;width:100%;display:none;max-height:200px;overflow-y:auto"></ul>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Type de permis mer</label>
+        <select name="type_permis_mer" class="form-select">
+          <option value="">— Sans permis —</option>
+          <option value="cotier" {{ 'selected' if client and client.type_permis_mer=='cotier' }}>🚤 Côtier</option>
+          <option value="hauturier" {{ 'selected' if client and client.type_permis_mer=='hauturier' }}>⛵ Hauturier</option>
+          <option value="les_deux" {{ 'selected' if client and client.type_permis_mer=='les_deux' }}>🚤⛵ Côtier + Hauturier</option>
+          <option value="fluvial" {{ 'selected' if client and client.type_permis_mer=='fluvial' }}>🛶 Fluvial</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Date d'obtention du permis</label>
+        <input type="date" name="date_permis_mer" class="form-control"
+               value="{{ client.date_permis_mer if client else '' }}">
+      </div>
+    </div>
+
+    <div class="form-section-title mt-3">Notes internes</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <textarea name="notes" class="form-control" rows="3"
+                  placeholder="Notes, remarques, besoins exprimés...">{{ client.notes if client else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary" data-loading-title="Création du dossier client..." data-loading-sub="Initialisation du dossier">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if client else 'Créer le client' }}
+      </button>
+      <a href="{{ url_for('clients_list') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+
+<script>
+function togglePro() {
+  document.getElementById('section-pro').style.display =
+    document.getElementById('type_client').value === 'professionnel' ? '' : 'none';
+}
+togglePro();
+
+// SIRET
+let siretTimer = null;
+function onSiretInput(val) {
+  if (val.replace(/\D/g,'').length === 14) {
+    clearTimeout(siretTimer);
+    siretTimer = setTimeout(() => lookupSiret(val.replace(/\D/g,'')), 600);
+  }
+}
+function lookupSiret(siret) {
+  document.getElementById('siret_spinner').style.display = '';
+  document.getElementById('siret_result').innerHTML = '<span class="text-muted small">Recherche...</span>';
+  fetch('/api/siret-lookup?siret=' + siret)
+    .then(r => r.json()).then(d => {
+      document.getElementById('siret_spinner').style.display = 'none';
+      if (d.found) {
+        document.getElementById('siret_result').innerHTML =
+          '<div class="card border-success" style="font-size:13px"><div class="card-body py-2 px-3">' +
+          '<div class="fw-bold text-success">✅ ' + d.raison_sociale + '</div>' +
+          '<div class="text-muted">' + d.adresse + ' ' + d.code_postal + ' ' + d.ville + '</div>' +
+          (d.dirigeant ? '<div>Dirigeant : ' + d.dirigeant + '</div>' : '') +
+          (d.code_naf ? '<div>NAF : ' + d.code_naf + '</div>' : '') +
+          '<div class="mt-2">' +
+          '<button type="button" class="btn btn-success btn-sm me-2" onclick=\'applySiret(' + JSON.stringify(d) + ')\'>✅ Utiliser</button>' +
+          '<button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById(\'siret_result\').innerHTML=\'\'">Ignorer</button>' +
+          '</div></div></div>';
+      } else {
+        document.getElementById('siret_result').innerHTML = '<span class="text-warning small">⚠️ ' + (d.error || 'Non trouvé') + '</span>';
+      }
+    }).catch(() => { document.getElementById('siret_spinner').style.display = 'none'; });
+}
+function applySiret(d) {
+  if (d.raison_sociale) document.querySelector('[name=nom]').value = d.raison_sociale;
+  if (d.adresse) document.getElementById('adresse_input').value = d.adresse;
+  if (d.code_postal) document.getElementById('code_postal').value = d.code_postal;
+  if (d.ville) document.getElementById('ville').value = d.ville;
+  if (d.forme_juridique) document.getElementById('forme_juridique').value = d.forme_juridique;
+  if (d.code_naf) document.getElementById('code_naf').value = d.code_naf;
+  if (d.dirigeant) document.getElementById('nom_dirigeant').value = d.dirigeant;
+  document.getElementById('siret_result').innerHTML = '<span class="text-success small">✅ Informations appliquées</span>';
+}
+
+// Adresse gouv.fr
+let adrTimer = null;
+function onAdresseInput(val) {
+  if (val.length < 3) { document.getElementById('adresse_dropdown').style.display='none'; return; }
+  clearTimeout(adrTimer);
+  adrTimer = setTimeout(() => fetchAdresses(val), 300);
+}
+function fetchAdresses(q) {
+  document.getElementById('adresse_spinner').style.display = '';
+  fetch('/api/adresse-suggest?q=' + encodeURIComponent(q))
+    .then(r => r.json()).then(results => {
+      document.getElementById('adresse_spinner').style.display = 'none';
+      const ul = document.getElementById('adresse_dropdown');
+      ul.innerHTML = '';
+      if (!results.length) { ul.style.display='none'; return; }
+      results.forEach(r => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item list-group-item-action py-2';
+        li.style.cssText = 'cursor:pointer;font-size:13px';
+        li.innerHTML = '<i class="bi bi-geo-alt text-muted me-2"></i>' + r.label;
+        li.onclick = () => {
+          document.getElementById('adresse_input').value = ((r.housenumber || '') + ' ' + (r.street || '')).trim();
+          document.getElementById('code_postal').value = r.postcode || '';
+          document.getElementById('ville').value = r.city || '';
+          ul.style.display = 'none';
+        };
+        ul.appendChild(li);
+      });
+      ul.style.display = '';
+    }).catch(() => { document.getElementById('adresse_spinner').style.display='none'; });
+}
+document.addEventListener('click', e => {
+  if (!document.getElementById('adresse_input').contains(e.target))
+    document.getElementById('adresse_dropdown').style.display='none';
+});
+
+// Email — validation avec fallback local
+let lastEmail = '{{ client.email if client else "" }}';
+let emailTimer = null;
+
+function scheduleEmailValidation(v) {
+  clearTimeout(emailTimer);
+  if (v.length < 5) return;
+  emailTimer = setTimeout(() => validateEmail(v), 1200);
+}
+
+function validateEmail(email) {
+  if (!email || email === lastEmail) return;
+  const icon = document.getElementById('email_icon');
+  const fb   = document.getElementById('email_feedback');
+  icon.textContent = '⏳';
+  fetch('/api/email-validate?email=' + encodeURIComponent(email))
+    .then(r => r.json()).then(d => {
+      lastEmail = email;
+      document.getElementById('email_statut').value = d.status;
+      if (d.status === 'valid') {
+        icon.textContent='✅'; fb.textContent='✅ Email vérifié'; fb.style.color='#22c55e';
+      } else if (d.status === 'format_ok') {
+        icon.textContent='🟡'; fb.textContent='Format valide'; fb.style.color='#f59e0b';
+      } else if (d.status === 'invalid') {
+        icon.textContent='❌'; fb.textContent='⚠️ Email invalide — vérifiez avec le client'; fb.style.color='#dc2626';
+      } else if (d.status === 'unknown') {
+        icon.textContent='🟡'; fb.textContent='Format valide — existence non vérifiable'; fb.style.color='#f59e0b';
+      } else {
+        icon.textContent=''; fb.textContent='';
+      }
+    }).catch(() => { icon.textContent=''; });
+}
+
+// Téléphone
+let lastTel = '';
+function validateTel(numero) {
+  if (!numero || numero === lastTel) return;
+  document.getElementById('tel_icon').textContent = '⏳';
+  fetch('/api/tel-validate?numero=' + encodeURIComponent(numero))
+    .then(r => r.json()).then(d => {
+      lastTel = numero;
+      const icon = document.getElementById('tel_icon');
+      const fb = document.getElementById('tel_feedback');
+      if (d.status === 'valid' || d.status === 'formatted') {
+        if (d.formatted) document.getElementById('tel_input').value = d.formatted;
+        if (d.country && d.country !== 'France') {
+          icon.textContent='🌍'; fb.textContent='Numéro étranger — ' + d.country;
+          document.getElementById('telephone_pays').value = d.country_code || 'FR';
+        } else { icon.textContent='✅'; icon.style.color='#22c55e'; fb.textContent=''; }
+      } else if (d.status === 'invalid') {
+        icon.textContent='⚠️'; icon.style.color='#f59e0b'; fb.textContent='⚠️ Numéro invalide';
+      } else { icon.textContent=''; }
+    }).catch(() => { document.getElementById('tel_icon').textContent=''; });
+}
+
+// Pays
+function updatePaysNom() {
+  const sel = document.getElementById('pays_select');
+  const opt = sel.options[sel.selectedIndex];
+  document.getElementById('pays_nom').value = opt.dataset.nom || '';
+  document.getElementById('pays_flag').textContent = opt.dataset.emoji || '🌍';
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const sel = document.getElementById('pays_select');
+  if (sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (opt) document.getElementById('pays_flag').textContent = opt.dataset.emoji || '🇫🇷';
+  }
+});
+
+// 2ème téléphone mobile
+let lastTel2 = '';
+function validateTel2(numero) {
+  if (!numero || numero === lastTel2) return;
+  document.getElementById('tel2_icon').textContent = '⏳';
+  fetch('/api/tel-validate?numero=' + encodeURIComponent(numero))
+    .then(r => r.json()).then(d => {
+      lastTel2 = numero;
+      const icon = document.getElementById('tel2_icon');
+      const fb   = document.getElementById('tel2_feedback');
+      if (d.status === 'valid' || d.status === 'formatted') {
+        if (d.formatted) document.getElementById('tel2_input').value = d.formatted;
+        icon.textContent = '✅'; fb.textContent = '';
+      } else if (d.status === 'invalid') {
+        icon.textContent = '⚠️'; fb.textContent = 'Numéro invalide'; fb.style.color='#f59e0b';
+      } else { icon.textContent = ''; }
+    }).catch(() => { document.getElementById('tel2_icon').textContent = ''; });
+}
+
+// Autocomplete communes françaises
+let communeTimer = null;
+function onCommuneInput(v) {
+  clearTimeout(communeTimer);
+  const dd = document.getElementById('commune_dropdown');
+  if (!v || v.length < 2) { dd.style.display='none'; return; }
+  communeTimer = setTimeout(() => {
+    fetch('/api/communes?q=' + encodeURIComponent(v))
+      .then(r => r.json()).then(data => {
+        dd.innerHTML = '';
+        if (!data.length) { dd.style.display='none'; return; }
+        data.forEach(c => {
+          const li = document.createElement('li');
+          li.className = 'list-group-item list-group-item-action';
+          li.style = 'cursor:pointer;font-size:13px;padding:8px 14px';
+          li.textContent = c.label;
+          li.onclick = () => {
+            document.getElementById('commune_input').value = c.nom;
+            // Remplir aussi code postal et ville si présent et vide
+            const cp = document.getElementById('code_postal');
+            const vl = document.getElementById('ville');
+            if (cp && !cp.value && c.code_postal) cp.value = c.code_postal;
+            if (vl && !vl.value && c.nom) vl.value = c.nom;
+            dd.style.display = 'none';
+          };
+          dd.appendChild(li);
+        });
+        dd.style.display = 'block';
+      }).catch(() => { dd.style.display='none'; });
+  }, 400);
+}
+document.addEventListener('click', e => {
+  const inp = document.getElementById('commune_input');
+  if (inp && !inp.contains(e.target)) document.getElementById('commune_dropdown').style.display='none';
+});
+</script>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends 'portail/base_portail.html' %}
+{% block title %}Mes documents{% endblock %}
+{% block content %}
+<h2 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:800;color:#0f1e3c;margin-bottom:20px">📁 Mes documents</h2>
+
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+  <a href="{{ url_for('portail_documents') }}"
+     style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;
+            {{ 'background:#0f1e3c;color:white' if not type_filtre else 'background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0' }}">
+    Tous
+  </a>
+  {% for t in types %}
+  <a href="{{ url_for('portail_documents') }}?type={{ t }}"
+     style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;text-decoration:none;
+            {{ 'background:#c9a84c;color:#0f1e3c' if type_filtre == t else 'background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0' }}">
+    {{ t }}
+  </a>
+  {% endfor %}
+</div>
+
+<div class="p-card">
+  {% if docs %}
+  <div style="display:grid;gap:8px">
+    {% for d in docs %}
+    {% set is_pdf = d.nom_original.lower().endswith('.pdf') %}
+    {% set is_img = d.nom_original.lower().endswith(('.jpg','.jpeg','.png','.webp')) %}
+    {% set is_eml = d.nom_original.lower().endswith(('.eml','.msg')) %}
+    <div style="display:flex;align-items:center;gap:14px;padding:12px;border:1px solid #f1f5f9;border-radius:10px;transition:background .15s"
+         onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+      <div style="font-size:24px;flex-shrink:0">
+        {% if is_pdf %}📄{% elif is_img %}🖼️{% elif is_eml %}📧{% else %}📎{% endif %}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          {{ d.nom_original }}
+        </div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px">
+          {{ d.type_document or '—' }} · {{ d.date_upload[:10] if d.date_upload else '—' }}
+        </div>
+      </div>
+      <a href="{{ url_for('portail_document_dl', doc_id=d.id) }}"
+         style="background:#0f1e3c;color:white;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;text-decoration:none;flex-shrink:0">
+        ⬇ Télécharger
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center;padding:48px;color:#94a3b8">
+    <div style="font-size:36px;margin-bottom:12px">📁</div>
+    <div style="font-size:14px">Aucun document disponible.</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

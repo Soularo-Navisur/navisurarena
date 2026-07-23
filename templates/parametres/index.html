@@ -1,0 +1,350 @@
+{% extends 'base.html' %}
+{% block title %}Paramètres — Riviera Marine Assurances
+<script>
+function detectOneDrive() {
+  const btn = event.target.closest('button');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Recherche...';
+  btn.disabled = true;
+  fetch('{{ url_for("onedrive_detect") }}')
+    .then(r => r.json())
+    .then(data => {
+      if (data.found) {
+        document.getElementById('onedrive_path').value = data.path;
+        document.getElementById('onedrive_status').innerHTML =
+          '<span class="text-success"><i class="bi bi-check-circle me-1"></i>OneDrive détecté : ' + data.path + '</span>';
+      } else {
+        document.getElementById('onedrive_status').innerHTML =
+          '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>OneDrive non trouvé. Entrez le chemin manuellement.</span>';
+      }
+    })
+    .catch(() => {
+      document.getElementById('onedrive_status').innerHTML =
+        '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Erreur lors de la détection.</span>';
+    })
+    .finally(() => { btn.innerHTML = orig; btn.disabled = false; });
+}
+
+function syncNow() {
+  const btn = event.target.closest('button');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Synchronisation...';
+  btn.disabled = true;
+  // Sauvegarder d'abord le chemin saisi, puis lancer le sync
+  fetch('{{ url_for("onedrive_sync_manual") }}', { method: 'POST',
+    headers: {'X-CSRFToken': ''},
+    body: new FormData(document.querySelector('form'))
+  })
+  .then(r => {
+    document.getElementById('sync_result').innerHTML =
+      '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Synchronisé !</span>';
+    setTimeout(() => document.getElementById('sync_result').innerHTML = '', 4000);
+  })
+  .catch(() => {
+    document.getElementById('sync_result').innerHTML =
+      '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Erreur.</span>';
+  })
+  .finally(() => { btn.innerHTML = orig; btn.disabled = false; });
+}
+</script>
+
+{% endblock %}
+{% block page_title %}Paramètres cabinet
+<script>
+function detectOneDrive() {
+  const btn = event.target.closest('button');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Recherche...';
+  btn.disabled = true;
+  fetch('{{ url_for("onedrive_detect") }}')
+    .then(r => r.json())
+    .then(data => {
+      if (data.found) {
+        document.getElementById('onedrive_path').value = data.path;
+        document.getElementById('onedrive_status').innerHTML =
+          '<span class="text-success"><i class="bi bi-check-circle me-1"></i>OneDrive détecté : ' + data.path + '</span>';
+      } else {
+        document.getElementById('onedrive_status').innerHTML =
+          '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>OneDrive non trouvé. Entrez le chemin manuellement.</span>';
+      }
+    })
+    .catch(() => {
+      document.getElementById('onedrive_status').innerHTML =
+        '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Erreur lors de la détection.</span>';
+    })
+    .finally(() => { btn.innerHTML = orig; btn.disabled = false; });
+}
+
+function syncNow() {
+  const btn = event.target.closest('button');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Synchronisation...';
+  btn.disabled = true;
+  // Sauvegarder d'abord le chemin saisi, puis lancer le sync
+  fetch('{{ url_for("onedrive_sync_manual") }}', { method: 'POST',
+    headers: {'X-CSRFToken': ''},
+    body: new FormData(document.querySelector('form'))
+  })
+  .then(r => {
+    document.getElementById('sync_result').innerHTML =
+      '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Synchronisé !</span>';
+    setTimeout(() => document.getElementById('sync_result').innerHTML = '', 4000);
+  })
+  .catch(() => {
+    document.getElementById('sync_result').innerHTML =
+      '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Erreur.</span>';
+  })
+  .finally(() => { btn.innerHTML = orig; btn.disabled = false; });
+}
+</script>
+
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">⚙️ Paramètres du cabinet</h1>
+    <p class="page-header-sub">Ces informations apparaissent sur vos quittances et documents</p>
+  </div>
+</div>
+
+<form method="post">
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="form-card" style="max-width:100%">
+        <div class="form-section-title">🏢 Identité du cabinet</div>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Nom du cabinet *</label>
+            <input type="text" name="cabinet_nom" class="form-control"
+                   value="{{ params.get('cabinet_nom','') }}" placeholder="Riviera Marine Assurances — Courtage Plaisance">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Adresse</label>
+            <input type="text" name="cabinet_adresse" class="form-control"
+                   value="{{ params.get('cabinet_adresse','') }}" placeholder="12 avenue de la Mer">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Code postal</label>
+            <input type="text" name="cabinet_cp" class="form-control"
+                   value="{{ params.get('cabinet_cp','') }}" placeholder="83400">
+          </div>
+          <div class="col-md-8">
+            <label class="form-label">Ville</label>
+            <input type="text" name="cabinet_ville" class="form-control"
+                   value="{{ params.get('cabinet_ville','') }}" placeholder="Hyères">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Téléphone</label>
+            <input type="text" name="cabinet_telephone" class="form-control"
+                   value="{{ params.get('cabinet_telephone','') }}" placeholder="04 94 XX XX XX">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <input type="email" name="cabinet_email" class="form-control"
+                   value="{{ params.get('cabinet_email','') }}" placeholder="contact@navisur.fr">
+          </div>
+        </div>
+
+        <div class="form-section-title">📋 Réglementation</div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">N° ORIAS</label>
+            <input type="text" name="cabinet_orias" class="form-control font-mono"
+                   value="{{ params.get('cabinet_orias','') }}" placeholder="00 000 000">
+            <div class="form-text">Obligatoire sur toutes vos communications</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">SIREN / SIRET</label>
+            <input type="text" name="cabinet_siren" class="form-control font-mono"
+                   value="{{ params.get('cabinet_siren','') }}" placeholder="123 456 789">
+          </div>
+        </div>
+
+        <div class="form-section-title">🏦 Coordonnées bancaires</div>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">IBAN (affiché sur vos quittances)</label>
+            <input type="text" name="cabinet_iban" class="form-control font-mono"
+                   value="{{ params.get('cabinet_iban','') }}"
+                   placeholder="FR76 3000 6000 0112 3456 7890 189">
+          </div>
+        </div>
+
+
+        <div class="form-section-title">☁️ Synchronisation OneDrive</div>
+        <div class="row g-3">
+          <div class="col-12">
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" name="onedrive_enabled" value="1"
+                       id="onedrive_enabled"
+                       {{ 'checked' if params.get('onedrive_enabled') == '1' }}>
+                <label class="form-check-label fw-semibold" for="onedrive_enabled">
+                  Synchronisation automatique activée
+                </label>
+              </div>
+            </div>
+            <p class="text-muted small mb-2">
+              La base de données sera copiée dans votre dossier OneDrive à chaque sauvegarde automatique (quotidienne).
+              Cela protège vos données même en cas de panne de votre ordinateur.
+            </p>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Dossier OneDrive</label>
+            <div class="input-group">
+              <input type="text" name="onedrive_path" id="onedrive_path" class="form-control font-mono"
+                     value="{{ params.get('onedrive_path', '') }}"
+                     placeholder="C:\\Users\\VotreNom\\OneDrive">
+              <button type="button" class="btn btn-outline-secondary" onclick="detectOneDrive()">
+                <i class="bi bi-search me-1"></i>Détecter automatiquement
+              </button>
+            </div>
+            <div id="onedrive_status" class="mt-2"></div>
+          </div>
+          <div class="col-12">
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="syncNow()">
+              <i class="bi bi-cloud-upload me-1"></i>Synchroniser maintenant
+            </button>
+            <span id="sync_result" class="ms-2 small"></span>
+          </div>
+        </div>
+
+        <div class="form-section-title">🔔 Seuils d'alertes échéances</div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="alerte_j30" value="1"
+                     id="al30" {{ 'checked' if params.get('alerte_j30','1') == '1' }}>
+              <label class="form-check-label" for="al30">🔴 30 jours</label>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="alerte_j60" value="1"
+                     id="al60" {{ 'checked' if params.get('alerte_j60','1') == '1' }}>
+              <label class="form-check-label" for="al60">🟠 60 jours</label>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="alerte_j90" value="1"
+                     id="al90" {{ 'checked' if params.get('alerte_j90','1') == '1' }}>
+              <label class="form-check-label" for="al90">🟡 90 jours</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i>Enregistrer
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <!-- Aperçu facture -->
+      <div class="card-crm mb-3">
+        <div class="card-crm-header"><span class="card-crm-title">👁️ Aperçu en-tête facture</span></div>
+        <div class="p-4">
+          <div style="border:1px solid #e2e8f0;border-radius:10px;padding:20px;font-size:12px">
+            <div style="display:flex;justify-content:space-between;border-bottom:2px solid #0f172a;padding-bottom:16px;margin-bottom:16px">
+              <div>
+                <div style="font-size:16px;font-weight:700;color:#0f172a">⚓ {{ params.get('cabinet_nom','Mon Cabinet') }}</div>
+                <div style="color:#64748b;margin-top:4px">{{ params.get('cabinet_adresse','') }}</div>
+                <div style="color:#64748b">{{ params.get('cabinet_cp','') }} {{ params.get('cabinet_ville','') }}</div>
+                {% if params.get('cabinet_telephone') %}<div style="color:#64748b;margin-top:4px">{{ params.get('cabinet_telephone') }}</div>{% endif %}
+                {% if params.get('cabinet_email') %}<div style="color:#64748b">{{ params.get('cabinet_email') }}</div>{% endif %}
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:22px;font-weight:700;color:#1d4ed8">FAC-2024-0001</div>
+                <div style="color:#64748b;margin-top:4px">Émise le : aujourd'hui</div>
+              </div>
+            </div>
+            {% if params.get('cabinet_orias') or params.get('cabinet_siren') %}
+            <div style="background:#f8fafc;border-radius:6px;padding:8px 12px;font-size:11px;color:#64748b;margin-bottom:10px">
+              {% if params.get('cabinet_orias') %}ORIAS n° {{ params.get('cabinet_orias') }}{% endif %}
+              {% if params.get('cabinet_siren') %}&nbsp;·&nbsp; SIREN : {{ params.get('cabinet_siren') }}{% endif %}
+            </div>
+            {% endif %}
+            {% if params.get('cabinet_iban') %}
+            <div style="background:#eff6ff;border-left:3px solid #1d4ed8;padding:8px 12px;font-size:11px;color:#1e3a5f;">
+              <strong>IBAN :</strong> <span class="font-mono">{{ params.get('cabinet_iban') }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Exports -->
+      <div class="card-crm">
+        <div class="card-crm-header"><span class="card-crm-title">📤 Exports Excel</span></div>
+        <div class="p-3 d-flex flex-column gap-2">
+          <a href="{{ url_for('export_clients') }}" class="btn btn-outline-secondary btn-sm text-start">
+            <i class="bi bi-people me-2 text-primary"></i>Clients <span class="text-muted float-end">.xlsx</span>
+          </a>
+          <a href="{{ url_for('export_contrats') }}" class="btn btn-outline-secondary btn-sm text-start">
+            <i class="bi bi-file-earmark-text me-2 text-primary"></i>Contrats <span class="text-muted float-end">.xlsx</span>
+          </a>
+          <a href="{{ url_for('export_commissions') }}" class="btn btn-outline-secondary btn-sm text-start">
+            <i class="bi bi-percent me-2 text-warning"></i>Commissions <span class="text-muted float-end">.xlsx</span>
+          </a>
+          <a href="{{ url_for('export_bateaux') }}" class="btn btn-outline-secondary btn-sm text-start">
+            <i class="bi bi-water me-2" style="color:#1a6b9a"></i>Bateaux <span class="text-muted float-end">.xlsx</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+function detectOneDrive() {
+  const btn = event.target.closest('button');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Recherche...';
+  btn.disabled = true;
+  fetch('{{ url_for("onedrive_detect") }}')
+    .then(r => r.json())
+    .then(data => {
+      if (data.found) {
+        document.getElementById('onedrive_path').value = data.path;
+        document.getElementById('onedrive_status').innerHTML =
+          '<span class="text-success"><i class="bi bi-check-circle me-1"></i>OneDrive détecté : ' + data.path + '</span>';
+      } else {
+        document.getElementById('onedrive_status').innerHTML =
+          '<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>OneDrive non trouvé. Entrez le chemin manuellement.</span>';
+      }
+    })
+    .catch(() => {
+      document.getElementById('onedrive_status').innerHTML =
+        '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Erreur lors de la détection.</span>';
+    })
+    .finally(() => { btn.innerHTML = orig; btn.disabled = false; });
+}
+
+function syncNow() {
+  const btn = event.target.closest('button');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Synchronisation...';
+  btn.disabled = true;
+  // Sauvegarder d'abord le chemin saisi, puis lancer le sync
+  fetch('{{ url_for("onedrive_sync_manual") }}', { method: 'POST',
+    headers: {'X-CSRFToken': ''},
+    body: new FormData(document.querySelector('form'))
+  })
+  .then(r => {
+    document.getElementById('sync_result').innerHTML =
+      '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Synchronisé !</span>';
+    setTimeout(() => document.getElementById('sync_result').innerHTML = '', 4000);
+  })
+  .catch(() => {
+    document.getElementById('sync_result').innerHTML =
+      '<span class="text-danger"><i class="bi bi-x-circle me-1"></i>Erreur.</span>';
+  })
+  .finally(() => { btn.innerHTML = orig; btn.disabled = false; });
+}
+</script>
+
+{% endblock %}

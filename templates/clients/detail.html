@@ -1,0 +1,535 @@
+{% extends 'base.html' %}
+{% block title %}{{ client.prenom or '' }} {{ client.nom }} — NAVISUR
+<script>
+// DDA status badge
+(async function() {
+  try {
+    const r = await fetch('/api/clients/{{ client.id }}/dda-status');
+    const d = await r.json();
+    const colors = {ok:'#22c55e',old:'#f59e0b',draft:'#f59e0b',absent:'#dc2626'};
+    const el = document.getElementById('dda-badge');
+    if (el) {
+      el.textContent = d.label;
+      el.style.background = colors[d.status] + '22';
+      el.style.color = colors[d.status];
+      el.style.borderColor = colors[d.status] + '44';
+    }
+  } catch(e) {}
+})();
+</script>
+{% endblock %}
+{% block page_title %}Fiche client{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('client_communications', client_id=client.id) }}"
+     class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-envelope-check me-1"></i>Emails Brevo
+  </a>
+  <a href="{{ url_for('client_fiche_pdf', id=client.id) }}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Imprimer fiche"><i class="bi bi-printer me-1"></i>Fiche PDF</a>
+  <a href="{{ url_for('client_export_dossier', id=client.id) }}" class="btn btn-outline-secondary btn-sm" title="Export dossier ZIP"><i class="bi bi-file-zip me-1"></i>Export ZIP</a>
+  <a href="{{ url_for('devis_nouveau') }}?client_id={{ client.id }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-plus me-1"></i>Devis</a>
+  <a href="{{ url_for('client_modifier', id=client.id) }}" class="btn btn-primary btn-sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+{% endblock %}
+
+{% block content %}
+<!-- HERO -->
+<div class="client-hero mb-4">
+  <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;position:relative;z-index:1">
+    <!-- Avatar -->
+    <div class="client-hero-avatar" style="font-family:'Playfair Display',serif">
+      {{ client.nom[0] }}{{ client.prenom[0] if client.prenom else '' }}
+    </div>
+    <!-- Infos principales -->
+    <div style="flex:1;min-width:200px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <h2 class="client-hero-name">{{ client.civilite or '' }} {{ client.prenom or '' }} {{ client.nom }}</h2>
+        {% if client.pays_code and client.pays_code != 'FR' %}
+          <span style="font-size:18px">{{ client.pays_code }}</span>
+        {% endif %}
+      </div>
+      <div class="client-hero-meta d-flex gap-3 flex-wrap">
+        {% if client.email %}
+          <a href="mailto:{{ client.email }}" style="color:rgba(255,255,255,.7);text-decoration:none;font-size:13px">
+            <i class="bi bi-envelope me-1"></i>{{ client.email }}</a>
+        {% endif %}
+        {% if client.telephone %}
+          <a href="tel:{{ client.telephone }}" style="color:rgba(255,255,255,.7);text-decoration:none;font-size:13px">
+            <i class="bi bi-telephone me-1"></i>{{ client.telephone }}</a>
+        {% endif %}
+        {% if client.ville %}
+          <span style="color:rgba(255,255,255,.7);font-size:13px"><i class="bi bi-geo-alt me-1"></i>{{ client.ville }}</span>
+        {% endif %}
+        {% if client.date_creation %}
+          <span style="color:rgba(255,255,255,.5);font-size:12px">Client depuis {{ client.date_creation[:4] }}</span>
+        {% endif %}
+      </div>
+      <!-- Boutons action -->
+      <div class="d-flex gap-2 flex-wrap mt-3">
+        {% if client.email %}
+          <a href="mailto:{{ client.email }}" class="hero-action">
+            <i class="bi bi-envelope"></i> Email
+          </a>
+        {% endif %}
+        {% if client.telephone %}
+          <a href="tel:{{ client.telephone }}" class="hero-action">
+            <i class="bi bi-telephone"></i> Appeler
+          </a>
+        {% endif %}
+        <a href="{{ url_for('devis_nouveau') }}?client_id={{ client.id }}" class="hero-action">
+          <i class="bi bi-clipboard-plus"></i> Devis
+        </a>
+        <a href="{{ url_for('client_modifier', id=client.id) }}" class="hero-action primary">
+          <i class="bi bi-pencil"></i> Modifier
+        </a>
+      </div>
+    </div>
+    <!-- Badge statut -->
+    <div style="text-align:right">
+      <span class="badge-crm badge-{{ client.statut }}" style="font-size:12px;padding:5px 14px">{{ client.statut|title }}</span>
+    </div>
+  </div>
+
+  <!-- Mini stats -->
+  <div class="row g-2 mt-3" style="position:relative;z-index:1">
+    <div class="col-6 col-md-3">
+      <div class="hero-stat">
+        <span class="hero-stat-number">{{ contrats|length }}</span>
+        <div class="hero-stat-label">Contrat(s)</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="hero-stat">
+        <span class="hero-stat-number">{{ bateaux|length }}</span>
+        <div class="hero-stat-label">Bateau(x)</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="hero-stat">
+        <span class="hero-stat-number" style="color:{{ '#ef4444' if sinistres|length > 0 else 'var(--gold)' }}">{{ sinistres|length }}</span>
+        <div class="hero-stat-label">Sinistre(s)</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="hero-stat">
+        {% set nb_att = devis|selectattr('statut','eq','en_attente')|list|length %}
+        <span class="hero-stat-number" style="{{ 'color:#f59e0b' if nb_att > 0 else '' }}">{{ nb_att }}</span>
+        <div class="hero-stat-label">Devis en attente</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ONGLETS -->
+<ul class="nav nav-tabs mb-3" id="clientTabs">
+  <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-infos">👤 Infos</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-contrats">📄 Contrats ({{ contrats|length }})</a></li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="tab" href="#tab-devis">
+      📋 Devis ({{ devis|length }})
+      {% set nb_att = devis|selectattr('statut','eq','en_attente')|list|length %}
+      {% if nb_att > 0 %}<span style="background:#f59e0b;color:white;border-radius:10px;padding:0 6px;font-size:10px;margin-left:4px">{{ nb_att }}</span>{% endif %}
+    </a>
+  </li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-bateaux">⚓ Bateaux ({{ bateaux|length }})</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-sinistres">⚠️ Sinistres ({{ sinistres|length }})</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-journal">💬 Journal ({{ journal|length }})</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-risques">🗂️ Risques ({{ risques|length }})</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-docs">📁 Docs ({{ documents|length }})</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-historique">📜 Historique ({{ audit_logs|length }})</a></li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="tab" href="#tab-reclamations">
+      📣 Réclamations
+      {% if reclamations_client %}
+        {% if recl_retard > 0 %}
+          <span style="background:#dc2626;color:white;border-radius:10px;padding:0 6px;font-size:10px;margin-left:4px;animation:blink 1s step-start infinite">{{ reclamations_client|length }}</span>
+        {% else %}
+          <span style="background:#f59e0b;color:white;border-radius:10px;padding:0 6px;font-size:10px;margin-left:4px">{{ reclamations_client|length }}</span>
+        {% endif %}
+      {% endif %}
+    </a>
+  </li>
+</ul>
+
+<div class="tab-content">
+
+  <!-- INFOS -->
+  <div class="tab-pane fade show active" id="tab-infos">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="card-crm">
+          <div class="card-crm-header"><span class="card-crm-title">📇 Coordonnées</span><a href="{{ url_for('client_modifier', id=client.id) }}" class="btn btn-sm btn-outline-secondary">Modifier</a></div>
+          <div class="p-3">
+            {% for label, val in [('Prénom', client.prenom),('Nom', client.nom),('Email', client.email),('Téléphone', client.telephone),('Adresse', client.adresse),('CP / Ville', ((client.code_postal or '') + ' ' + (client.ville or '')).strip()),('SIRET', client.siren)] %}
+            {% if val and val.strip() %}<div class="info-row"><span class="info-label">{{ label }}</span><span class="info-value">{{ val }}</span></div>{% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card-crm">
+          <div class="card-crm-header"><span class="card-crm-title">🪪 Identité &amp; Permis</span></div>
+          <div class="p-3">
+            {% set permis_labels = {'cotier':'Côtier','hauturier':'Hauturier','les_deux':'Côtier + Hauturier','fluvial':'Fluvial'} %}
+            {% for label, val in [('Date de naissance', client.date_naissance),('Commune de naissance', client.commune_naissance),('Permis mer', permis_labels.get(client.type_permis_mer, client.type_permis_mer) if client.type_permis_mer else None),('Date du permis', client.date_permis_mer)] %}
+            <div class="info-row"><span class="info-label">{{ label }}</span><span class="info-value {{ 'text-muted' if not val }}">{{ val or '—' }}</span></div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Alerte DDA -->
+        {% set has_dda = false %}
+        {# Check DDA via simple note in the page - full check via notifications #}
+        <div class="card-crm mt-3">
+          <div class="card-crm-header">
+            <span class="card-crm-title">📋 Recueil DDA</span>
+            <a href="{{ url_for('dda_nouveau') }}?client_id={{ client.id }}" class="btn btn-sm btn-outline-secondary">
+              + Nouveau recueil
+            </a>
+          </div>
+          <div class="p-3 text-center">
+            <a href="{{ url_for('dda_list') }}?client_id={{ client.id }}" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-clipboard-check me-1"></i>Voir les recueils DDA de ce client
+            </a>
+          </div>
+        </div>
+
+        {% if rdvs %}
+        <div class="card-crm mt-3">
+          <div class="card-crm-header"><span class="card-crm-title">📅 Prochains RDV</span><a href="{{ url_for('rdv_nouveau') }}?client_id={{ client.id }}" class="btn btn-sm btn-outline-secondary">+ RDV</a></div>
+          {% for r in rdvs %}<div class="p-3 {{ 'border-bottom' if not loop.last }}"><div class="fw-500">{{ r.titre }}</div><div class="text-muted" style="font-size:12px">{{ r.date_rdv }}{% if r.heure_debut %} à {{ r.heure_debut[:5] }}{% endif %}</div></div>{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% if client.notes %}<div class="col-12"><div class="card-crm"><div class="card-crm-header"><span class="card-crm-title">📝 Notes</span></div><div class="p-3" style="font-size:13px;white-space:pre-wrap">{{ client.notes }}</div></div></div>{% endif %}
+    </div>
+  </div>
+
+  <!-- CONTRATS -->
+  <div class="tab-pane fade" id="tab-contrats">
+    <div class="d-flex justify-content-end mb-2"><a href="{{ url_for('contrat_nouveau') }}?client_id={{ client.id }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Nouveau contrat</a></div>
+    {% if contrats %}
+    {% for ct in contrats %}
+    <div class="card-crm mb-3" style="border-left:4px solid {% if ct.statut=='en_cours' %}#22c55e{% elif 'resili' in ct.statut %}#dc2626{% else %}#94a3b8{% endif %}">
+      <div class="p-4">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+          <div>
+            <div class="fw-700" style="font-size:16px;color:#1a2e5a">{{ ct.type_assurance or 'Contrat' }}{% if ct.nom_bateau %}<span class="text-muted fw-400 ms-2" style="font-size:13px">⚓ {{ ct.nom_bateau }}</span>{% endif %}</div>
+            <div style="font-size:13px;color:#475569;margin-top:3px">{{ ct.compagnie or '—' }}{% if ct.numero %} · <span class="font-mono">{{ ct.numero }}</span>{% endif %}</div>
+            <div style="font-size:12px;color:#94a3b8;margin-top:2px">{{ ct.date_debut or '' }}{% if ct.date_fin %} → {{ ct.date_fin }}{% endif %}</div>
+          </div>
+          <div class="text-end"><div style="font-size:22px;font-weight:800;color:#c9a84c">{{ "{:,.0f}".format(ct.prime_annuelle).replace(",", " ") }} €</div><div style="font-size:11px;color:#94a3b8">/ an</div></div>
+        </div>
+        <div class="d-flex gap-2 mt-3 flex-wrap align-items-center">
+          <span class="badge-crm badge-{{ ct.statut }}">{{ ct.statut|replace('_',' ')|title }}</span>
+          {% if ct.checklist_done %}<span class="badge-crm badge-clos">📋 Dossier complet</span>{% endif %}
+          <div class="ms-auto d-flex gap-1">
+            <a href="{{ url_for('contrat_detail', id=ct.id) }}" class="btn btn-sm btn-outline-secondary">Fiche</a>
+            <a href="{{ url_for('contrat_quittance_rapide', id=ct.id) }}" class="btn btn-sm btn-outline-secondary" title="Créer une quittance">🧾</a>
+            {% if ct.statut == 'en_cours' %}<a href="{{ url_for('contrat_renouveler', id=ct.id) }}" class="btn btn-sm btn-primary">🔁 Renouveler</a>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}<div class="empty-state py-4"><p class="mt-2">Aucun contrat</p><a href="{{ url_for('contrat_nouveau') }}?client_id={{ client.id }}" class="btn btn-primary btn-sm">Créer un contrat</a></div>{% endif %}
+  </div>
+
+  <!-- DEVIS -->
+  <div class="tab-pane fade" id="tab-devis">
+    <div class="d-flex justify-content-end mb-2"><a href="{{ url_for('comparatif_devis', client_id=client.id) }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-bar-chart me-1"></i>Comparatif
+      </a>
+      <a href="{{ url_for('devis_multi_nouveau') }}?client_id={{ client.id }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-list-ul me-1"></i>Multi-devis
+      </a>
+      <a href="{{ url_for('devis_nouveau') }}?client_id={{ client.id }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Nouveau devis</a></div>
+    {% set badge_map = {'en_attente':'badge-attendu','accepte':'badge-clos','refuse':'badge-resilie','sans_suite':'badge-inactif','expire':'badge-echu'} %}
+    {% set label_map = {'en_attente':'⏳ En attente','accepte':'✅ Accepté','refuse':'❌ Refusé','sans_suite':'⛔ Sans suite','expire':'⏰ Expiré'} %}
+    {% if devis %}
+    {% for d in devis %}
+    <div class="card-crm mb-2" style="border-left:4px solid {% if d.statut=='en_attente' %}#f59e0b{% elif d.statut=='accepte' %}#22c55e{% else %}#94a3b8{% endif %}">
+      <div class="p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <div class="fw-600">{{ d.compagnie or '—' }} — {{ d.type_assurance or '—' }}</div>
+          <div class="text-muted" style="font-size:12px">{{ d.date_devis }}{% if d.prime_proposee %} · <strong>{{ "{:,.0f}".format(d.prime_proposee) }} €/an</strong>{% endif %}{% if d.franchise_proposee %} · Franchise {{ "{:,.0f}".format(d.franchise_proposee) }} €{% endif %}</div>
+          {% if d.notes %}<div class="text-muted" style="font-size:11px;margin-top:2px">{{ d.notes[:80] }}</div>{% endif %}
+        </div>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          <span class="badge-crm {{ badge_map.get(d.statut,'') }}">{{ label_map.get(d.statut, d.statut) }}</span>
+          {% if d.statut == 'en_attente' %}
+          <form method="post" action="{{ url_for('devis_accepter', id=d.id) }}" style="margin:0"><button class="btn btn-sm btn-success">✅ Accepter → Contrat</button></form>
+          <form method="post" action="{{ url_for('devis_refuser', id=d.id) }}" style="margin:0"><button class="btn btn-sm btn-outline-secondary">❌ Refusé</button></form>
+          {% endif %}
+          <a href="{{ url_for('devis_modifier', id=d.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}<div class="empty-state py-4"><p class="mt-2">Aucun devis</p><a href="{{ url_for('devis_nouveau') }}?client_id={{ client.id }}" class="btn btn-primary btn-sm">Créer un devis</a></div>{% endif %}
+  </div>
+
+  <!-- BATEAUX -->
+  <div class="tab-pane fade" id="tab-bateaux">
+    <div class="d-flex justify-content-end mb-2"><a href="{{ url_for('bateau_nouveau') }}?client_id={{ client.id }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Ajouter</a></div>
+    {% if bateaux %}
+    <div class="row g-3">
+      {% for b in bateaux %}
+      <div class="col-md-6">
+        <div class="card-crm">
+          <div class="p-4">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="fw-700" style="font-size:16px;color:#1a2e5a">⚓ {{ b.nom_bateau or '(sans nom)' }}</div>
+                <div class="text-muted" style="font-size:13px;margin-top:3px">{{ b.marque or '' }}{% if b.modele %} {{ b.modele }}{% endif %}{% if b.annee_fabrication %} · {{ b.annee_fabrication }}{% endif %}</div>
+                {% if b.immatriculation %}<div class="font-mono" style="font-size:12px;color:#c9a84c;margin-top:3px">{{ b.immatriculation }}</div>{% endif %}
+              </div>
+              {% if b.valeur_assurance %}<div class="text-end"><div style="font-size:18px;font-weight:700;color:#c9a84c">{{ "{:,.0f}".format(b.valeur_assurance) }} €</div><div style="font-size:11px;color:#94a3b8">valeur assurée</div></div>{% endif %}
+            </div>
+            <div class="d-flex gap-2 mt-3 flex-wrap align-items-center">
+              {% if b.type_bateau %}<span class="badge-crm" style="background:#eff6ff;color:#1a2e5a">{{ b.type_bateau|title }}</span>{% endif %}
+              {% if b.longueur %}<span class="text-muted" style="font-size:12px">{{ b.longueur }} m</span>{% endif %}
+              {% if b.port_attache %}<span class="text-muted" style="font-size:12px">📍 {{ b.port_attache }}</span>{% endif %}
+              <a href="{{ url_for('bateau_modifier', id=b.id) }}" class="ms-auto btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}<div class="empty-state py-4"><p class="mt-2">Aucun bateau</p><a href="{{ url_for('bateau_nouveau') }}?client_id={{ client.id }}" class="btn btn-primary btn-sm">Ajouter</a></div>{% endif %}
+  </div>
+
+  <!-- SINISTRES -->
+  <div class="tab-pane fade" id="tab-sinistres">
+    <div class="d-flex justify-content-end mb-2"><a href="{{ url_for('sinistre_nouveau') }}?client_id={{ client.id }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Déclarer</a></div>
+    {% if sinistres %}
+    <table class="table-crm">
+      <thead><tr><th>N°</th><th>Type</th><th>Date</th><th>Bateau</th><th>Statut</th><th></th></tr></thead>
+      <tbody>
+        {% for s in sinistres %}
+        <tr>
+          <td class="font-mono fw-600">{{ s.numero or '—' }}</td>
+          <td>{{ s.type_sinistre or '—' }}</td>
+          <td class="text-muted" style="font-size:12px">{{ s.date_sinistre or '—' }}</td>
+          <td class="text-muted" style="font-size:12px">{{ s.nom_bateau or '—' }}</td>
+          <td><span class="badge-crm badge-{{ s.statut }}">{{ s.statut|title }}</span></td>
+          <td><a href="{{ url_for('sinistre_modifier', id=s.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<div class="empty-state py-4"><p class="mb-0">Aucun sinistre</p></div>{% endif %}
+  </div>
+
+  <!-- JOURNAL -->
+  <div class="tab-pane fade" id="tab-journal">
+    <div class="d-flex justify-content-end mb-2"><a href="{{ url_for('journal_nouveau') }}?client_id={{ client.id }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Saisir échange</a></div>
+    {% set icons = {'telephone':'📞','email':'✉️','courrier':'📮','reunion':'🤝','autre':'💬'} %}
+    {% if journal %}
+    <div class="card-crm"><div class="p-3">
+      {% for a in journal %}
+      <div class="journal-entry">
+        <div class="journal-icon {{ a.type_contact }}">{{ icons.get(a.type_contact,'💬') }}</div>
+        <div class="flex-grow-1">
+          <div class="d-flex justify-content-between align-items-start">
+            <span class="journal-objet">{{ a.objet }}</span>
+            <form method="post" action="{{ url_for('journal_supprimer', id=a.id) }}" onsubmit="return confirm('Supprimer ?')" style="margin:0"><button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+          </div>
+          <div class="journal-meta">{{ a.date_activite }} · {{ '↙ Entrant' if a.sens=='entrant' else '↗ Sortant' }}</div>
+          {% if a.contenu %}<div class="journal-contenu mt-1">{{ a.contenu[:100] }}{% if a.contenu|length>100 %}…{% endif %}</div>{% endif %}
+          {% if a.suite_a_donner %}<div style="font-size:12px;color:#c9a84c;margin-top:2px">➜ {{ a.suite_a_donner }}</div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div></div>
+    {% else %}<div class="empty-state py-4"><p class="mb-0">Aucun échange</p></div>{% endif %}
+  </div>
+
+  <!-- RISQUES ASSURÉS -->
+  <div class="tab-pane fade" id="tab-risques">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <p class="text-muted mb-0" style="font-size:13px">Bateaux, jet skis, locaux, habitations assurés par ce client</p>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('risque_nouveau') }}?client_id={{ client.id }}&type=bateau" class="btn btn-outline-secondary btn-sm">⛵ Bateau</a>
+        <a href="{{ url_for('risque_nouveau') }}?client_id={{ client.id }}&type=jet_ski" class="btn btn-outline-secondary btn-sm">🏄 Jet Ski</a>
+        <a href="{{ url_for('risque_nouveau') }}?client_id={{ client.id }}&type=yacht" class="btn btn-outline-secondary btn-sm">⚓ Yacht</a>
+        <a href="{{ url_for('risque_nouveau') }}?client_id={{ client.id }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Autre risque</a>
+      </div>
+    </div>
+    {% if risques %}
+    <div class="card-crm">
+      <table class="table-crm">
+        <thead>
+          <tr><th>Type</th><th>Désignation</th><th class="text-end">Valeur assurée</th><th>Contrats liés</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% set type_icons = {'bateau':'⛵','jet_ski':'🏄','peniche':'🚢','yacht':'⚓','local_pro':'🏢','pro_nautisme':'🔧','habitation':'🏠','autre':'📋'} %}
+          {% set type_labels = {'bateau':'Bateau de plaisance','jet_ski':'Jet Ski','peniche':'Péniche / Fluvial','yacht':'Yacht','local_pro':'Local professionnel','pro_nautisme':'Pro du nautisme','habitation':'Habitation','autre':'Autre'} %}
+          {% for r in risques %}
+          <tr>
+            <td>
+              <span style="font-size:20px">{{ type_icons.get(r.type_risque, '📋') }}</span>
+              <span style="font-size:11px;color:#64748b;margin-left:6px">{{ type_labels.get(r.type_risque, r.type_risque) }}</span>
+            </td>
+            <td class="fw-600">{{ r.libelle }}</td>
+            <td class="text-end fw-700" style="color:#c9a84c">
+              {% if r.valeur_assurance > 0 %}{{ "{:,.0f}".format(r.valeur_assurance).replace(",", " ") }} €{% else %}—{% endif %}
+            </td>
+            <td style="font-size:12px;color:#64748b">
+              {% set nb_ct = namespace(v=0) %}
+              {% for ct in contrats %}{% if ct.risque_id == r.id %}{% set nb_ct.v = nb_ct.v + 1 %}{% endif %}{% endfor %}
+              {% if nb_ct.v > 0 %}<span class="badge-crm badge-clos">{{ nb_ct.v }} contrat{{ 's' if nb_ct.v > 1 }}</span>{% else %}<span class="text-muted">Aucun contrat</span>{% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{{ url_for('risque_detail', id=r.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+                <a href="{{ url_for('risque_modifier', id=r.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                <form method="post" action="{{ url_for('risque_supprimer', id=r.id) }}" onsubmit="return confirm('Supprimer ce risque ?')" style="margin:0">
+                  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="card-crm">
+      <div class="empty-state py-4">
+        <i class="bi bi-shield" style="font-size:48px;opacity:.15"></i>
+        <h5 class="mt-3">Aucun risque enregistré</h5>
+        <p class="text-muted mb-3">Enregistrez les biens assurés de ce client</p>
+        <div class="d-flex gap-2 justify-content-center flex-wrap">
+          <a href="{{ url_for('risque_nouveau') }}?client_id={{ client.id }}&type=bateau" class="btn btn-outline-secondary btn-sm">⛵ Ajouter un bateau</a>
+          <a href="{{ url_for('risque_nouveau') }}?client_id={{ client.id }}&type=yacht" class="btn btn-outline-secondary btn-sm">⚓ Ajouter un yacht</a>
+          <a href="{{ url_for('risque_nouveau') }}?client_id={{ client.id }}" class="btn btn-primary btn-sm">Autre risque</a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- DOCUMENTS -->
+  <div class="tab-pane fade" id="tab-docs">
+    {% if documents %}
+    <table class="table-crm">
+      <thead><tr><th>Document</th><th>Type</th><th>Date</th><th></th></tr></thead>
+      <tbody>
+        {% for d in documents %}
+        <tr>
+          <td><i class="bi {{ d.nom_original|file_icon }} me-1"></i>{{ d.nom_original[:40] }}</td>
+          <td style="font-size:12px;color:#8b5cf6">{{ d.type_document or '—' }}</td>
+          <td class="text-muted" style="font-size:12px">{{ d.date_upload }}</td>
+          <td><a href="{{ url_for('document_telecharger', doc_id=d.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download"></i></a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<div class="empty-state py-3"><p class="mb-2">Aucun document</p></div>{% endif %}
+    <div class="card-crm mt-3">
+      <div class="card-crm-header"><span class="card-crm-title">📎 Ajouter un document</span></div>
+      <div class="p-3">
+        <form method="post" action="{{ url_for('document_upload', client_id=client.id) }}" enctype="multipart/form-data">
+          <div class="row g-2">
+            <div class="col-md-5"><select name="type_document" class="form-select form-select-sm">{% for t in types_documents %}<option>{{ t }}</option>{% endfor %}</select></div>
+            <div class="col-md-5"><input type="file" name="fichier" class="form-control form-control-sm" required></div>
+            <div class="col-md-2"><button type="submit" class="btn btn-primary btn-sm w-100">Ajouter</button></div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- RÉCLAMATIONS v9.3 -->
+  <div class="tab-pane fade" id="tab-reclamations">
+    {% if recl_retard > 0 %}
+    <div class="alert alert-danger py-2 mb-3" style="font-size:13px">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i>
+      <strong>{{ recl_retard }} réclamation(s) avec délai légal dépassé !</strong>
+    </div>
+    {% endif %}
+    {% if reclamations_client %}
+    <table class="table-crm">
+      <thead><tr><th>Date</th><th>Objet</th><th>Canal</th><th>Statut</th><th>Délai réponse</th><th></th></tr></thead>
+      <tbody>
+        {% for r in reclamations_client %}
+        {% set is_late = r.date_reponse_prevue and r.date_reponse_prevue < today and r.statut not in ('resolue','classee') %}
+        <tr>
+          <td class="font-mono small">{{ r.date_reception }}</td>
+          <td>{{ r.objet[:50] }}{% if r.objet|length > 50 %}…{% endif %}</td>
+          <td class="small">{{ r.canal }}</td>
+          <td>
+            {% if r.statut == 'recue' %}<span class="badge bg-secondary">Reçue</span>
+            {% elif r.statut == 'en_cours' %}<span class="badge bg-info text-dark">En cours</span>
+            {% elif r.statut == 'resolue' %}<span class="badge bg-success">Résolue</span>
+            {% elif r.statut == 'escaladee' %}<span class="badge bg-warning text-dark">Escaladée</span>
+            {% endif %}
+            {% if is_late %}<span class="badge bg-danger ms-1">⚠️ En retard</span>{% endif %}
+          </td>
+          <td class="small {{ 'text-danger fw-bold' if is_late else '' }}">{{ r.date_reponse_prevue or '—' }}</td>
+          <td><a href="{{ url_for('reclamation_detail', id=r.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state py-3"><p class="mb-2">Aucune réclamation pour ce client.</p></div>
+    {% endif %}
+    <div class="mt-3">
+      <a href="{{ url_for('reclamation_nouvelle') }}?client_id={{ client.id }}" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-plus-lg me-1"></i>Nouvelle réclamation
+      </a>
+    </div>
+  </div>
+
+  <!-- HISTORIQUE AUDIT CLIENT -->
+  <div class="tab-pane fade" id="tab-historique">
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">📜 Historique des modifications du dossier client</span></div>
+      <div class="p-3">
+        {% if audit_logs %}
+        <table class="table-crm">
+          <thead><tr><th>Date</th><th>Action</th><th>Champ modifié</th><th>Ancienne valeur</th><th>Nouvelle valeur</th></tr></thead>
+          <tbody>
+            {% for log in audit_logs %}
+            <tr>
+              <td class="text-muted" style="white-space:nowrap">{{ log.date_action }}</td>
+              <td><span class="badge bg-secondary">{{ log.action }}</span></td>
+              <td class="fw-500">{{ log.champ_modifie or '—' }}</td>
+              <td><del class="text-muted">{{ log.ancienne_valeur or '—' }}</del></td>
+              <td><ins class="text-success fw-600" style="text-decoration:none">{{ log.nouvelle_valeur or '—' }}</ins></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state py-4"><i class="bi bi-clock-history" style="font-size:28px"></i><p class="mb-0">Aucune modification enregistrée sur ce dossier</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<style>@keyframes blink { 50% { opacity: 0; } }</style>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tabEl => {
+    tabEl.addEventListener('shown.bs.tab', event => {
+      const href = event.target.getAttribute('href');
+      if (href) sessionStorage.setItem(window.location.pathname + '_active_tab', href);
+    });
+  });
+
+  const hash = window.location.hash;
+  const savedTab = sessionStorage.getItem(window.location.pathname + '_active_tab');
+  const target = hash || savedTab;
+  if (target) {
+    const tabMap = {'#devis':'#tab-devis','#contrats':'#tab-contrats','#journal':'#tab-journal','#bateaux':'#tab-bateaux','#docs':'#tab-docs','#risques':'#tab-risques','#sinistres':'#tab-sinistres','#reclamations':'#tab-reclamations','#historique':'#tab-historique'};
+    const resolvedTarget = tabMap[target] || target;
+    const el = document.querySelector(`a[href="${resolvedTarget}"]`);
+    if (el) new bootstrap.Tab(el).show();
+  }
+});
+</script>
+{% endblock %}

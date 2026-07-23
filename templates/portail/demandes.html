@@ -1,0 +1,91 @@
+{% extends 'portail/base_portail.html' %}
+{% block title %}Mes demandes{% endblock %}
+{% block content %}
+
+<h2 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:800;color:#0f1e3c;margin-bottom:24px">
+  💬 Mes demandes
+</h2>
+
+<!-- Formulaire nouvelle demande -->
+<div class="p-card mb-4">
+  <div class="p-card-title"><i class="bi bi-plus-circle" style="color:#c9a84c"></i> Nouvelle demande</div>
+  <form method="post">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b">Type de demande</label>
+        <select name="type_demande" class="form-select" required style="border-radius:10px;border:1.5px solid #e2e8f0;padding:10px 14px;font-size:14px">
+          <option value="">— Sélectionner —</option>
+          <option>Changement d'adresse</option>
+          <option>Changement de bateau</option>
+          <option>Modification de garanties</option>
+          <option>Demande d'attestation</option>
+          <option>Question sur ma facture</option>
+          <option>Déclaration de sinistre</option>
+          <option>Résiliation</option>
+          <option>Autre question</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b">Contrat concerné (optionnel)</label>
+        <select name="contrat_id" class="form-select" style="border-radius:10px;border:1.5px solid #e2e8f0;padding:10px 14px;font-size:14px">
+          <option value="">Tous / Non précisé</option>
+          {% for ct in contrats %}
+          <option value="{{ ct.id }}">{{ ct.numero }} — {{ ct.compagnie }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12">
+        <label class="form-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b">Votre message</label>
+        <textarea name="message" class="form-control" rows="4" required
+                  placeholder="Décrivez votre demande en détail..."
+                  style="border-radius:10px;border:1.5px solid #e2e8f0;padding:11px 14px;font-size:14px"></textarea>
+      </div>
+      <div class="col-12">
+        <button type="submit"
+                style="background:linear-gradient(135deg,#c9a84c,#e6c97a,#c9a84c);background-size:200%;color:#0f1e3c;border:none;border-radius:10px;padding:11px 28px;font-weight:700;font-size:14px;cursor:pointer">
+          Envoyer ma demande →
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Historique -->
+{% if demandes %}
+<div class="p-card">
+  <div class="p-card-title"><i class="bi bi-clock-history" style="color:#c9a84c"></i> Historique de mes demandes</div>
+  {% for d in demandes %}
+  <div style="padding:16px 0;border-bottom:1px solid #f1f5f9{% if loop.last %};border-bottom:none{% endif %}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:14px;color:#0f1e3c">{{ d.type_demande }}</div>
+        {% if d.num_contrat %}
+        <div style="font-size:12px;color:#64748b;margin-top:2px">Contrat : <span style="font-family:monospace">{{ d.num_contrat }}</span></div>
+        {% endif %}
+        <div style="font-size:12px;color:#94a3b8;margin-top:2px">{{ d.date_creation[:16] }}</div>
+        <div style="margin-top:8px;font-size:13px;color:#334155;line-height:1.5">{{ d.message }}</div>
+        {% if d.reponse %}
+        <div style="margin-top:10px;padding:12px 14px;background:#f0f9ff;border:1px solid #bfdbfe;border-radius:8px;border-left:3px solid #c9a84c">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin-bottom:6px">
+            Réponse de votre courtier · {{ d.date_reponse[:10] if d.date_reponse else '' }}
+          </div>
+          <div style="font-size:13px;color:#1e3a5f">{{ d.reponse }}</div>
+        </div>
+        {% endif %}
+      </div>
+      <div style="flex-shrink:0">
+        <span class="{{ 'badge-attente' if d.statut == 'en_attente' else 'badge-traite' if d.statut == 'traitee' else 'badge-actif' }}">
+          {{ 'En attente' if d.statut == 'en_attente' else 'Traitée' if d.statut == 'traitee' else d.statut|title }}
+        </span>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="p-card" style="text-align:center;padding:48px">
+  <div style="font-size:36px;margin-bottom:12px">💬</div>
+  <div style="font-size:14px;color:#64748b">Vous n'avez pas encore fait de demande.</div>
+</div>
+{% endif %}
+{% endblock %}

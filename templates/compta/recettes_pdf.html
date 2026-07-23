@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Livre des recettes {{ annee }} — {{ params.get('cabinet_nom','Riviera Marine Assurances') }}</title>
+  <style>
+    @page { size: A4 landscape; margin: 10mm 12mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Arial', sans-serif; font-size: 10px; color: #1a2e5a; }
+
+    .header { display: flex; justify-content: space-between; align-items: flex-start;
+              border-bottom: 2px solid #1a2e5a; padding-bottom: 8px; margin-bottom: 12px; }
+    .header-title { font-size: 16px; font-weight: 700; color: #1a2e5a; }
+    .header-sub { font-size: 10px; color: #64748b; margin-top: 2px; }
+    .header-right { text-align: right; font-size: 10px; color: #64748b; }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th { background: #1a2e5a; color: white; padding: 5px 6px;
+               text-align: left; font-size: 9px; text-transform: uppercase; letter-spacing: .05em; }
+    thead th.right { text-align: right; }
+    tbody tr:nth-child(even) { background: #f8fafc; }
+    tbody td { padding: 4px 6px; border-bottom: 1px solid #e2e8f0; font-size: 9px; }
+    tbody td.right { text-align: right; font-weight: 600; }
+    .total-row td { background: #1a2e5a; color: white; font-weight: 700;
+                    padding: 6px 6px; font-size: 10px; }
+    .total-row td.right { text-align: right; color: #c9a84c; font-size: 12px; }
+
+    .footer { margin-top: 16px; padding-top: 8px; border-top: 1px solid #e2e8f0;
+              font-size: 9px; color: #64748b; text-align: center; }
+    .mention-legale { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 4px;
+                      padding: 6px 10px; margin-bottom: 10px; font-size: 9px; color: #166534;
+                      font-weight: 600; }
+    .no-print { display: block; }
+    @media print { .no-print { display: none !important; } body { background: white; } }
+
+    .print-bar { position: fixed; top: 0; left: 0; right: 0; background: #1a2e5a;
+                 color: white; padding: 10px 20px; display: flex; justify-content: space-between;
+                 align-items: center; z-index: 999; }
+    .btn-print { background: #c9a84c; color: #1a2e5a; border: none; padding: 8px 20px;
+                 border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 12px; }
+    .spacer { height: 50px; }
+  </style>
+</head>
+<body>
+<div class="print-bar no-print">
+  <div>
+    <strong>Livre des recettes {{ annee }}</strong> —
+    {{ params.get('cabinet_nom','Riviera Marine Assurances') }} ·
+    <span style="opacity:.7">{{ recettes|length }} ligne(s) · Total : {{ "{:,.2f}".format(total).replace(",", " ") }} €</span>
+  </div>
+  <button class="btn-print" onclick="window.print()">🖨️ Imprimer / PDF</button>
+</div>
+<div class="spacer no-print"></div>
+
+<div class="header">
+  <div>
+    <div class="header-title">LIVRE DES RECETTES — {{ annee }}</div>
+    <div class="header-sub">{{ params.get('cabinet_nom','Riviera Marine Assurances') }}</div>
+    {% if params.get('cabinet_orias') %}<div class="header-sub">ORIAS n° {{ params.get('cabinet_orias') }}</div>{% endif %}
+    {% if params.get('cabinet_siren') %}<div class="header-sub">SIREN : {{ params.get('cabinet_siren') }}</div>{% endif %}
+  </div>
+  <div class="header-right">
+    <div style="font-size:11px;font-weight:700">Micro-entreprise BNC</div>
+    <div>Registre tenu conformément à l'art. 50-0 du CGI</div>
+    <div>Édité le {{ today }}</div>
+  </div>
+</div>
+
+<div class="mention-legale">
+  ✅ TVA NON APPLICABLE — Article 293 B du Code Général des Impôts · Franchise en base de TVA
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:50px">N° ordre</th>
+      <th style="width:80px">Date encaiss.</th>
+      <th style="width:90px">Référence</th>
+      <th style="width:120px">Payeur / Client</th>
+      <th style="width:60px">Compagnie</th>
+      <th>Nature de la recette</th>
+      <th class="right" style="width:80px">Montant €</th>
+      <th style="width:80px">Mode règlement</th>
+      <th style="width:50px">Validée</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% set ns = namespace(total_cumul=0) %}
+    {% for r in recettes %}
+    {% set ns.total_cumul = ns.total_cumul + r.montant %}
+    <tr>
+      <td style="font-weight:700;font-family:monospace">{{ '%04d'|format(r.numero_ordre) }}</td>
+      <td>{{ r.date_encaissement }}</td>
+      <td style="font-family:monospace;font-size:8px">{{ r.reference or '—' }}</td>
+      <td>
+        {% if r.nom %}{{ r.prenom or '' }} {{ r.nom }}
+        {% elif r.compagnie %}{{ r.compagnie }}
+        {% else %}—{% endif %}
+      </td>
+      <td>{{ r.compagnie or '—' }}</td>
+      <td>{{ natures.get(r.nature_recette, r.nature_recette) }}</td>
+      <td class="right">{{ "{:,.2f}".format(r.montant) }}</td>
+      <td>{{ r.mode_reglement|title }}</td>
+      <td style="text-align:center">{{ '🔒' if r.valide else '📝' }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="total-row">
+      <td colspan="6" style="text-align:right;padding-right:10px;color:rgba(255,255,255,.7);font-size:9px;letter-spacing:.1em">
+        TOTAL DES RECETTES {{ annee }}
+      </td>
+      <td class="right">{{ "{:,.2f}".format(total) }}</td>
+      <td colspan="2" style="color:rgba(255,255,255,.5);font-size:8px">TVA non applicable, art. 293 B CGI</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="footer">
+  Livre des recettes {{ annee }} — {{ params.get('cabinet_nom','Riviera Marine Assurances') }}
+  {% if params.get('cabinet_orias') %} · ORIAS n° {{ params.get('cabinet_orias') }}{% endif %}
+  {% if params.get('cabinet_siren') %} · SIREN {{ params.get('cabinet_siren') }}{% endif %}
+  · Document généré le {{ today }} via NAVISUR
+  · Conservation obligatoire : 10 ans minimum (art. L.102 B LPF)
+</div>
+</body>
+</html>

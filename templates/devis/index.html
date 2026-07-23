@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}Devis — NAVISUR{% endblock %}
+{% block page_title %}Devis{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('devis_nouveau') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Nouveau devis</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📋 Devis & Propositions</h1>
+    <p class="page-header-sub">Suivi des propositions envoyées aux prospects</p>
+  </div>
+  <a href="{{ url_for('devis_nouveau') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Nouveau devis
+  </a>
+</div>
+
+<!-- Compteurs statuts -->
+<div class="row g-3 mb-4">
+  {% for val, label, badge in statuts %}
+  <div class="col">
+    <a href="{{ url_for('devis_list') }}?statut={{ val }}"
+       class="stat-card text-decoration-none d-block {{ 'border-primary' if statut==val else '' }}"
+       style="{{ 'border:2px solid #1a2e5a' if statut==val else '' }}">
+      <div class="p-3 text-center">
+        <div style="font-size:22px;font-weight:800;color:#1a2e5a">{{ counts.get(val, 0) }}</div>
+        <div style="font-size:12px;color:#64748b">{{ label }}</div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+  <div class="col">
+    <a href="{{ url_for('devis_list') }}"
+       class="stat-card text-decoration-none d-block {{ 'border-primary' if not statut else '' }}"
+       style="{{ 'border:2px solid #1a2e5a' if not statut else '' }}">
+      <div class="p-3 text-center">
+        <div style="font-size:22px;font-weight:800;color:#1a2e5a">{{ counts.values()|sum }}</div>
+        <div style="font-size:12px;color:#64748b">Tous</div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<div class="card-crm">
+  {% if devis_list %}
+  <table class="table-crm">
+    <thead>
+      <tr><th>Date</th><th>Client</th><th>Compagnie</th><th>Produit</th><th class="text-end">Prime</th><th>Envoi / Validité</th><th>Note conseil</th><th>Statut</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for d in devis_list %}
+      <tr>
+        <td class="text-muted" style="font-size:12px;white-space:nowrap">{{ d.date_devis }}</td>
+        <td>
+          <div class="fw-600">{{ d.prenom or '' }} {{ d.nom }}</div>
+          {% if d.email %}<div class="text-muted" style="font-size:11px">{{ d.email }}</div>{% endif %}
+          <span class="badge-crm badge-{{ d.client_statut }}" style="font-size:10px">{{ d.client_statut|title }}</span>
+        </td>
+        <td class="fw-500">{{ d.compagnie or '—' }}</td>
+        <td style="font-size:12px">{{ d.type_assurance or '—' }}</td>
+        <td class="text-end fw-600" style="color:#1a2e5a">
+          {% if d.prime_proposee %}{{ "{:,.0f}".format(d.prime_proposee).replace(",", " ") }} €{% else %}—{% endif %}
+        </td>
+        <td style="font-size:11px">
+          {% if d.date_envoi_client %}
+          <div class="text-muted">📨 {{ d.date_envoi_client }}</div>
+          {% endif %}
+          {% if d.date_expiration %}
+          <div class="{{ 'text-danger fw-600' if d.date_expiration < today else 'text-muted' }}">
+            {{ '⏰ Expiré' if d.date_expiration < today else '⏱ exp. ' + d.date_expiration }}
+          </div>
+          {% elif d.validite_jours %}
+          <div class="text-muted">{{ d.validite_jours }}j validité</div>
+          {% endif %}
+        </td>
+        <td style="font-size:11px;max-width:160px">
+          {% if d.note_conseil %}
+          <span class="text-muted" title="{{ d.note_conseil }}">{{ d.note_conseil[:45] }}{% if d.note_conseil|length > 45 %}…{% endif %}</span>
+          {% else %}
+          <span style="color:#f59e0b;font-size:10px;font-weight:600">⚠️ Note manquante</span>
+          {% endif %}
+        </td>
+        <td>
+          {% set badge_map = {'en_attente':'badge-attendu','accepte':'badge-clos','refuse':'badge-resilie','sans_suite':'badge-inactif','expire':'badge-echu'} %}
+          {% set label_map = {'en_attente':'⏳ En attente','accepte':'✅ Accepté','refuse':'❌ Refusé','sans_suite':'⛔ Sans suite','expire':'⏰ Expiré'} %}
+          <span class="badge-crm {{ badge_map.get(d.statut,'') }}">{{ label_map.get(d.statut, d.statut) }}</span>
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            {% if d.statut == 'en_attente' %}
+            <form method="post" action="{{ url_for('devis_accepter', id=d.id) }}" style="margin:0" data-loading-title="Création du contrat..." data-loading-sub="Association du devis et du client">
+              <button class="btn btn-sm btn-success" title="Accepter → créer contrat">✅ Accepter</button>
+            </form>
+            <form method="post" action="{{ url_for('devis_refuser', id=d.id) }}" style="margin:0">
+              <button class="btn btn-sm btn-outline-secondary" title="Refusé">❌</button>
+            </form>
+            {% endif %}
+            <a href="{{ url_for('devis_modifier', id=d.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+            <a href="{{ url_for('client_detail', id=d.client_id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-person"></i></a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-file-earmark-text"></i>
+    <h5>Aucun devis{% if statut %} avec ce statut{% endif %}</h5>
+    <a href="{{ url_for('devis_nouveau') }}" class="btn btn-primary">Créer un devis</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

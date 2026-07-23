@@ -1,0 +1,328 @@
+{% extends 'base.html' %}
+{% block title %}Mise en page — NAVISUR{% endblock %}
+{% block page_title %}Mise en page des impressions{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🎨 Mise en page des impressions</h1>
+    <p class="page-header-sub">Personnalisez l'apparence de vos factures et documents imprimés</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('parametres') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Retour aux paramètres
+    </a>
+  </div>
+</div>
+
+<form method="post" id="formMiseEnPage">
+<div class="row g-4">
+
+  <!-- ── Colonne gauche : contrôles ── -->
+  <div class="col-lg-5">
+
+    <!-- Couleurs -->
+    <div class="form-card" style="max-width:100%">
+      <div class="form-section-title">🎨 Couleurs</div>
+      <div class="row g-3">
+
+        <div class="col-12">
+          <label class="form-label fw-semibold">Couleur principale</label>
+          <p class="text-muted small mb-2">En-têtes, tableaux, cadres — la couleur dominante de vos documents</p>
+          <div class="d-flex align-items-center gap-3">
+            <input type="color" name="print_couleur_principale" id="couleurPrincipale"
+                   class="form-control form-control-color" style="width:60px;height:44px;"
+                   value="{{ params.get('print_couleur_principale', '#1a2e5a') }}"
+                   oninput="updatePreview()">
+            <input type="text" id="couleurPrincipaleHex" class="form-control font-mono"
+                   style="width:120px"
+                   value="{{ params.get('print_couleur_principale', '#1a2e5a') }}"
+                   oninput="syncColorFromText('couleurPrincipale', this.value)">
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    onclick="resetColor('couleurPrincipale','#1a2e5a')">
+              Réinitialiser
+            </button>
+          </div>
+          <div class="mt-2 d-flex gap-2 flex-wrap" id="presetsPrimary">
+            <button type="button" class="btn-preset" data-color="#1a2e5a" data-target="couleurPrincipale"
+                    style="background:#1a2e5a" title="Bleu marine (défaut)"></button>
+            <button type="button" class="btn-preset" data-color="#1e3a5f" data-target="couleurPrincipale"
+                    style="background:#1e3a5f" title="Marine profond"></button>
+            <button type="button" class="btn-preset" data-color="#0f3460" data-target="couleurPrincipale"
+                    style="background:#0f3460" title="Bleu roi"></button>
+            <button type="button" class="btn-preset" data-color="#1b4332" data-target="couleurPrincipale"
+                    style="background:#1b4332" title="Vert forêt"></button>
+            <button type="button" class="btn-preset" data-color="#7f1d1d" data-target="couleurPrincipale"
+                    style="background:#7f1d1d" title="Rouge bordeaux"></button>
+            <button type="button" class="btn-preset" data-color="#1c1c1c" data-target="couleurPrincipale"
+                    style="background:#1c1c1c" title="Noir graphite"></button>
+            <button type="button" class="btn-preset" data-color="#2d3748" data-target="couleurPrincipale"
+                    style="background:#2d3748" title="Gris anthracite"></button>
+          </div>
+        </div>
+
+        <div class="col-12 mt-2">
+          <label class="form-label fw-semibold">Couleur accent</label>
+          <p class="text-muted small mb-2">Numéros de facture, montants, titres de sections</p>
+          <div class="d-flex align-items-center gap-3">
+            <input type="color" name="print_couleur_accent" id="couleurAccent"
+                   class="form-control form-control-color" style="width:60px;height:44px;"
+                   value="{{ params.get('print_couleur_accent', '#c9a84c') }}"
+                   oninput="updatePreview()">
+            <input type="text" id="couleurAccentHex" class="form-control font-mono"
+                   style="width:120px"
+                   value="{{ params.get('print_couleur_accent', '#c9a84c') }}"
+                   oninput="syncColorFromText('couleurAccent', this.value)">
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    onclick="resetColor('couleurAccent','#c9a84c')">
+              Réinitialiser
+            </button>
+          </div>
+          <div class="mt-2 d-flex gap-2 flex-wrap">
+            <button type="button" class="btn-preset" data-color="#c9a84c" data-target="couleurAccent"
+                    style="background:#c9a84c" title="Or (défaut)"></button>
+            <button type="button" class="btn-preset" data-color="#d4a017" data-target="couleurAccent"
+                    style="background:#d4a017" title="Or vif"></button>
+            <button type="button" class="btn-preset" data-color="#e07b39" data-target="couleurAccent"
+                    style="background:#e07b39" title="Orange cuivré"></button>
+            <button type="button" class="btn-preset" data-color="#2563eb" data-target="couleurAccent"
+                    style="background:#2563eb" title="Bleu électrique"></button>
+            <button type="button" class="btn-preset" data-color="#059669" data-target="couleurAccent"
+                    style="background:#059669" title="Vert émeraude"></button>
+            <button type="button" class="btn-preset" data-color="#dc2626" data-target="couleurAccent"
+                    style="background:#dc2626" title="Rouge vif"></button>
+            <button type="button" class="btn-preset" data-color="#7c3aed" data-target="couleurAccent"
+                    style="background:#7c3aed" title="Violet"></button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Textes -->
+    <div class="form-card mt-3" style="max-width:100%">
+      <div class="form-section-title">📝 Textes des documents</div>
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">Sous-titre cabinet</label>
+          <p class="text-muted small mb-1">Affiché sous le logo sur les documents imprimés</p>
+          <input type="text" name="print_sous_titre" class="form-control"
+                 value="{{ params.get('print_sous_titre', 'Courtier en assurance plaisance') }}"
+                 placeholder="Courtier en assurance plaisance"
+                 oninput="document.getElementById('prevSousTitre').textContent=this.value||'Courtier en assurance plaisance'">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Pied de page</label>
+          <p class="text-muted small mb-1">Texte affiché en bas de chaque document imprimé</p>
+          <input type="text" name="print_pied_page" class="form-control"
+                 value="{{ params.get('print_pied_page', '') }}"
+                 placeholder="Ex : Membre de la Fédération des Courtiers en Assurances"
+                 oninput="document.getElementById('prevFooter').textContent=this.value">
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>Enregistrer
+      </button>
+      <a href="{{ url_for('compta_factures') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-eye me-1"></i>Voir une facture
+      </a>
+    </div>
+
+  </div>
+
+  <!-- ── Colonne droite : aperçu live ── -->
+  <div class="col-lg-7">
+    <div class="card-crm sticky-top" style="top:80px">
+      <div class="card-crm-header">
+        <span class="card-crm-title">👁️ Aperçu en direct</span>
+        <small class="text-muted">Se met à jour en temps réel</small>
+      </div>
+      <div class="p-3">
+
+        <!-- Mini-aperçu facture -->
+        <div id="docPreview" style="border:1px solid #e2e8f0;border-radius:10px;padding:24px;font-family:'Segoe UI',sans-serif;font-size:12px;color:#333;background:#fff">
+
+          <!-- En-tête -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;margin-bottom:16px" id="prevHeader">
+            <div>
+              <div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">DOCUMENT</div>
+              <div style="font-size:15px;font-weight:700" id="prevNomCabinet">{{ params.get('cabinet_nom','Mon Cabinet') }}</div>
+              <div style="font-size:10px;margin-top:2px" id="prevSousTitre">{{ params.get('print_sous_titre','Courtier en assurance plaisance') }}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:18px;font-weight:700" id="prevNumero">FAC-2025-0001</div>
+              <div style="font-size:10px;color:#64748b;margin-top:2px">Émise le 13/04/2025</div>
+            </div>
+          </div>
+
+          <!-- Tableau simulé -->
+          <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+            <thead>
+              <tr id="prevTableHead">
+                <th style="padding:8px 10px;font-size:9px;text-transform:uppercase;letter-spacing:.06em;text-align:left">Description</th>
+                <th style="padding:8px 10px;font-size:9px;text-transform:uppercase;letter-spacing:.06em;text-align:right">Montant</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:10px;border-bottom:1px solid #f1f5f9">Commission courtage — Contrat MAR-2025-042</td>
+                <td style="padding:10px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600">320,00 €</td>
+              </tr>
+              <tr>
+                <td style="padding:10px;border-bottom:1px solid #f1f5f9">Commission courtage — Contrat MAR-2025-038</td>
+                <td style="padding:10px;border-bottom:1px solid #f1f5f9;text-align:right;font-weight:600">185,00 €</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Total -->
+          <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+            <div style="width:200px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0">
+              <div style="display:flex;justify-content:space-between;padding:8px 12px;font-size:11px;border-bottom:1px solid #f1f5f9">
+                <span>Sous-total HT</span><span>505,00 €</span>
+              </div>
+              <div id="prevTotal" style="display:flex;justify-content:space-between;padding:10px 12px;font-size:13px;font-weight:700;color:white">
+                <span style="opacity:.7">TOTAL TTC</span><span>505,00 €</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section accent (numéro en couleur) -->
+          <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;border-left:4px solid" id="prevAccentBar">
+            <i class="bi bi-info-circle"></i>
+            <span style="font-size:11px">Réf. dossier : <strong id="prevAccentText" style="font-family:monospace">RMA-2025-042</strong></span>
+          </div>
+
+          <!-- Pied de page -->
+          <div style="text-align:center;font-size:10px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:10px;margin-top:16px" id="prevFooterBar">
+            <span id="prevCabinetFooter">{{ params.get('cabinet_nom','Mon Cabinet') }}</span>
+            {% if params.get('cabinet_orias') %} · ORIAS {{ params.get('cabinet_orias') }}{% endif %}
+            {% if params.get('print_pied_page') %} · <span id="prevFooter">{{ params.get('print_pied_page','') }}</span>{% else %}<span id="prevFooter"></span>{% endif %}
+          </div>
+
+        </div>
+
+        <!-- Palette de combinaisons suggérées -->
+        <div class="mt-3">
+          <div class="form-section-title small">💡 Combinaisons suggérées</div>
+          <div class="d-flex gap-2 flex-wrap mt-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="applyCombo('#1a2e5a','#c9a84c')">
+              <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#1a2e5a;margin-right:4px"></span>
+              <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#c9a84c;margin-right:4px"></span>
+              Marine / Or ★
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="applyCombo('#1c1c1c','#e07b39')">
+              <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#1c1c1c;margin-right:4px"></span>
+              <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#e07b39;margin-right:4px"></span>
+              Graphite / Cuivre
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="applyCombo('#1b4332','#d4a017')">
+              <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#1b4332;margin-right:4px"></span>
+              <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#d4a017;margin-right:4px"></span>
+              Forêt / Or
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="applyCombo('#0f3460','#2563eb')">
+              <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#0f3460;margin-right:4px"></span>
+              <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#2563eb;margin-right:4px"></span>
+              Bleu nuit / Bleu vif
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="applyCombo('#2d3748','#059669')">
+              <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#2d3748;margin-right:4px"></span>
+              <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#059669;margin-right:4px"></span>
+              Ardoise / Vert
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+</form>
+
+<style>
+.btn-preset {
+  width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent;
+  cursor: pointer; transition: all .15s; padding: 0;
+}
+.btn-preset:hover, .btn-preset.active {
+  border-color: #0f172a; transform: scale(1.15);
+}
+</style>
+
+<script>
+function updatePreview() {
+  const primary = document.getElementById('couleurPrincipale').value;
+  const accent  = document.getElementById('couleurAccent').value;
+
+  // Sync hex inputs
+  document.getElementById('couleurPrincipaleHex').value = primary;
+  document.getElementById('couleurAccentHex').value = accent;
+
+  // Appliquer au preview
+  const header = document.getElementById('prevHeader');
+  header.style.borderBottom = `3px solid ${primary}`;
+
+  document.getElementById('prevNomCabinet').style.color = primary;
+  document.getElementById('prevNumero').style.color = accent;
+
+  const thead = document.getElementById('prevTableHead');
+  thead.style.background = primary;
+  thead.querySelectorAll('th').forEach(th => th.style.color = 'white');
+
+  const total = document.getElementById('prevTotal');
+  total.style.background = primary;
+
+  const accentBar = document.getElementById('prevAccentBar');
+  accentBar.style.borderLeftColor = accent;
+  accentBar.style.background = accent + '18';
+  document.getElementById('prevAccentText').style.color = accent;
+
+  // Marquer presets actifs
+  document.querySelectorAll('.btn-preset').forEach(btn => {
+    btn.classList.toggle('active',
+      btn.dataset.color === (btn.dataset.target === 'couleurPrincipale' ? primary : accent)
+    );
+  });
+}
+
+function syncColorFromText(inputId, val) {
+  if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+    document.getElementById(inputId).value = val;
+    updatePreview();
+  }
+}
+
+function resetColor(inputId, defaultVal) {
+  document.getElementById(inputId).value = defaultVal;
+  document.getElementById(inputId + 'Hex').value = defaultVal;
+  updatePreview();
+}
+
+function applyCombo(primary, accent) {
+  document.getElementById('couleurPrincipale').value = primary;
+  document.getElementById('couleurPrincipaleHex').value = primary;
+  document.getElementById('couleurAccent').value = accent;
+  document.getElementById('couleurAccentHex').value = accent;
+  updatePreview();
+}
+
+// Preset buttons
+document.querySelectorAll('.btn-preset').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const target = this.dataset.target;
+    const color  = this.dataset.color;
+    document.getElementById(target).value = color;
+    document.getElementById(target + 'Hex').value = color;
+    updatePreview();
+  });
+});
+
+// Init au chargement
+document.addEventListener('DOMContentLoaded', updatePreview);
+</script>
+{% endblock %}

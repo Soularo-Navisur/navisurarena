@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Import clients — NAVISUR{% endblock %}
+{% block page_title %}Import CSV{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">📥 Import clients depuis CSV</h1>
+  <a href="{{ url_for('clients_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">📂 Importer un fichier</span></div>
+      <div class="p-4">
+        <form method="post" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label class="form-label fw-600">Fichier CSV ou Excel (.csv)</label>
+            <input type="file" name="fichier_csv" class="form-control" accept=".csv,.txt" required>
+            <div class="form-text">Encodage UTF-8 ou UTF-8 BOM (export Excel). Max 5 Mo.</div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-600">Séparateur</label>
+            <div class="d-flex gap-3">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="separateur" value="," id="sep-virgule" checked>
+                <label class="form-check-label" for="sep-virgule">Virgule (,) — standard</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="separateur" value=";" id="sep-point">
+                <label class="form-check-label" for="sep-point">Point-virgule (;) — Excel français</label>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-upload me-2"></i>Importer les clients
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">📋 Format attendu</span></div>
+      <div class="p-4">
+        <p style="font-size:13px;color:#475569;margin-bottom:12px">
+          Les colonnes peuvent être dans n'importe quel ordre. Seul <strong>nom</strong> est obligatoire.
+        </p>
+        <table class="table-crm" style="font-size:12px">
+          <thead><tr><th>Nom de colonne</th><th>Obligatoire</th></tr></thead>
+          <tbody>
+            {% for col, req in [('nom','✅ Oui'),('prenom','Non'),('email','Non'),('telephone','Non'),('adresse','Non'),('code_postal','Non'),('ville','Non'),('statut','Non (défaut: client)')] %}
+            <tr><td class="font-mono">{{ col }}</td><td>{{ req }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="mt-3 p-3" style="background:#f8fafc;border-radius:8px;font-size:12px;color:#475569">
+          <strong>Exemple de fichier :</strong><br>
+          <code>nom,prenom,email,telephone,ville<br>
+Dupont,Jean,jean@test.fr,0612345678,Cannes<br>
+Martin,Sophie,sophie@test.fr,,Nice</code>
+        </div>
+        <a href="#" onclick="downloadTemplate()" class="btn btn-outline-secondary btn-sm w-100 mt-3">
+          <i class="bi bi-download me-1"></i>Télécharger un modèle CSV
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function downloadTemplate() {
+  const csv = 'nom,prenom,email,telephone,adresse,code_postal,ville,statut\nDupont,Jean,jean@test.fr,0612345678,12 rue du Port,06400,Cannes,client\nMartin,Sophie,sophie@test.fr,,,,Nice,prospect\n';
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'modele_import_clients.csv';
+  a.click();
+}
+</script>
+{% endblock %}

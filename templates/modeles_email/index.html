@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block title %}Modèles d'emails — Riviera Marine Assurances{% endblock %}
+{% block page_title %}Modèles d'emails{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📧 Modèles d'emails</h1>
+    <p class="page-header-sub">{{ modeles|length }} modèle(s) — Cliquez pour copier le contenu</p>
+  </div>
+  <div class="d-flex gap-2">
+    {% if modeles|length == 0 %}
+    <form method="post" action="{{ url_for('modeles_email_inserer_defauts') }}">
+      <button type="submit" class="btn btn-outline-secondary">
+        <i class="bi bi-magic me-1"></i>Insérer modèles par défaut
+      </button>
+    </form>
+    {% endif %}
+    <a href="{{ url_for('modele_email_nouveau') }}" class="btn btn-primary">
+      <i class="bi bi-plus me-1"></i>Nouveau modèle
+    </a>
+  </div>
+</div>
+
+<!-- FILTRES PAR CATÉGORIE -->
+<div class="d-flex gap-2 mb-4 flex-wrap">
+  <a href="{{ url_for('modeles_email_list') }}"
+     class="btn btn-sm {% if not categorie %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    Tous
+  </a>
+  {% for cat in categories %}
+  <a href="{{ url_for('modeles_email_list') }}?cat={{ cat }}"
+     class="btn btn-sm {% if categorie == cat %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    {{ cat }}
+  </a>
+  {% endfor %}
+</div>
+
+{% if modeles %}
+  {% set current_cat = namespace(val='') %}
+  {% for m in modeles %}
+    {% if m.categorie != current_cat.val %}
+      {% if not loop.first %}</div>{% endif %}
+      {% set current_cat.val = m.categorie %}
+      <div class="mb-2 mt-3">
+        <span class="fw-600" style="font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#64748b">
+          {{ m.categorie }}
+        </span>
+      </div>
+      <div class="row g-3">
+    {% endif %}
+
+    <div class="col-md-6 col-xl-4">
+      <div class="card-crm h-100" style="cursor:default">
+        <div class="p-4">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="fw-600" style="font-size:14px;color:#0f172a">{{ m.titre }}</div>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('modele_email_modifier', id=m.id) }}"
+                 class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+              <form method="post" action="{{ url_for('modele_email_supprimer', id=m.id) }}"
+                    onsubmit="return confirm('Supprimer ce modèle ?')">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </div>
+          </div>
+          {% if m.sujet %}
+          <div class="text-muted mb-2" style="font-size:12px">
+            <i class="bi bi-envelope me-1"></i><strong>Sujet :</strong> {{ m.sujet }}
+          </div>
+          {% endif %}
+          <div class="email-preview" style="font-size:12px;color:#475569;line-height:1.6;
+               max-height:100px;overflow:hidden;position:relative">
+            {{ m.corps[:200] }}{% if m.corps|length > 200 %}…{% endif %}
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-primary btn-sm w-100"
+                    onclick="copyEmail({{ m.id }}, this)"
+                    data-sujet="{{ m.sujet }}"
+                    data-corps="{{ m.corps }}">
+              <i class="bi bi-clipboard me-1"></i>Copier le corps
+            </button>
+            <button class="btn btn-outline-secondary btn-sm"
+                    onclick="viewEmail({{ m.id }})"
+                    title="Aperçu complet">
+              <i class="bi bi-eye"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if loop.last %}</div>{% endif %}
+  {% endfor %}
+
+{% else %}
+<div class="card-crm">
+  <div class="empty-state py-5">
+    <i class="bi bi-envelope-paper"></i>
+    <h5>Aucun modèle d'email</h5>
+    <p class="text-muted">Créez vos propres modèles ou insérez les modèles par défaut.</p>
+    <div class="d-flex gap-2 justify-content-center">
+      <form method="post" action="{{ url_for('modeles_email_inserer_defauts') }}">
+        <button type="submit" class="btn btn-outline-secondary">
+          <i class="bi bi-magic me-1"></i>Insérer modèles par défaut
+        </button>
+      </form>
+      <a href="{{ url_for('modele_email_nouveau') }}" class="btn btn-primary">Créer un modèle</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Modal aperçu -->
+<div id="modal-email" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+     z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:32px;width:100%;max-width:600px;
+              margin:16px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div class="d-flex justify-content-between mb-3">
+      <h5 id="modal-titre" style="margin:0;font-weight:700"></h5>
+      <button onclick="document.getElementById('modal-email').style.display='none'"
+              style="background:none;border:none;font-size:22px;cursor:pointer;color:#94a3b8">×</button>
+    </div>
+    <div id="modal-sujet" class="mb-3 p-2"
+         style="background:#f0f9ff;border-radius:6px;font-size:13px;font-weight:500"></div>
+    <pre id="modal-corps"
+         style="font-family:'Sora',sans-serif;font-size:13px;white-space:pre-wrap;
+                line-height:1.7;color:#374151;background:#f8fafc;border-radius:8px;padding:16px"></pre>
+    <div class="d-flex gap-2 mt-3">
+      <button id="btn-copy-modal" class="btn btn-primary" onclick="copyFromModal()">
+        <i class="bi bi-clipboard me-1"></i>Copier
+      </button>
+      <button class="btn btn-outline-secondary"
+              onclick="document.getElementById('modal-email').style.display='none'">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Données JSON des modèles -->
+<script>
+const modelesData = {
+  {% for m in modeles %}
+  {{ m.id }}: { titre: {{ m.titre | tojson }}, sujet: {{ m.sujet | tojson }}, corps: {{ m.corps | tojson }} }{% if not loop.last %},{% endif %}
+  {% endfor %}
+};
+
+function copyEmail(id, btn) {
+  const m = modelesData[id];
+  navigator.clipboard.writeText(m.corps).then(() => {
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copié !';
+    btn.classList.replace('btn-primary','btn-success');
+    setTimeout(() => {
+      btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copier le corps';
+      btn.classList.replace('btn-success','btn-primary');
+    }, 2000);
+  });
+}
+
+function viewEmail(id) {
+  const m = modelesData[id];
+  document.getElementById('modal-titre').textContent = m.titre;
+  document.getElementById('modal-sujet').innerHTML = m.sujet ? '<strong>Sujet :</strong> ' + m.sujet : '';
+  document.getElementById('modal-corps').textContent = m.corps;
+  document.getElementById('modal-email').style.display = 'flex';
+  window._currentEmailId = id;
+}
+
+function copyFromModal() {
+  const corps = modelesData[window._currentEmailId]?.corps || '';
+  navigator.clipboard.writeText(corps).then(() => {
+    const btn = document.getElementById('btn-copy-modal');
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copié !';
+    btn.classList.replace('btn-primary','btn-success');
+    setTimeout(() => {
+      btn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copier';
+      btn.classList.replace('btn-success','btn-primary');
+    }, 2000);
+  });
+}
+
+document.getElementById('modal-email').addEventListener('click', function(e) {
+  if(e.target===this) this.style.display='none';
+});
+</script>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}Contrats — NAVISUR{% endblock %}
+{% block page_title %}Contrats{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('contrat_nouveau') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Nouveau contrat</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📄 Contrats</h1>
+    <p class="page-header-sub">{{ contrats|length }} contrat(s)</p>
+  </div>
+  <a href="{{ url_for('contrat_nouveau') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus me-1"></i>Nouveau contrat
+  </a>
+</div>
+
+<!-- Filtres statut rapides -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  {% for val, label, badge in STATUTS_CONTRAT %}
+  <a href="{{ url_for('contrats_list') }}?statut={{ val }}{% if search %}&q={{ search }}{% endif %}"
+     class="badge-crm {{ badge if statut==val else '' }}"
+     style="text-decoration:none;cursor:pointer;padding:5px 12px;font-size:12px">
+    {{ label }}
+  </a>
+  {% endfor %}
+  {% if statut %}
+  <a href="{{ url_for('contrats_list') }}" class="badge-crm badge-inactif"
+     style="text-decoration:none;cursor:pointer;padding:5px 12px;font-size:12px">✕ Tous</a>
+  {% endif %}
+</div>
+
+<!-- Recherche + filtre compagnie -->
+<form method="get" class="search-bar mb-3">
+  <div class="search-input-wrap" style="flex:1;min-width:180px">
+    <i class="bi bi-search"></i>
+    <input type="text" name="q" class="form-control" placeholder="N° police, client, compagnie..." value="{{ search }}">
+  </div>
+  {% if statut %}<input type="hidden" name="statut" value="{{ statut }}">{% endif %}
+  {% if compagnies %}
+  <select name="compagnie" class="form-select" style="width:auto">
+    <option value="">Toutes compagnies</option>
+    {% for cp in compagnies %}
+    <option value="{{ cp }}" {{ 'selected' if compagnie==cp }}>{{ cp }}</option>
+    {% endfor %}
+  </select>
+  {% endif %}
+  <button type="submit" class="btn btn-primary">Filtrer</button>
+  {% if search or compagnie %}
+  <a href="{{ url_for('contrats_list', statut=statut) }}" class="btn btn-outline-secondary">✕</a>
+  {% endif %}
+</form>
+
+<div class="card-crm">
+  {% if contrats %}
+  <table class="table-crm">
+    <thead>
+      <tr>
+        <th>N° Police</th>
+        <th>Client</th>
+        <th>Risque assuré</th>
+        <th>Produit</th>
+        <th>Compagnie</th>
+        <th>Période</th>
+        <th class="text-end">Prime</th>
+        <th>Statut</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set type_icons = {'bateau':'⛵','jet_ski':'🏄','peniche':'🚢','yacht':'⚓','local_pro':'🏢','pro_nautisme':'🔧','habitation':'🏠'} %}
+      {% for ct in contrats %}
+      <tr>
+        <td class="font-mono fw-600" style="font-size:12px;color:#1a2e5a">{{ ct.numero or '—' }}</td>
+        <td>
+          <a href="{{ url_for('client_detail', id=ct.client_id) }}" style="text-decoration:none;color:inherit">
+            <div class="fw-500">{{ ct.prenom or '' }} {{ ct.nom }}</div>
+          </a>
+        </td>
+        <td style="font-size:12px">
+          {% if ct.risque_libelle %}
+          <span>{{ type_icons.get(ct.type_risque,'🗂️') }} {{ ct.risque_libelle[:30] }}{% if ct.risque_libelle|length > 30 %}…{% endif %}</span>
+          {% elif ct.nom_bateau %}
+          <span>⚓ {{ ct.nom_bateau }}</span>
+          {% else %}
+          <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td style="font-size:12px">{{ ct.type_assurance or '—' }}</td>
+        <td style="font-size:12px;color:#64748b">{{ ct.compagnie or '—' }}</td>
+        <td style="font-size:11px;color:#94a3b8">
+          {% if ct.date_debut %}{{ ct.date_debut[:7] }}{% endif %}
+          {% if ct.date_fin %} → {{ ct.date_fin[:7] }}{% endif %}
+        </td>
+        <td class="text-end fw-700" style="color:#c9a84c">
+          {{ "{:,.0f}".format(ct.prime_annuelle).replace(",", " ") }} €
+        </td>
+        <td>
+          {% set sc = {'en_cours':'badge-clos','transmis_cie':'badge-attendu','accepte_cie':'badge-accepte_cie','suspendu':'badge-ouvert','resilie_client':'badge-resilie','resilie_cie':'badge-resilie','echu':'badge-echu','a_renouveler':'badge-renouveler','renouvele':'badge-inactif','devis_envoye':'badge-devis','attente_pieces':'badge-attente'} %}
+          <span class="badge-crm {{ sc.get(ct.statut,'badge-inactif') }}" style="font-size:11px">
+            {{ ct.statut|replace('_',' ')|title }}
+          </span>
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{{ url_for('contrat_detail', id=ct.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+            <a href="{{ url_for('contrat_modifier', id=ct.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state py-5">
+    <i class="bi bi-file-earmark" style="font-size:48px;opacity:.2"></i>
+    <h5 class="mt-3">Aucun contrat{% if search %} pour "{{ search }}"{% endif %}</h5>
+    <a href="{{ url_for('contrat_nouveau') }}" class="btn btn-primary btn-sm mt-2">Créer un contrat</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

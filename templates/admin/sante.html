@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% block title %}Santé système — NAVISUR{% endblock %}
+{% block page_title %}Santé du système{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🩺 Santé du système</h1>
+    <p class="page-header-sub">Surveillance et diagnostics de NAVISUR</p>
+  </div>
+  <div class="d-flex gap-2">
+    <form action="{{ url_for('admin_integrity_check') }}" method="post" class="d-inline">
+      <button type="submit" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-shield-check me-1"></i>Vérifier l'intégrité maintenant
+      </button>
+    </form>
+    <form action="{{ url_for('sauvegarde_creer') }}" method="post" class="d-inline">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-cloud-arrow-up me-1"></i>Forcer une sauvegarde
+      </button>
+    </form>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Intégrité base de données -->
+  <div class="col-md-6">
+    <div class="card-crm h-100">
+      <div class="card-crm-header">
+        <span class="card-crm-title">🗄️ Base de données</span>
+      </div>
+      <div class="p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          {% if db_integrity_ok %}
+          <div style="width:56px;height:56px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:28px">✅</div>
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#166534">Intégrité validée</div>
+            <div class="text-muted small">PRAGMA integrity_check : OK</div>
+          </div>
+          {% else %}
+          <div style="width:56px;height:56px;border-radius:50%;background:#fef2f2;display:flex;align-items:center;justify-content:center;font-size:28px">❌</div>
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#dc2626">Problème détecté</div>
+            <div class="text-muted small">{{ db_integrity_msg }}</div>
+          </div>
+          {% endif %}
+        </div>
+        <div style="background:#f8fafc;border-radius:8px;padding:12px 16px;">
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted small">Taille du fichier</span>
+            <strong>{{ db_size | format_size }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sauvegardes -->
+  <div class="col-md-6">
+    <div class="card-crm h-100">
+      <div class="card-crm-header">
+        <span class="card-crm-title">💾 Sauvegardes</span>
+      </div>
+      <div class="p-4">
+        {% if last_backup %}
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div style="width:56px;height:56px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:28px">✅</div>
+          <div>
+            <div style="font-size:17px;font-weight:700;color:#1d4ed8">Sauvegarde disponible</div>
+            <div class="text-muted small">{{ last_backup.date }}</div>
+          </div>
+        </div>
+        <div style="background:#f8fafc;border-radius:8px;padding:12px 16px;">
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted small">Fichier</span>
+            <span class="font-mono small">{{ last_backup.nom }}</span>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="text-muted small">Taille</span>
+            <strong>{{ last_backup.taille | format_size }}</strong>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span class="text-muted small">Nombre total</span>
+            <strong>{{ nb_backups }} fichier(s)</strong>
+          </div>
+        </div>
+        {% else %}
+        <div class="text-center py-3 text-muted">
+          <i class="bi bi-cloud-slash" style="font-size:36px;opacity:.4"></i>
+          <p class="mt-2 small">Aucune sauvegarde trouvée.<br>Forcez une sauvegarde maintenant.</p>
+        </div>
+        {% endif %}
+        <div class="mt-3">
+          <a href="{{ url_for('sauvegarde_page') }}" class="btn btn-outline-secondary btn-sm w-100">
+            <i class="bi bi-list-ul me-1"></i>Voir toutes les sauvegardes
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Documents -->
+  <div class="col-md-6">
+    <div class="card-crm h-100">
+      <div class="card-crm-header">
+        <span class="card-crm-title">📎 Documents stockés</span>
+      </div>
+      <div class="p-4">
+        <div style="font-size:42px;font-weight:800;color:#1a2e5a;line-height:1">{{ upload_count }}</div>
+        <div class="text-muted small mb-3">fichier(s) sur disque</div>
+        <div style="background:#f8fafc;border-radius:8px;padding:12px 16px;">
+          <div class="d-flex justify-content-between">
+            <span class="text-muted small">Espace utilisé</span>
+            <strong>{{ upload_size | format_size }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dernières erreurs -->
+  <div class="col-md-6">
+    <div class="card-crm h-100">
+      <div class="card-crm-header">
+        <span class="card-crm-title">⚠️ Dernières alertes</span>
+      </div>
+      <div class="p-4">
+        {% if last_errors %}
+        <div style="font-family:monospace;font-size:11px;background:#1e293b;color:#fca5a5;border-radius:8px;padding:12px;max-height:200px;overflow-y:auto;">
+          {% for err in last_errors %}
+          <div style="margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid #334155">{{ err }}</div>
+          {% endfor %}
+        </div>
+        <div class="mt-3">
+          <a href="{{ url_for('admin_logs') }}" class="btn btn-outline-danger btn-sm w-100">
+            <i class="bi bi-journal-x me-1"></i>Voir tous les logs
+          </a>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+          <i class="bi bi-check-circle" style="font-size:36px;color:#22c55e;opacity:.7"></i>
+          <p class="mt-2 small">Aucune erreur récente. Tout fonctionne correctement.</p>
+        </div>
+        <a href="{{ url_for('admin_logs') }}" class="btn btn-outline-secondary btn-sm w-100">
+          <i class="bi bi-journal me-1"></i>Consulter le journal
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card-crm mt-3">
+    <div class="card-crm-header"><span class="card-crm-title">🧹 Nettoyage</span></div>
+    <div class="p-3">
+      <a href="{{ url_for('admin_nettoyer_doublons') }}" class="btn btn-outline-warning btn-sm">
+        <i class="bi bi-trash me-1"></i>Détecter et nettoyer les contrats en doublon
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

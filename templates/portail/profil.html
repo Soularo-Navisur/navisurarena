@@ -1,0 +1,41 @@
+{% extends 'portail/base_portail.html' %}
+{% block title %}Mon profil{% endblock %}
+{% block content %}
+<h2 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:800;color:#0f1e3c;margin-bottom:24px">⚙️ Mon profil</h2>
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="p-card">
+      <div class="p-card-title"><i class="bi bi-person" style="color:#c9a84c"></i> Mes coordonnées</div>
+      <div style="display:grid;gap:10px;font-size:13px">
+        {% for label, val in [('Nom', cp.civilite ~ ' ' ~ cp.prenom ~ ' ' ~ cp.nom), ('Email', cp.email), ('Téléphone', cp.telephone)] %}
+        <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #f1f5f9">
+          <span style="color:#64748b;min-width:100px">{{ label }}</span>
+          <span style="font-weight:600;color:#1e293b">{{ val or '—' }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <p style="font-size:12px;color:#94a3b8;margin-top:14px">Pour modifier vos coordonnées, faites une demande à votre courtier.</p>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="p-card">
+      <div class="p-card-title"><i class="bi bi-lock" style="color:#c9a84c"></i> Changer mon mot de passe</div>
+      <form method="post">
+        <div class="mb-3">
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;display:block;margin-bottom:6px">Nouveau mot de passe</label>
+          <input type="password" name="new_password" class="form-control" placeholder="Min. 8 caractères"
+                 style="border-radius:10px;border:1.5px solid #e2e8f0;padding:10px 14px;font-size:14px">
+        </div>
+        <div class="mb-3">
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;display:block;margin-bottom:6px">Confirmer</label>
+          <input type="password" name="confirm_password" class="form-control" placeholder="Répéter le mot de passe"
+                 style="border-radius:10px;border:1.5px solid #e2e8f0;padding:10px 14px;font-size:14px">
+        </div>
+        <button type="submit" style="background:#0f1e3c;color:white;border:none;border-radius:10px;padding:10px 22px;font-size:13px;font-weight:600;cursor:pointer">
+          Mettre à jour →
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

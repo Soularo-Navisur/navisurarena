@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Quittance {{ facture.numero }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── RESET @page — supprime EN-TÊTE ET PIED DE PAGE du navigateur ── */
+    @page {
+      size: A4;
+      margin: 0mm;  /* ← supprime date, URL, numéro de page du navigateur */
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      color: #1a2e5a;
+      background: white;
+    }
+
+    /* ── BARRE IMPRESSION (écran seulement) ── */
+    .print-bar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+      background: #1a2e5a;
+      color: white;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.3);
+    }
+    .print-bar a { color: rgba(255,255,255,.6); text-decoration: none; }
+    .print-bar a:hover { color: white; }
+    .print-bar-info { color: rgba(255,255,255,.8); font-size:12px; margin-top:2px}
+    .btn-print {
+      background: #c9a84c; color: #1a2e5a;
+      border: none; padding: 10px 24px;
+      border-radius: 8px; font-size: 13px; font-weight: 700;
+      cursor: pointer; font-family: 'Sora', sans-serif;
+      transition: background .2s;
+    }
+    .btn-print:hover { background: #e0bc5c; }
+
+    /* ── PAGE QUITTANCE ── */
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 18mm 18mm 18mm 18mm;
+      background: white;
+    }
+
+    /* ── EN-TÊTE ── */
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 20px;
+      border-bottom: 3px solid #1a2e5a;
+      margin-bottom: 28px;
+    }
+    .logo-zone img {
+      max-width: 220px;
+      max-height: 72px;
+      object-fit: contain;
+    }
+    .doc-meta {
+      text-align: right;
+    }
+    .doc-type {
+      font-family: 'EB Garamond', serif;
+      font-size: 28px;
+      font-weight: 600;
+      color: #1a2e5a;
+      letter-spacing: -0.5px;
+    }
+    .doc-number {
+      font-size: 15px;
+      font-weight: 700;
+      color: #c9a84c;
+      margin-top: 4px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 1px;
+    }
+    .doc-dates {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.7;
+    }
+    .status-pill {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .05em;
+    }
+    .status-payee    { background: #dcfce7; color: #166534; }
+    .status-envoyee  { background: #dbeafe; color: #1e40af; }
+    .status-brouillon{ background: #f1f5f9; color: #64748b; }
+
+    /* ── ADRESSES ── */
+    .addresses {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+    .address-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+    .address-box.emetteur { border-top: 3px solid #1a2e5a; }
+    .address-box.destinataire { border-top: 3px solid #c9a84c; }
+    .address-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+    .address-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a2e5a;
+      margin-bottom: 6px;
+      font-family: 'EB Garamond', serif;
+    }
+    .address-detail {
+      font-size: 11.5px;
+      color: #475569;
+      line-height: 1.7;
+    }
+
+    /* ── OBJET ── */
+    .doc-objet {
+      background: #f0f4ff;
+      border-left: 4px solid #1a2e5a;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 18px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      color: #1a2e5a;
+    }
+    .doc-objet strong { color: #c9a84c; }
+
+    /* ── TABLE ── */
+    .doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+    }
+    .doc-table thead th {
+      background: #1a2e5a;
+      color: white;
+      padding: 11px 16px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .doc-table thead th:last-child { text-align: right; }
+    .doc-table tbody td {
+      padding: 13px 16px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 13px;
+      color: #374151;
+    }
+    .doc-table tbody td:last-child { text-align: right; font-weight: 600; color: #1a2e5a; }
+    .doc-table tbody tr:last-child td { border-bottom: none; }
+    .doc-table tbody tr:hover { background: #fafbff; }
+
+    /* ── TOTAUX ── */
+    .totals-wrap {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 28px;
+    }
+    .totals-box {
+      width: 280px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 18px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 13px;
+    }
+    .total-row:last-child {
+      background: #1a2e5a;
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      border-bottom: none;
+    }
+    .total-row .t-label { color: #64748b; }
+    .total-row:last-child .t-label { color: rgba(255,255,255,.7); }
+
+    /* ── PAIEMENT ── */
+    .payment-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+    }
+    .payment-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+    .payment-iban {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a2e5a;
+      letter-spacing: 1px;
+    }
+    .payment-ref { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+    /* ── NOTES ── */
+    .doc-notes {
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.6;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 16px;
+      margin-bottom: 16px;
+    }
+
+    /* ── PIED DE PAGE ── */
+    .doc-footer {
+      text-align: center;
+      font-size: 10px;
+      color: #94a3b8;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 14px;
+      margin-top: 32px;
+    }
+    .doc-footer strong { color: #1a2e5a; }
+
+    /* ── RÈGLES IMPRESSION ── */
+    @media print {
+      .print-bar { display: none !important; }
+      .print-spacer { display: none !important; }
+      body { background: white !important; }
+      .page {
+        margin: 0 !important;
+        padding: 14mm 16mm !important;
+        width: 100% !important;
+        min-height: auto !important;
+      }
+    }
+
+    @media screen {
+      .print-spacer { height: 56px; }
+      body { background: #f1f5f9; }
+      .page {
+        margin: 20px auto;
+        box-shadow: 0 4px 40px rgba(0,0,0,.12);
+        border-radius: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- BARRE ÉCRAN UNIQUEMENT -->
+<div class="print-bar">
+  <div>
+    <div>
+      <a href="{{ url_for('factures_list') }}">← Retour aux quittances</a>
+      &nbsp;|&nbsp;
+      <strong style="color:white">{{ facture.numero }}</strong>
+      — {{ facture.prenom or '' }} {{ facture.nom }}
+    </div>
+    <div class="print-bar-info">
+      💡 Pour une impression propre : dans la boîte de dialogue d'impression,
+      décochez <strong style="color:#c9a84c">"En-têtes et pieds de page"</strong>
+      (ou "Headers and footers")
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <a href="{{ url_for('facture_modifier', id=facture.id) }}"
+       style="color:rgba(255,255,255,.6);font-size:13px">✏️ Modifier</a>
+    <button class="btn-print" onclick="window.print()">
+      🖨️ Imprimer / PDF
+    </button>
+  </div>
+</div>
+<div class="print-spacer"></div>
+
+<!-- QUITTANCE -->
+<div class="page">
+
+  <!-- EN-TÊTE -->
+  <div class="doc-header">
+    <div class="logo-zone">
+      <img src="{{ url_for('static', filename='img/logo-horizontal.png') }}"
+           alt="Riviera Marine Assurances">
+      <div style="font-size:10px;color:#94a3b8;margin-top:6px;line-height:1.5">
+        {% if facture.adresse or '' %}{{ facture.cabinet_adresse or '' }}{% endif %}
+        Courtier en assurance plaisance
+      </div>
+    </div>
+    <div class="doc-meta">
+      <div class="doc-type">Quittance</div>
+      <div class="doc-number">{{ facture.numero }}</div>
+      <div class="doc-dates">
+        Émise le : <strong>{{ facture.date_emission or '—' }}</strong>
+        {% if facture.date_echeance %}
+        <br>Échéance : <strong>{{ facture.date_echeance }}</strong>
+        {% endif %}
+      </div>
+      <span class="status-pill status-{{ facture.statut }}">
+        {% if facture.statut == 'payee' %}✓ Payée
+        {% elif facture.statut == 'envoyee' %}Envoyée
+        {% else %}Brouillon{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- ADRESSES -->
+  <div class="addresses">
+    <div class="address-box emetteur">
+      <div class="address-label">Émetteur</div>
+      <div class="address-name">Riviera Marine Assurances</div>
+      <div class="address-detail">
+        {{ get_param('cabinet_adresse') }}{% if get_param('cabinet_adresse') %}<br>{% endif %}
+        {{ get_param('cabinet_cp') }} {{ get_param('cabinet_ville') }}{% if get_param('cabinet_cp') or get_param('cabinet_ville') %}<br>{% endif %}
+        {% if get_param('cabinet_telephone') %}{{ get_param('cabinet_telephone') }}<br>{% endif %}
+        {% if get_param('cabinet_email') %}{{ get_param('cabinet_email') }}<br>{% endif %}
+        {% if get_param('cabinet_orias') %}<strong>ORIAS n° {{ get_param('cabinet_orias') }}</strong><br>{% endif %}
+        {% if get_param('cabinet_siren') %}SIREN : {{ get_param('cabinet_siren') }}{% endif %}
+      </div>
+    </div>
+    <div class="address-box destinataire">
+      <div class="address-label">Destinataire</div>
+      <div class="address-name">{{ facture.prenom or '' }} {{ facture.nom }}</div>
+      <div class="address-detail">
+        {% if facture.adresse %}{{ facture.adresse }}<br>{% endif %}
+        {% if facture.code_postal or facture.ville %}{{ facture.code_postal or '' }} {{ facture.ville or '' }}<br>{% endif %}
+        {% if facture.email %}{{ facture.email }}<br>{% endif %}
+        {% if facture.telephone %}{{ facture.telephone }}<br>{% endif %}
+        {% if facture.siren %}SIREN : {{ facture.siren }}{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- OBJET -->
+  {% if facture.objet %}
+  <div class="doc-objet">
+    <strong>Objet :</strong> {{ facture.objet }}
+  </div>
+  {% endif %}
+
+  <!-- LIGNES -->
+  <table class="doc-table">
+    <thead>
+      <tr>
+        <th style="width:65%">Désignation</th>
+        <th style="text-align:center">Qté</th>
+        <th style="text-align:right">P.U. HT</th>
+        <th style="text-align:right">Total HT</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ facture.objet or 'Honoraires de courtage' }}</td>
+        <td style="text-align:center">1</td>
+        <td style="text-align:right">{{ "%.2f"|format(facture.montant_ht) }} €</td>
+        <td style="text-align:right">{{ "%.2f"|format(facture.montant_ht) }} €</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- TOTAUX -->
+  <div class="totals-wrap">
+    <div class="totals-box">
+      <div class="total-row">
+        <span class="t-label">Montant HT</span>
+        <span>{{ "%.2f"|format(facture.montant_ht) }} €</span>
+      </div>
+      <div class="total-row">
+        <span class="t-label">TVA {{ facture.tva|int }} %</span>
+        <span>{{ "%.2f"|format(facture.montant_ttc - facture.montant_ht) }} €</span>
+      </div>
+      <div class="total-row">
+        <span class="t-label">Total TTC</span>
+        <span>{{ "%.2f"|format(facture.montant_ttc) }} €</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAIEMENT -->
+  <div class="payment-box">
+    <div class="payment-title">🏦 Informations de règlement</div>
+    {% set iban = facture.iban or get_param('cabinet_iban') %}
+    {% if iban %}
+    <div class="payment-iban">{{ iban }}</div>
+    <div class="payment-ref">Virement bancaire — Référence obligatoire : <strong>{{ facture.numero }}</strong></div>
+    {% else %}
+    <div class="payment-ref">Paiement par virement — Référence : <strong>{{ facture.numero }}</strong><br>
+    <span style="color:#ef4444">Renseignez votre IBAN dans Paramètres → Paramètres cabinet</span></div>
+    {% endif %}
+  </div>
+
+  <!-- NOTES -->
+  {% if facture.notes %}
+  <div class="doc-notes"><strong>Conditions / Notes :</strong> {{ facture.notes }}</div>
+  {% endif %}
+
+  <!-- PIED DE PAGE -->
+  <div class="doc-footer">
+    <strong>Riviera Marine Assurances</strong>
+    {% if get_param('cabinet_orias') %} — ORIAS n° {{ get_param('cabinet_orias') }}{% endif %}
+    {% if get_param('cabinet_siren') %} — SIREN {{ get_param('cabinet_siren') }}{% endif %}
+    <br>
+    Document émis le {{ now.strftime('%d/%m/%Y') }} — Quittance générée via CRM Riviera Marine Assurances
+  </div>
+
+</div>
+
+<script>
+// Si paramètre ?print=1 dans l'URL, lancer l'impression automatiquement
+if (new URLSearchParams(window.location.search).get('print') === '1') {
+  window.addEventListener('load', () => setTimeout(() => window.print(), 300));
+}
+</script>
+</body>
+</html>

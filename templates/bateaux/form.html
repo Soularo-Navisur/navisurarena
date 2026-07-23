@@ -1,0 +1,343 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — Riviera Marine Assurances{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/bateau_photo.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  BateauPhoto.initFormulaire({{ bateau.id if bateau else 'null' }});
+});
+</script>
+{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">⚓ {{ titre }}</h1>
+  <a href="{{ url_for('bateaux_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+<form method="post">
+  <div class="form-card" style="max-width:960px">
+
+    <!-- ── PROPRIÉTAIRE ── -->
+    <div class="form-section-title">👤 Propriétaire</div>
+    <div class="row g-3">
+      <div class="col-md-12">
+        <label class="form-label">Client *</label>
+        <select name="client_id" class="form-select" required>
+          <option value="">— Sélectionner un client —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}"
+            {{ 'selected' if (bateau and bateau.client_id == c.id) or (preselect_client and preselect_client|int == c.id) }}>
+            {{ c.prenom or '' }} {{ c.nom }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- ── IDENTIFICATION DU BATEAU ── -->
+    <div class="form-section-title">🛥️ Identification du navire</div>
+    <div class="row g-4">
+
+      <!-- Champs (60%) -->
+      <div class="col-lg-7">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Nom du bateau</label>
+            <input type="text" name="nom_bateau" class="form-control" value="{{ bateau.nom_bateau if bateau else '' }}" placeholder="BELLA MAR">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Type de navire</label>
+            <select name="type_bateau" class="form-select">
+              <option value="">— Sélectionner —</option>
+              {% set types = ['Voilier', 'Yacht à moteur', 'Semi-rigide', 'Catamaran', 'Trimaran', 'Jet Ski / Scooter', 'Vedette', 'Bateau fluvial', 'Péniche', 'Bateau pro / charter', 'Pneumatique', 'Autre'] %}
+              {% for t in types %}
+              <option value="{{ t }}" {{ 'selected' if bateau and bateau.type_bateau == t }}>{{ t }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Marque</label>
+            <input type="text" name="marque" class="form-control" value="{{ bateau.marque if bateau else '' }}" placeholder="Beneteau, Jeanneau, Azimut...">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Modèle</label>
+            <input type="text" name="modele" class="form-control" value="{{ bateau.modele if bateau else '' }}" placeholder="Oceanis 40.1, Prestige 420...">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Année de fabrication</label>
+            <input type="number" name="annee_fabrication" class="form-control" value="{{ bateau.annee_fabrication if bateau else '' }}" placeholder="2020" min="1950" max="2030">
+          </div>
+          <div class="col-md-8">
+            <label class="form-label">Usage *</label>
+            <select name="usage" class="form-select" required>
+              {% set usages = [
+                ('privé uniquement', 'Privé uniquement'),
+                ('régate', 'Régate'),
+                ('charter', 'Charter'),
+                ('location de particulier à particulier', 'Location de particulier à particulier'),
+                ('location sans skipper par une agence pro', 'Location sans skipper par une agence pro'),
+                ('location avec skipper par une agence pro', 'Location avec skipper par une agence pro')
+              ] %}
+              {% for val, lbl in usages %}
+              <option value="{{ val }}" {{ 'selected' if (not bateau and val == 'privé uniquement') or (bateau and bateau.usage == val) }}>{{ lbl }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Immatriculation / N° de coque</label>
+            <input type="text" name="immatriculation" class="form-control" value="{{ bateau.immatriculation if bateau else '' }}" placeholder="BI 123456 A">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Longueur (m)</label>
+            <div class="input-group">
+              <input type="number" name="longueur" class="form-control" step="0.1" min="0" value="{{ bateau.longueur if bateau else '' }}" placeholder="12.5">
+              <span class="input-group-text">m</span>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Largeur (m)</label>
+            <div class="input-group">
+              <input type="number" name="largeur" class="form-control" step="0.1" min="0" value="{{ bateau.largeur if bateau else '' }}" placeholder="4.2">
+              <span class="input-group-text">m</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panneau photo (40%) -->
+      <div class="col-lg-5">
+        <label class="form-label d-flex align-items-center gap-2">
+          📸 Photo de référence
+          <span style="font-size:11px;color:var(--c-text-2);font-weight:400">automatique via Wikipedia</span>
+        </label>
+        <div id="photo-container-form" class="bateau-photo-container">
+          <div class="bateau-photo-placeholder">
+            <span class="emoji">⛵</span>
+            <p>Saisissez la marque<br>et le modèle pour<br>voir une photo</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── VALEURS & NAVIGATION ── -->
+    <div class="form-section-title">💰 Valeurs & Navigation</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Valeur assurée (€) *</label>
+        <div class="input-group">
+          <input type="number" name="valeur_assurance" class="form-control" step="100" min="0" value="{{ bateau.valeur_assurance if bateau else '' }}" placeholder="85000">
+          <span class="input-group-text">€</span>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Valeur à neuf (€)</label>
+        <div class="input-group">
+          <input type="number" name="valeur_a_neuf" class="form-control" step="100" min="0" value="{{ bateau.valeur_a_neuf if bateau else '' }}" placeholder="120000">
+          <span class="input-group-text">€</span>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Pavillon</label>
+        <select name="pavillon" class="form-select">
+          {% set pavillons = ['Français', 'Belge', 'Suisse', 'Luxembourgeois', 'Monégasque', 'Autre UE', 'Hors UE'] %}
+          {% for p in pavillons %}
+          <option value="{{ p }}" {{ 'selected' if bateau and bateau.pavillon == p or (not bateau and p == 'Français') }}>{{ p }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Port d'attache</label>
+        <input type="text" name="port_attache" class="form-control" value="{{ bateau.port_attache if bateau else '' }}" placeholder="Port de Hyères, Marina de Bandol...">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Zone de navigation</label>
+        <select name="zone_navigation" class="form-select">
+          <option value="">— Sélectionner —</option>
+          {% set zones = ['Côtière (< 6 milles)', 'Hauturière (< 200 milles)', 'Hauturière étendue', 'Atlantique', 'Méditerranée', 'Monde', 'Fluviale', 'Côtes françaises'] %}
+          {% for z in zones %}
+          <option value="{{ z }}" {{ 'selected' if bateau and bateau.zone_navigation == z }}>{{ z }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- ── MOTORISATION PRINCIPALE (MOTEUR 1) ── -->
+    <div class="form-section-title d-flex justify-content-between align-items-center">
+      <span>⚙️ Moteur principal (1)</span>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Marque</label>
+        <input type="text" name="moteur_marque" class="form-control" value="{{ bateau.moteur_marque if bateau else '' }}" placeholder="Volvo Penta, Yanmar...">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Modèle</label>
+        <input type="text" name="moteur_modele" class="form-control" value="{{ bateau.moteur_modele if bateau else '' }}" placeholder="D2-55">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Puissance (CV)</label>
+        <div class="input-group">
+          <input type="number" name="moteur_puissance" class="form-control" step="0.1" min="0" value="{{ bateau.moteur_puissance if bateau else '' }}" placeholder="150">
+          <span class="input-group-text">CV</span>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Année</label>
+        <input type="number" name="moteur_annee" class="form-control" value="{{ bateau.moteur_annee if bateau else '' }}" placeholder="2021">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Énergie / Carburant</label>
+        <select name="moteur_carburant" class="form-select">
+          <option value="essence" {{ 'selected' if not bateau or bateau.moteur_carburant == 'essence' }}>Essence</option>
+          <option value="gasoil" {{ 'selected' if bateau and bateau.moteur_carburant == 'gasoil' }}>Gasoil / Diesel</option>
+          <option value="electrique" {{ 'selected' if bateau and bateau.moteur_carburant == 'electrique' }}>Électrique</option>
+          <option value="hybride" {{ 'selected' if bateau and bateau.moteur_carburant == 'hybride' }}>Hybride</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Type montage</label>
+        <select name="moteur_type" class="form-select">
+          <option value="hors_bord" {{ 'selected' if not bateau or bateau.moteur_type == 'hors_bord' }}>Hors-bord</option>
+          <option value="in_bord" {{ 'selected' if bateau and bateau.moteur_type == 'in_bord' }}>In-bord</option>
+          <option value="in_bord_z" {{ 'selected' if bateau and bateau.moteur_type == 'in_bord_z' }}>Z-drive</option>
+          <option value="saildrive" {{ 'selected' if bateau and bateau.moteur_type == 'saildrive' }}>Saildrive</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">N° de série <span class="text-muted">(opt.)</span></label>
+        <input type="text" name="moteur_serie" class="form-control" value="{{ bateau.moteur_serie if bateau else '' }}" placeholder="12345ABC">
+      </div>
+    </div>
+
+    <!-- ── MOTEURS SUPPLÉMENTAIRES (2, 3, 4) ── -->
+    <div id="moteurs-sup-container">
+      <div class="form-section-title d-flex justify-content-between align-items-center">
+        <span>⚙️ Moteur supplémentaire (2)</span>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleMoteur(2)">+ Ajouter moteur 3 &amp; 4</button>
+      </div>
+      <div class="row g-3" id="moteur-2-row">
+        <div class="col-md-4">
+          <label class="form-label">Marque</label>
+          <input type="text" name="moteur2_marque" class="form-control" value="{{ bateau.moteur2_marque if bateau else '' }}" placeholder="Marque 2ème moteur">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Puissance (CV)</label>
+          <div class="input-group">
+            <input type="number" name="moteur2_puissance" class="form-control" step="0.1" min="0" value="{{ bateau.moteur2_puissance if bateau else '' }}" placeholder="150">
+            <span class="input-group-text">CV</span>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">N° de série <span class="text-muted">(opt.)</span></label>
+          <input type="text" name="moteur2_serie" class="form-control" value="{{ bateau.moteur2_serie if bateau else '' }}" placeholder="Série 2">
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MOTEUR ANNEXE OU DE SECOURS ── -->
+    <div class="mt-4">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="btn-toggle-secours" onclick="toggleSecours()">
+        <i class="bi bi-plus-circle me-1"></i>Ajouter un moteur annexe ou de secours
+      </button>
+      <div id="section-secours" class="mt-3 p-3" style="background:#f8fafc;border-radius:10px;border:1px dashed #cbd5e1;display:none;">
+        <div class="fw-600 mb-2" style="font-size:13px;color:#1e293b">🚤 Moteur annexe / secours (Hors-bord d'appoint)</div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Marque &amp; Modèle</label>
+            <input type="text" name="secours_marque" class="form-control" placeholder="Yamaha 6ch...">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Puissance (CV)</label>
+            <input type="number" name="secours_puissance" class="form-control" step="0.1" placeholder="6">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Énergie</label>
+            <select name="secours_energie" class="form-select">
+              <option value="essence">Essence</option>
+              <option value="electrique">Électrique</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">N° série</label>
+            <input type="text" name="secours_serie" class="form-control" placeholder="Opt.">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ANNEXE (TENDER) ── -->
+    <div class="mt-3">
+      <button type="button" class="btn btn-sm btn-outline-primary" id="btn-toggle-annexe" onclick="toggleAnnexe()">
+        <i class="bi bi-plus-circle me-1"></i>Ajouter une annexe (Tender)
+      </button>
+      <div id="section-annexe" class="mt-3 p-3" style="background:#f8fafc;border-radius:10px;border:1px dashed #cbd5e1;display:none;">
+        <div class="fw-600 mb-2" style="font-size:13px;color:#1e293b">⛵ Annexe / Tender embarqué</div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Type / Marque / Modèle</label>
+            <input type="text" name="annexe_type" class="form-control" placeholder="Semi-rigide Zodiac 3.10">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Moteur annexe (Marque / CV)</label>
+            <input type="text" name="annexe_puissance" class="form-control" placeholder="Honda 9.9ch">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Immatriculation annexe</label>
+            <input type="text" name="annexe_immat" class="form-control" placeholder="ANN-1234">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── NOTES ── -->
+    <div class="form-section-title mt-4">📝 Notes & observations</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <textarea name="notes" class="form-control" rows="3"
+          placeholder="Équipements spéciaux, modifications, antécédents, observations particulières...">{{ bateau.notes if bateau else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary" data-loading-title="Enregistrement du bateau..." data-loading-sub="Sauvegarde en cours">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if bateau else 'Enregistrer la fiche' }}
+      </button>
+      <a href="{{ url_for('bateaux_list') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+
+<script>
+function toggleSecours() {
+  const el = document.getElementById('section-secours');
+  const btn = document.getElementById('btn-toggle-secours');
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    btn.innerHTML = '<i class="bi bi-dash-circle me-1"></i>Retirer le moteur annexe / secours';
+  } else {
+    el.style.display = 'none';
+    btn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Ajouter un moteur annexe ou de secours';
+  }
+}
+
+function toggleAnnexe() {
+  const el = document.getElementById('section-annexe');
+  const btn = document.getElementById('btn-toggle-annexe');
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    btn.innerHTML = '<i class="bi bi-dash-circle me-1"></i>Retirer l\'annexe';
+  } else {
+    el.style.display = 'none';
+    btn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Ajouter une annexe (Tender)';
+  }
+}
+
+function toggleMoteur(num) {
+  // Optionnel : afficher message ou champs supplémentaires si besoin
+  alert('Vous pouvez renseigner le 2ème moteur ci-dessus. Pour 3 ou 4 moteurs, indiquez-le dans les notes de la fiche bateau.');
+}
+</script>
+{% endblock %}

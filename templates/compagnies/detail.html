@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+{% block title %}{{ compagnie.nom }} — NAVISUR{% endblock %}
+{% block page_title %}{{ compagnie.nom }}{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('compagnie_modifier', id=compagnie.id) }}" class="btn btn-primary btn-sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+{% endblock %}
+
+{% block content %}
+<!-- HERO -->
+<div style="background:linear-gradient(135deg,#1a2e5a,#2d4a8a);border-radius:16px;padding:28px 32px;margin-bottom:20px;color:white">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Compagnie partenaire</div>
+      <h2 style="font-size:28px;font-weight:700;margin-bottom:6px">🏢 {{ compagnie.nom }}</h2>
+      <div style="color:rgba(255,255,255,.7);font-size:13px">
+        {% set type_labels = {'convention':'Convention de placement','accord_cadre':"Accord-cadre",'partenariat':'Partenariat','autre':'Autre'} %}
+        {{ type_labels.get(compagnie.type_convention, compagnie.type_convention) }}
+        {% if compagnie.code_courtier %} · Code : <span style="font-family:monospace;font-weight:700;color:#c9a84c">{{ compagnie.code_courtier }}</span>{% endif %}
+      </div>
+      {% if compagnie.telephone_general or compagnie.email_general %}
+      <div style="color:rgba(255,255,255,.6);font-size:12px;margin-top:8px">
+        {% if compagnie.telephone_general %}<span class="me-3"><i class="bi bi-telephone me-1"></i>{{ compagnie.telephone_general }}</span>{% endif %}
+        {% if compagnie.email_general %}<a href="mailto:{{ compagnie.email_general }}" style="color:rgba(255,255,255,.6);text-decoration:none"><i class="bi bi-envelope me-1"></i>{{ compagnie.email_general }}</a>{% endif %}
+        {% if compagnie.site_web %}<a href="{{ compagnie.site_web }}" target="_blank" style="color:rgba(255,255,255,.6);text-decoration:none;margin-left:12px"><i class="bi bi-globe me-1"></i>Site web</a>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+    <div class="text-end">
+      {% if compagnie.taux_commission > 0 %}
+      <div style="font-size:42px;font-weight:800;color:#c9a84c;line-height:1">{{ compagnie.taux_commission }}%</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.5)">taux de commission</div>
+      {% endif %}
+      <div class="mt-2">
+        {% if compagnie.actif %}
+        <span style="background:rgba(34,197,94,.2);color:#86efac;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600">✅ Actif</span>
+        {% else %}
+        <span style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);padding:4px 12px;border-radius:20px;font-size:12px">Inactif</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STATS RAPIDES -->
+<div class="row g-2 mb-3">
+  <div class="col-6 col-md-3">
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:20px;font-weight:700;color:#1a2e5a">{{ contrats|length }}</div>
+      <div style="font-size:11px;color:#64748b">Contrats actifs</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:20px;font-weight:700;color:#c9a84c">{{ "{:,.0f}".format(comm_stats.total_encaisse).replace(",", " ") }} €</div>
+      <div style="font-size:11px;color:#64748b">Comm. encaissées</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:20px;font-weight:700;color:#f97316">{{ "{:,.0f}".format(comm_stats.total_attendu).replace(",", " ") }} €</div>
+      <div style="font-size:11px;color:#64748b">Comm. attendues</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:20px;font-weight:700;color:#1a2e5a">{{ contacts|length }}</div>
+      <div style="font-size:11px;color:#64748b">Contact(s)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ONGLETS -->
+<ul class="nav nav-tabs mb-3">
+  <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-contacts">👤 Contacts ({{ contacts|length }})</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-docs">📁 Documents ({{ docs|length }})</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-contrats">📄 Contrats placés ({{ contrats|length }})</a></li>
+  {% if compagnie.notes %}<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-infos">📝 Notes</a></li>{% endif %}
+</ul>
+
+<div class="tab-content">
+
+  <!-- CONTACTS -->
+  <div class="tab-pane fade show active" id="tab-contacts">
+    {% if contacts %}
+    <div class="row g-3 mb-4">
+      {% for c in contacts %}
+      <div class="col-md-6">
+        <div class="card-crm">
+          <div class="p-4">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="fw-700" style="font-size:15px;color:#1a2e5a">{{ c.prenom or '' }} {{ c.nom }}</div>
+                {% if c.poste %}<div style="font-size:12px;color:#c9a84c;font-weight:600;margin-top:2px">{{ c.poste }}</div>{% endif %}
+              </div>
+              <div class="d-flex gap-1">
+                <button class="btn btn-sm btn-outline-secondary" onclick="editContact({{ c.id }}, '{{ c.nom }}', '{{ c.prenom or '' }}', '{{ c.poste or '' }}', '{{ c.email or '' }}', '{{ c.telephone or '' }}', '{{ c.telephone_direct or '' }}', '{{ c.notes or '' }}')">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <form method="post" action="{{ url_for('compagnie_contact_supprimer', id=c.id) }}" onsubmit="return confirm('Supprimer ce contact ?')" style="margin:0">
+                  <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+            </div>
+            <div class="mt-3 d-flex flex-column gap-1" style="font-size:13px">
+              {% if c.email %}
+              <a href="mailto:{{ c.email }}" style="color:#1a2e5a;text-decoration:none">
+                <i class="bi bi-envelope me-2"></i>{{ c.email }}
+              </a>
+              {% endif %}
+              {% if c.telephone %}
+              <a href="tel:{{ c.telephone }}" style="color:#1a2e5a;text-decoration:none">
+                <i class="bi bi-telephone me-2"></i>{{ c.telephone }}
+              </a>
+              {% endif %}
+              {% if c.telephone_direct %}
+              <a href="tel:{{ c.telephone_direct }}" style="color:#64748b;text-decoration:none">
+                <i class="bi bi-telephone-fill me-2"></i>{{ c.telephone_direct }} <span style="font-size:11px">(direct)</span>
+              </a>
+              {% endif %}
+            </div>
+            {% if c.notes %}<div class="mt-2 text-muted" style="font-size:12px">{{ c.notes }}</div>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Formulaire ajout contact -->
+    <div class="card-crm" id="contacts">
+      <div class="card-crm-header"><span class="card-crm-title">➕ Ajouter un contact</span></div>
+      <div class="p-4">
+        <form method="post" action="{{ url_for('compagnie_contact_ajouter', cp_id=compagnie.id) }}">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Nom *</label>
+              <input type="text" name="nom" class="form-control" required placeholder="Dupont">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Prénom</label>
+              <input type="text" name="prenom" class="form-control" placeholder="Jean">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Poste / Fonction</label>
+              <input type="text" name="poste" class="form-control" placeholder="Chargé de clientèle">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Email</label>
+              <input type="email" name="email" class="form-control" placeholder="j.dupont@...">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Téléphone standard</label>
+              <input type="tel" name="telephone" class="form-control" placeholder="04 XX XX XX XX">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Téléphone direct</label>
+              <input type="tel" name="telephone_direct" class="form-control" placeholder="06 XX XX XX XX">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Notes</label>
+              <input type="text" name="notes" class="form-control" placeholder="Disponible le matin...">
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i>Ajouter le contact</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOCUMENTS -->
+  <div class="tab-pane fade" id="tab-docs">
+    {% if docs %}
+    <table class="table-crm mb-3">
+      <thead><tr><th>Document</th><th>Type</th><th>Date</th><th></th></tr></thead>
+      <tbody>
+        {% for d in docs %}
+        <tr>
+          <td><i class="bi {{ d.nom_original|file_icon }} me-1"></i>{{ d.nom_original[:45] }}</td>
+          <td style="font-size:12px;color:#8b5cf6">{{ d.type_document or '—' }}</td>
+          <td class="text-muted" style="font-size:12px">{{ d.date_upload }}</td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('document_telecharger', doc_id=d.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download"></i></a>
+              <form method="post" action="{{ url_for('document_supprimer', doc_id=d.id) }}" onsubmit="return confirm('Supprimer ?')" style="margin:0">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Upload -->
+    <div class="card-crm" id="docs">
+      <div class="card-crm-header"><span class="card-crm-title">📎 Ajouter un document</span></div>
+      <div class="p-3">
+        <form method="post" action="{{ url_for('compagnie_document_upload', cp_id=compagnie.id) }}" enctype="multipart/form-data">
+          <div class="row g-2">
+            <div class="col-md-5">
+              <select name="type_document" class="form-select form-select-sm">
+                {% for t in types_documents %}<option>{{ t }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-5">
+              <input type="file" name="fichier" class="form-control form-control-sm" required>
+            </div>
+            <div class="col-md-2">
+              <button type="submit" class="btn btn-primary btn-sm w-100">+ Ajouter</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTRATS PLACÉS -->
+  <div class="tab-pane fade" id="tab-contrats">
+    {% if contrats %}
+    <table class="table-crm">
+      <thead><tr><th>N° Police</th><th>Client</th><th>Produit</th><th>Période</th><th class="text-end">Prime</th><th>Statut</th><th></th></tr></thead>
+      <tbody>
+        {% for ct in contrats %}
+        <tr>
+          <td class="font-mono fw-600">{{ ct.numero or '—' }}</td>
+          <td>{{ ct.client_prenom or '' }} {{ ct.client_nom }}</td>
+          <td style="font-size:12px">{{ ct.type_assurance or '—' }}</td>
+          <td class="text-muted" style="font-size:12px">{{ ct.date_debut or '' }}{% if ct.date_fin %} → {{ ct.date_fin }}{% endif %}</td>
+          <td class="text-end fw-600" style="color:#c9a84c">{{ "{:,.0f}".format(ct.prime_annuelle) }} €</td>
+          <td><span class="badge-crm badge-{{ ct.statut }}">{{ ct.statut|replace('_',' ')|title }}</span></td>
+          <td><a href="{{ url_for('contrat_detail', id=ct.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state py-4"><p class="mb-0">Aucun contrat placé chez {{ compagnie.nom }}</p></div>
+    {% endif %}
+  </div>
+
+  <!-- NOTES -->
+  {% if compagnie.notes %}
+  <div class="tab-pane fade" id="tab-infos">
+    <div class="card-crm">
+      <div class="p-4" style="font-size:14px;color:#475569;white-space:pre-wrap;line-height:1.8">{{ compagnie.notes }}</div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- MODAL MODIFIER CONTACT -->
+<div class="modal fade" id="modalEditContact" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Modifier le contact</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form method="post" id="form-edit-contact">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-6"><label class="form-label">Nom *</label><input type="text" name="nom" id="ec-nom" class="form-control" required></div>
+            <div class="col-6"><label class="form-label">Prénom</label><input type="text" name="prenom" id="ec-prenom" class="form-control"></div>
+            <div class="col-12"><label class="form-label">Poste</label><input type="text" name="poste" id="ec-poste" class="form-control"></div>
+            <div class="col-12"><label class="form-label">Email</label><input type="email" name="email" id="ec-email" class="form-control"></div>
+            <div class="col-6"><label class="form-label">Téléphone</label><input type="tel" name="telephone" id="ec-tel" class="form-control"></div>
+            <div class="col-6"><label class="form-label">Tél. direct</label><input type="tel" name="telephone_direct" id="ec-tel-direct" class="form-control"></div>
+            <div class="col-12"><label class="form-label">Notes</label><input type="text" name="notes" id="ec-notes" class="form-control"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function editContact(id, nom, prenom, poste, email, tel, telDirect, notes) {
+  document.getElementById('ec-nom').value = nom;
+  document.getElementById('ec-prenom').value = prenom;
+  document.getElementById('ec-poste').value = poste;
+  document.getElementById('ec-email').value = email;
+  document.getElementById('ec-tel').value = tel;
+  document.getElementById('ec-tel-direct').value = telDirect;
+  document.getElementById('ec-notes').value = notes;
+  document.getElementById('form-edit-contact').action = `/compagnies/contacts/${id}/modifier`;
+  new bootstrap.Modal(document.getElementById('modalEditContact')).show();
+}
+
+// Ouvrir le bon onglet
+const hash = window.location.hash;
+if (hash) {
+  const el = document.querySelector(`a[href="${hash}"]`);
+  if (el) new bootstrap.Tab(el).show();
+}
+</script>
+{% endblock %}

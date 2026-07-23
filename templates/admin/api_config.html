@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+{% block title %}Configuration API — NAVISUR{% endblock %}
+{% block page_title %}Configuration des API{% endblock %}
+
+{% block content %}
+
+{# ── Section Brevo ajoutée v9.9 ── #}
+{% set brevo_svc = keys.get('brevo', {}) %}
+<div class="card-crm mb-3" style="border-left:4px solid #c9a84c">
+  <div class="card-crm-header d-flex justify-content-between align-items-center">
+    <span class="card-crm-title">📧 Brevo — Envoi d'emails</span>
+    <span class="badge {{ 'bg-success' if brevo_svc.get('active') else 'bg-secondary' }}">
+      {{ '✅ Actif' if brevo_svc.get('active') else '⏸ Désactivé' }}
+    </span>
+  </div>
+  <div class="p-3">
+    <div class="row g-3 align-items-center">
+      <div class="col-md-5">
+        <div class="small text-muted mb-1">Envoi direct sans client mail externe. Fallback mailto automatique si indisponible.</div>
+        {% if brevo_svc.get('cle') %}
+        <div class="mt-2 d-flex align-items-center gap-2">
+          <span class="font-mono small" style="background:#f1f5f9;padding:3px 8px;border-radius:4px">
+            {{ brevo_svc.cle[:12] }}••••••••••••••••••••
+          </span>
+          <button class="btn btn-xs btn-outline-secondary" style="font-size:11px;padding:2px 8px"
+                  onclick="toggleEditKey('brevo')">✏️ Modifier</button>
+        </div>
+        <form id="form-key-brevo" style="display:none;margin-top:6px" method="post" action="{{ url_for('admin_api_config') }}">
+          <input type="hidden" name="action" value="update_key">
+          <input type="hidden" name="service" value="brevo">
+          <div class="input-group input-group-sm">
+            <input type="text" name="new_key" class="form-control font-mono" placeholder="xkeysib-...">
+            <button class="btn btn-primary" type="submit">Enregistrer</button>
+            <button class="btn btn-outline-secondary" type="button" onclick="toggleEditKey('brevo')">Annuler</button>
+          </div>
+        </form>
+        <div class="small text-muted mt-1">
+          📨 Expéditeur : <strong>{{ brevo_svc.get('expediteur_email','—') }}</strong>
+        </div>
+        {% endif %}
+      </div>
+      <div class="col-md-3 text-center">
+        {% if brevo_quota %}
+        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:2px">Quota aujourd'hui</div>
+        <div style="font-size:22px;font-weight:800;color:{{ '#dc2626' if brevo_quota.aujourd_hui >= 250 else '#1a2e5a' }}">
+          {{ brevo_quota.get('aujourd_hui', 0) }}
+        </div>
+        <div style="font-size:11px;color:#94a3b8">/ {{ brevo_quota.get('quota_jour', 300) }} emails</div>
+        {% if brevo_quota.get('aujourd_hui', 0) >= 250 %}
+        <div class="badge bg-warning text-dark mt-1">⚠️ Quota proche</div>
+        {% endif %}
+        {% else %}
+        <div class="small text-muted">Quota indisponible</div>
+        {% endif %}
+      </div>
+      <div class="col-md-4 d-flex flex-column gap-2">
+        <button class="btn btn-sm btn-outline-primary" onclick="testApi('brevo', this)">
+          <i class="bi bi-wifi me-1"></i>Tester la connexion
+        </button>
+        <div id="test-result-brevo" class="small"></div>
+        <form method="post" action="{{ url_for('admin_api_config') }}" class="d-inline">
+          <input type="hidden" name="action" value="toggle">
+          <input type="hidden" name="service" value="brevo">
+          <button type="submit" class="btn btn-sm {{ 'btn-outline-warning' if brevo_svc.get('active') else 'btn-outline-success' }} w-100">
+            {{ '⏸ Désactiver' if brevo_svc.get('active') else '▶️ Activer' }}
+          </button>
+        </form>
+        <a href="{{ url_for('admin_parametres_courtier') }}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-person-badge me-1"></i>Paramètres courtier
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+<hr class="my-2">
+
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🔌 Configuration des API externes</h1>
+    <p class="page-header-sub">Ces API enrichissent la saisie — totalement optionnelles. Si internet est coupé, tout fonctionne en saisie manuelle.</p>
+  </div>
+</div>
+
+{% macro api_card(service, label, icon, has_key, description, extra='') %}
+{% set svc = keys.get(service, {}) %}
+{% set active = svc.get('active', False) %}
+{% set cle = svc.get('cle', '') %}
+{% set quota = svc.get('requetes_ce_mois', 0) %}
+<div class="card-crm mb-3">
+  <div class="card-crm-header d-flex justify-content-between align-items-center">
+    <span class="card-crm-title">{{ icon }} {{ label }}</span>
+    <span class="badge {{ 'bg-success' if active else 'bg-secondary' }}">
+      {{ '✅ Activée' if active else '⏸ Désactivée' }}
+    </span>
+  </div>
+  <div class="p-3">
+    <div class="row g-3 align-items-center">
+      <div class="col-md-5">
+        <div class="small text-muted mb-1">{{ description }}</div>
+        {% if extra %}<div class="small text-muted">{{ extra }}</div>{% endif %}
+        {% if has_key and cle %}
+        <div class="mt-2 d-flex align-items-center gap-2">
+          <span class="font-mono small" style="background:#f1f5f9;padding:3px 8px;border-radius:4px;letter-spacing:.05em">
+            {{ cle[:6] }}••••••••••••••••••••••••••••••••••
+          </span>
+          <button class="btn btn-xs btn-outline-secondary" style="font-size:11px;padding:2px 8px"
+                  onclick="toggleEditKey('{{ service }}')">✏️ Modifier</button>
+        </div>
+        <form id="form-key-{{ service }}" style="display:none;margin-top:6px"
+              method="post" action="{{ url_for('admin_api_config') }}">
+          <input type="hidden" name="action" value="update_key">
+          <input type="hidden" name="service" value="{{ service }}">
+          <div class="input-group input-group-sm">
+            <input type="text" name="new_key" class="form-control font-mono" placeholder="Nouvelle clé API">
+            <button class="btn btn-primary" type="submit">Enregistrer</button>
+            <button class="btn btn-outline-secondary" type="button" onclick="toggleEditKey('{{ service }}')">Annuler</button>
+          </div>
+        </form>
+        {% elif not has_key %}
+        <div class="mt-1 small text-success">✅ Sans clé requise</div>
+        {% endif %}
+      </div>
+      <div class="col-md-3 text-center">
+        {% if has_key %}
+        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:2px">Requêtes ce mois</div>
+        <div style="font-size:22px;font-weight:800;color:#1a2e5a">{{ quota }}</div>
+        <div style="font-size:11px;color:#94a3b8">/ 100 gratuites</div>
+        {% if quota >= 80 %}
+        <div class="badge bg-warning text-dark mt-1">⚠️ Quota à {{ quota }}%</div>
+        {% endif %}
+        {% else %}
+        <div style="font-size:11px;color:#94a3b8">Pas de limite</div>
+        {% if service == 'restcountries' %}
+        <div class="small text-muted mt-1">{{ nb_pays }} pays en cache</div>
+        {% endif %}
+        {% endif %}
+      </div>
+      <div class="col-md-4 d-flex flex-column gap-2">
+        <button class="btn btn-sm btn-outline-primary" onclick="testApi('{{ service }}', this)">
+          <i class="bi bi-wifi me-1"></i>Tester la connexion
+        </button>
+        <div id="test-result-{{ service }}" class="small"></div>
+        <form method="post" action="{{ url_for('admin_api_config') }}" class="d-inline">
+          <input type="hidden" name="action" value="toggle">
+          <input type="hidden" name="service" value="{{ service }}">
+          <button type="submit" class="btn btn-sm {{ 'btn-outline-warning' if active else 'btn-outline-success' }} w-100">
+            {{ '⏸ Désactiver' if active else '▶️ Activer' }}
+          </button>
+        </form>
+        {% if service == 'restcountries' %}
+        <form method="post" action="{{ url_for('admin_api_config') }}">
+          <input type="hidden" name="action" value="refresh_pays">
+          <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
+            <i class="bi bi-arrow-clockwise me-1"></i>Rafraîchir le cache pays
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{{ api_card('adresse_gouv', 'Auto-complétion adresse (API gouv.fr)', '🗺️', false,
+   'Suggestions automatiques quand vous tapez une adresse. Remplit code postal et ville en 1 clic.',
+   'Aucune clé requise — Données de la Base Adresse Nationale') }}
+
+{{ api_card('pappers', 'Recherche entreprise SIRENE (Pappers)', '🏢', true,
+   'Tape le SIRET d\'un client pro → remplit automatiquement raison sociale, adresse, dirigeant, code NAF.',
+   'Fallback automatique vers INSEE si quota atteint') }}
+
+{{ api_card('abstract_email', 'Validation email (Abstract API)', '📧', true,
+   'Vérifie en temps réel si un email existe réellement. Icône verte/rouge/jaune dans le formulaire.',
+   'Ne bloque jamais la sauvegarde — indicatif seulement') }}
+
+{{ api_card('numverify', 'Validation téléphone (NumVerify)', '📱', true,
+   'Valide le format et formate automatiquement les numéros français. Détecte les numéros étrangers.',
+   'Formatage local (sans API) toujours actif en fallback') }}
+
+{{ api_card('restcountries', 'Pays & Drapeaux (RestCountries)', '🌍', false,
+   'Liste des pays avec drapeaux emoji dans la fiche client. Cache local — fonctionne hors ligne.',
+   'Cache mis à jour : ' + (keys.get('restcountries', {}).get('cache_date') or 'jamais')) }}
+
+<div class="card-crm mt-4" style="border-left:4px solid #c9a84c">
+  <div class="p-3 small text-muted">
+    <i class="bi bi-shield-lock me-2" style="color:#c9a84c"></i>
+    <strong>Sécurité :</strong> Les clés API sont stockées dans <code>config/api_keys.json</code> sur votre machine locale.
+    Elles ne transitent jamais sur internet sauf pour les appels API eux-mêmes.
+    En cas de problème réseau, toutes les fonctionnalités de saisie manuelle restent disponibles.
+  </div>
+</div>
+
+<script>
+function toggleEditKey(service) {
+  const f = document.getElementById('form-key-' + service);
+  f.style.display = f.style.display === 'none' ? '' : 'none';
+}
+function testApi(service, btn) {
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Test...';
+  btn.disabled = true;
+  fetch('/api/test-connexion/' + service)
+    .then(r => r.json()).then(d => {
+      btn.innerHTML = orig; btn.disabled = false;
+      const res = document.getElementById('test-result-' + service);
+      res.innerHTML = d.ok
+        ? '<span class="text-success">✅ ' + d.message + '</span>'
+        : '<span class="text-danger">❌ ' + d.message + '</span>';
+    }).catch(() => {
+      btn.innerHTML = orig; btn.disabled = false;
+      document.getElementById('test-result-' + service).innerHTML =
+        '<span class="text-danger">❌ Timeout ou réseau indisponible</span>';
+    });
+}
+</script>
+{% endblock %}

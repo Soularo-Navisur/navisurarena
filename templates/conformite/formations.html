@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Formations DDA — NAVISUR{% endblock %}
+{% block page_title %}Formations DDA{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🎓 Suivi des formations DDA</h1>
+    <p class="page-header-sub">Obligation : 15 heures par an (Article L521-2 Code des assurances)</p>
+  </div>
+  <a href="{{ url_for('formation_nouvelle') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>Ajouter une formation
+  </a>
+</div>
+
+<!-- Filtre année -->
+<div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
+  <span class="text-muted small">Année :</span>
+  {% for a in annees %}
+  <a href="{{ url_for('formations_list', annee=a) }}"
+     class="btn btn-sm {{ 'btn-primary' if a|int == annee else 'btn-outline-secondary' }}">{{ a }}</a>
+  {% endfor %}
+</div>
+
+<!-- Jauge heures -->
+{% set pct = [((total_heures / objectif) * 100), 100] | min %}
+{% set couleur = '#22c55e' if total_heures >= objectif else ('#f59e0b' if total_heures >= 10 else '#ef4444') %}
+
+<div class="form-card mb-4" style="max-width:100%">
+  <div class="row align-items-center g-4">
+    <div class="col-md-6">
+      <div class="d-flex justify-content-between align-items-end mb-2">
+        <span class="fw-semibold">Heures validées en {{ annee }}</span>
+        <span style="font-size:22px;font-weight:800;color:{{ couleur }}">
+          {{ total_heures | round(1) }}h / {{ objectif }}h
+        </span>
+      </div>
+      <div style="height:18px;background:#e2e8f0;border-radius:9px;overflow:hidden">
+        <div style="height:100%;width:{{ pct }}%;background:{{ couleur }};border-radius:9px;transition:width .6s"></div>
+      </div>
+      <div class="mt-2 small text-muted">
+        {% if total_heures >= objectif %}
+        <span class="text-success fw-semibold">✅ Objectif atteint !</span>
+        {% else %}
+        <span style="color:{{ couleur }}">
+          <strong>{{ (objectif - total_heures) | round(1) }}h</strong> restantes pour atteindre l'objectif
+        </span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="row g-2 text-center">
+        <div class="col-4">
+          <div style="font-size:24px;font-weight:800;color:#1a2e5a">{{ formations | length }}</div>
+          <div class="small text-muted">Formation(s)</div>
+        </div>
+        <div class="col-4">
+          <div style="font-size:24px;font-weight:800;color:#1a2e5a">{{ total_heures | round(1) }}</div>
+          <div class="small text-muted">Heures</div>
+        </div>
+        <div class="col-4">
+          <div style="font-size:24px;font-weight:800;color:{{ couleur }}">{{ pct | round(0) | int }}%</div>
+          <div class="small text-muted">Objectif</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if total_heures < objectif and annee == '' %}
+<div class="alert alert-warning mb-4">
+  <i class="bi bi-exclamation-triangle me-2"></i>
+  <strong>Attention :</strong> Il vous manque {{ (objectif - total_heures)|round(1) }}h de formation pour l'année {{ annee }}.
+  L'obligation DDA de 15h/an doit être remplie avant le 31 décembre.
+</div>
+{% endif %}
+
+<!-- Liste formations -->
+<div class="form-card" style="max-width:100%">
+  <div class="form-section-title">📋 Formations {{ annee }}</div>
+  {% if formations %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Titre</th>
+          <th>Organisme</th>
+          <th>Type</th>
+          <th class="text-center">Durée</th>
+          <th>Attestation</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in formations %}
+        <tr>
+          <td class="font-mono small">{{ f.date_formation }}</td>
+          <td class="fw-semibold">{{ f.titre }}</td>
+          <td class="text-muted">{{ f.organisme or '—' }}</td>
+          <td>
+            <span class="badge {{ 'bg-info text-dark' if f.type_formation == 'initiale' else 'bg-light text-dark' }}">
+              {{ f.type_formation | title }}
+            </span>
+          </td>
+          <td class="text-center fw-bold">{{ f.duree_heures }}h</td>
+          <td>
+            {% if f.attestation_fichier %}
+            <a href="{{ url_for('documents_voir_formation', formation_id=f.id) }}"
+               class="btn btn-sm btn-outline-secondary" target="_blank">
+              <i class="bi bi-file-earmark-pdf"></i>
+            </a>
+            {% else %}
+            <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <form action="{{ url_for('formation_supprimer', id=f.id) }}" method="post"
+                  onsubmit="return confirm('Supprimer cette formation ?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr style="background:#f8fafc;font-weight:700">
+          <td colspan="4" class="text-end">Total</td>
+          <td class="text-center">{{ total_heures | round(1) }}h</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-mortarboard" style="font-size:48px;opacity:.3"></i>
+    <p class="mt-3">Aucune formation enregistrée pour {{ annee }}.</p>
+    <a href="{{ url_for('formation_nouvelle') }}" class="btn btn-primary btn-sm mt-2">
+      <i class="bi bi-plus-lg me-1"></i>Ajouter une formation
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

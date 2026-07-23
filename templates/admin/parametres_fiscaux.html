@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}Paramètres fiscaux — NAVISUR{% endblock %}
+{% block page_title %}Paramètres fiscaux{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🧮 Paramètres fiscaux par année</h1>
+    <p class="page-header-sub">Plafonds micro-BNC et taux URSSAF — à mettre à jour chaque année si la loi change</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="form-card" style="max-width:100%">
+      <div class="form-section-title">➕ Saisir / mettre à jour une année</div>
+      <form method="post">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label fw-semibold">Année *</label>
+            <select name="annee" class="form-select">
+              {% for a in annees_dispo %}
+              <option value="{{ a }}" {{ 'selected' if a == annee_courante }}>{{ a }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Plafond micro-BNC (€)</label>
+            <div class="input-group">
+              <input type="number" name="plafond_micro_bnc" class="form-control"
+                     step="100" min="0"
+                     value="{{ params_list.get(annee_courante, {}).get('plafond_micro_bnc', 77700) }}">
+              <span class="input-group-text">€</span>
+            </div>
+            <div class="form-text">Seuil de chiffre d'affaires annuel pour le régime micro-BNC</div>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">Taux URSSAF (%)</label>
+            <div class="input-group">
+              <input type="number" name="taux_urssaf" class="form-control"
+                     step="0.1" min="0" max="50"
+                     value="{{ params_list.get(annee_courante, {}).get('taux_urssaf', 22.0) }}">
+              <span class="input-group-text">%</span>
+            </div>
+            <div class="form-text">Taux de cotisations sociales applicable au micro-BNC</div>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Note (optionnel)</label>
+            <input type="text" name="note" class="form-control"
+                   placeholder="Ex : Nouveau taux suite loi finances 2025"
+                   value="{{ params_list.get(annee_courante, {}).get('note', '') }}">
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary w-100">
+              <i class="bi bi-check-lg me-1"></i>Enregistrer
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">📋 Historique des paramètres</span></div>
+      <div class="p-0">
+        {% if params_list %}
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Année</th>
+              <th class="text-end">Plafond micro-BNC</th>
+              <th class="text-end">Taux URSSAF</th>
+              <th>Note</th>
+              <th class="text-muted small">Màj</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for annee_k, p in params_list.items() | sort(reverse=true) %}
+            <tr class="{{ 'table-primary fw-bold' if annee_k == annee_courante else '' }}">
+              <td>
+                {{ annee_k }}
+                {% if annee_k == annee_courante %}
+                <span class="badge bg-primary ms-1" style="font-size:10px">Année en cours</span>
+                {% endif %}
+              </td>
+              <td class="text-end font-mono">{{ "{:,.0f}".format(p.plafond_micro_bnc) }} €</td>
+              <td class="text-end font-mono">{{ p.taux_urssaf }} %</td>
+              <td class="text-muted small">{{ p.note or '—' }}</td>
+              <td class="text-muted small">{{ p.date_maj[:10] if p.date_maj else '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+          <i class="bi bi-calculator" style="font-size:36px;opacity:.3"></i>
+          <p class="mt-2">Aucun paramètre fiscal saisi. Commencez par l'année en cours.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card-crm mt-3">
+      <div class="card-crm-header"><span class="card-crm-title">ℹ️ Rappel réglementaire</span></div>
+      <div class="p-3 small text-muted">
+        <p class="mb-1">Le plafond micro-BNC est revalorisé chaque année par décret. Vérifiez les nouvelles valeurs sur <a href="https://www.impots.gouv.fr" target="_blank">impots.gouv.fr</a> en janvier.</p>
+        <p class="mb-0">Le taux de cotisations URSSAF est modifiable sur le portail <a href="https://www.autoentrepreneur.urssaf.fr" target="_blank">autoentrepreneur.urssaf.fr</a>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

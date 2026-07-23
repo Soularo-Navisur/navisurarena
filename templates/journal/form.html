@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}Saisir un échange — NAVISUR{% endblock %}
+{% block page_title %}Saisir un échange{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">💬 Saisir un échange</h1>
+  <a href="{{ url_for('journal_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+<form method="post">
+  <div class="form-card">
+    <div class="form-section-title">Qui et quand ?</div>
+    <div class="row g-3">
+      <div class="col-md-5">
+        <label class="form-label">Client *</label>
+        <select name="client_id" class="form-select" required>
+          <option value="">— Sélectionner —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}" {{ 'selected' if preselect and preselect|int==c.id }}>{{ c.prenom or '' }} {{ c.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Contrat lié <span class="text-muted">(facultatif)</span></label>
+        <select name="contrat_id" class="form-select">
+          <option value="">— Aucun —</option>
+          {% for ct in contrats %}
+          <option value="{{ ct.id }}">{{ ct.numero or 'Sans n°' }} — {{ ct.type_assurance or '' }} ({{ ct.nom }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Date de l'échange *</label>
+        <input type="date" name="date_activite" class="form-control" value="{{ today }}" required>
+      </div>
+    </div>
+
+    <div class="form-section-title">Comment ?</div>
+    <div class="row g-3">
+      <div class="col-md-7">
+        <label class="form-label">Type de contact *</label>
+        <div class="d-flex gap-2 flex-wrap mt-1">
+          {% for val, label, icon in [('telephone','Téléphone','📞'),('email','Email','✉️'),('courrier','Courrier','📮'),('reunion','Réunion','🤝'),('autre','Autre','💬')] %}
+          <label style="cursor:pointer;margin:0">
+            <input type="radio" name="type_contact" value="{{ val }}" class="d-none c-radio" required>
+            <span class="btn btn-outline-secondary btn-sm">{{ icon }} {{ label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">Sens</label>
+        <div class="d-flex gap-2 mt-1">
+          <label style="cursor:pointer;margin:0">
+            <input type="radio" name="sens" value="sortant" class="d-none c-radio" checked>
+            <span class="btn btn-outline-secondary btn-sm active-radio">↗ Sortant</span>
+          </label>
+          <label style="cursor:pointer;margin:0">
+            <input type="radio" name="sens" value="entrant" class="d-none c-radio">
+            <span class="btn btn-outline-secondary btn-sm">↙ Entrant</span>
+          </label>
+        </div>
+        <div class="form-text mt-1">Sortant = vous avez contacté · Entrant = le client a contacté</div>
+      </div>
+    </div>
+
+    <div class="form-section-title">Contenu de l'échange</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label">Objet / Sujet *</label>
+        <input type="text" name="objet" class="form-control" required
+               placeholder="Renouvellement contrat plaisance, Relance prime impayée, Déclaration sinistre...">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Notes / Contenu</label>
+        <textarea name="contenu" class="form-control" rows="4"
+                  placeholder="Détail de l'échange, informations communiquées, questions du client..."></textarea>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Résultat</label>
+        <input type="text" name="resultat" class="form-control"
+               placeholder="Accord, refus, sans réponse, message laissé...">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Suite à donner</label>
+        <input type="text" name="suite_a_donner" class="form-control"
+               placeholder="Rappeler le..., Envoyer devis, Attendre retour client...">
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Enregistrer l'échange</button>
+      <a href="{{ url_for('journal_list') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+
+<script>
+document.querySelectorAll('.c-radio').forEach(radio => {
+  radio.addEventListener('change', function() {
+    document.querySelectorAll(`input[name="${this.name}"]`).forEach(r => {
+      r.nextElementSibling.classList.remove('btn-primary');
+      r.nextElementSibling.classList.add('btn-outline-secondary');
+    });
+    this.nextElementSibling.classList.remove('btn-outline-secondary');
+    this.nextElementSibling.classList.add('btn-primary');
+  });
+});
+document.querySelectorAll('.c-radio:checked').forEach(r => {
+  r.nextElementSibling.classList.replace('btn-outline-secondary','btn-primary');
+});
+</script>
+{% endblock %}

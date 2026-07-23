@@ -1,0 +1,175 @@
+{% extends 'print_base.html' %}
+{% block doc_type %}Note de couverture{% endblock %}
+{% block doc_ref %}{{ contrat.numero or 'BROUILLON' }}{% endblock %}
+
+{% block content %}
+
+<!-- Titre -->
+<div class="doc-title-section">
+  <div>
+    <div class="doc-title">Note de couverture</div>
+    <div class="doc-subtitle">Document provisoire valant garantie dans l'attente de la police définitive</div>
+  </div>
+  <div class="doc-ref">
+    <span class="ref-num">{{ contrat.numero or '—' }}</span>
+    Émise le {{ today }}
+  </div>
+</div>
+
+<!-- Parties -->
+<div class="doc-parties">
+  <div class="doc-partie">
+    <div class="doc-partie-header">📋 Assuré</div>
+    <div class="doc-partie-body">
+      <div class="name">{{ contrat.prenom or '' }} {{ contrat.nom }}</div>
+      <div class="detail">
+        {% if contrat.adresse %}{{ contrat.adresse }}<br>{% endif %}
+        {% if contrat.code_postal or contrat.ville %}{{ contrat.code_postal or '' }} {{ contrat.ville or '' }}<br>{% endif %}
+        {% if contrat.email %}{{ contrat.email }}<br>{% endif %}
+        {% if contrat.telephone %}{{ contrat.telephone }}{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="doc-partie">
+    <div class="doc-partie-header">🏢 Compagnie d'assurance</div>
+    <div class="doc-partie-body">
+      <div class="name">{{ contrat.compagnie or '—' }}</div>
+      <div class="detail">
+        <strong>Type :</strong> {{ contrat.type_assurance or '—' }}<br>
+        {% if contrat.numero_police_cie %}
+        <strong>N° police :</strong> <span style="font-family:monospace">{{ contrat.numero_police_cie }}</span><br>
+        {% endif %}
+        <strong>Statut :</strong>
+        {% if contrat.statut == 'en_cours' %}
+          <span class="doc-badge doc-badge-green">✅ En cours</span>
+        {% elif contrat.statut == 'brouillon' %}
+          <span class="doc-badge doc-badge-gold">⏳ En attente</span>
+        {% else %}
+          <span class="doc-badge doc-badge-gray">{{ contrat.statut|title }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Risque assuré -->
+{% if contrat.nom_bateau %}
+<div class="doc-section">
+  <div class="doc-section-title">⛵ Risque assuré</div>
+  <div class="doc-boat-card">
+    <div class="doc-boat-icon">⛵</div>
+    <div class="doc-boat-info">
+      <div class="boat-name">{{ contrat.nom_bateau }}</div>
+      <div class="boat-detail">
+        {% if contrat.marque or contrat.modele %}{{ contrat.marque or '' }} {{ contrat.modele or '' }}{% endif %}
+        {% if contrat.immatriculation %} · N° {{ contrat.immatriculation }}{% endif %}
+        {% if contrat.longueur %} · {{ contrat.longueur }} m{% endif %}
+        {% if contrat.val_bateau %} · Valeur assurée : {{ "{:,.0f}".format(contrat.val_bateau) }} €{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Période et prime -->
+<div class="doc-section">
+  <div class="doc-section-title">📅 Période de garantie</div>
+  <div class="doc-info-grid cols-3">
+    <div class="doc-info-row">
+      <span class="doc-info-label">Date d'effet</span>
+      <span class="doc-info-value">{{ contrat.date_debut or '—' }}</span>
+    </div>
+    <div class="doc-info-row">
+      <span class="doc-info-label">Date d'échéance</span>
+      <span class="doc-info-value">{{ contrat.date_fin or '—' }}</span>
+    </div>
+    <div class="doc-info-row">
+      <span class="doc-info-label">Reconduction</span>
+      <span class="doc-info-value">{{ 'Tacite' if contrat.tacite_reconduction else 'Manuelle' }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Prime -->
+{% if contrat.prime_annuelle %}
+<div class="doc-prime-box">
+  <div>
+    <div class="label">Prime annuelle TTC</div>
+    <div class="detail">{{ contrat.periodicite or 'Annuelle' }}</div>
+  </div>
+  <div>
+    <div class="montant">{{ "{:,.2f}".format(contrat.prime_annuelle).replace(',', ' ').replace('.', ',') }} €</div>
+    {% if contrat.franchise %}
+    <div class="detail" style="text-align:right">Franchise : {{ "{:,.0f}".format(contrat.franchise) }} €</div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Garanties -->
+{% if contrat.garanties %}
+<div class="doc-section">
+  <div class="doc-section-title">🛡️ Garanties souscrites</div>
+  <div style="font-size:9.5pt;line-height:1.7;color:var(--p-text)">
+    {{ contrat.garanties | replace('\n', '<br>') }}
+  </div>
+</div>
+{% endif %}
+
+<!-- Avenants -->
+{% if avenants %}
+<div class="doc-section">
+  <div class="doc-section-title">📝 Avenants en vigueur</div>
+  <table class="doc-table">
+    <thead>
+      <tr>
+        <th>N°</th>
+        <th>Date</th>
+        <th>Objet</th>
+        <th>Impact prime</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in avenants %}
+      <tr>
+        <td class="mono">{{ a.numero or loop.index }}</td>
+        <td>{{ a.date_avenant or '—' }}</td>
+        <td>{{ a.motif or '—' }}</td>
+        <td>{% if a.impact_prime %}{{ "{:+,.2f}".format(a.impact_prime) }} €{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Notes -->
+{% if contrat.notes %}
+<div class="doc-section">
+  <div class="doc-section-title">📌 Notes et conditions particulières</div>
+  <div style="font-size:9.5pt;line-height:1.7;background:var(--p-light);border-left:3px solid var(--p-gold);padding:10px 14px;border-radius:0 6px 6px 0">
+    {{ contrat.notes | replace('\n', '<br>') }}
+  </div>
+</div>
+{% endif %}
+
+<!-- Signatures -->
+<div class="doc-signatures">
+  <div class="doc-sign-box">
+    <div class="doc-sign-label">Signature de l'assuré</div>
+    <div style="font-size:8pt;color:var(--p-slate);margin-top:4px">Bon pour accord — Lu et approuvé</div>
+  </div>
+  <div class="doc-sign-box">
+    <div class="doc-sign-label">Cachet du courtier</div>
+    <div style="font-size:8pt;color:var(--p-slate);margin-top:4px">{{ params.get('nom_cabinet', 'Riviera Marine Assurances') }}</div>
+  </div>
+</div>
+
+<!-- Mentions légales -->
+<div class="doc-legal">
+  <strong>Riviera Marine Assurances</strong> — Courtier en assurances immatriculé à l'ORIAS.
+  Cette note de couverture est un document provisoire. La police définitive sera émise par la compagnie d'assurance.
+  {% if params.get('print_pied_page') %}{{ params.print_pied_page }}{% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Modifier' if commission else 'Nouvelle' }} commission — NAVISUR{% endblock %}
+{% block page_title %}{{ 'Modifier' if commission else 'Nouvelle' }} commission{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">💰 {{ 'Modifier la commission' if commission else 'Nouvelle commission' }}</h1>
+  <a href="{{ url_for('compta_commissions') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+<form method="post">
+  <div class="form-card">
+    <div class="form-section-title">Compagnie & Contrat</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Compagnie *</label>
+        <select name="compagnie" class="form-select" required onchange="toggleCompagnieFree(this)">
+          <option value="">— Sélectionner —</option>
+          {%- for cp in compagnies_liste %}
+          <option value="{{ cp.nom }}"
+            {{- ' selected' if commission.compagnie if commission else ''==cp.nom }}>
+            {{ cp.nom }}{% if cp.taux_commission > 0 %} ({{ cp.taux_commission }}%){% endif %}
+          </option>
+          {%- endfor %}
+          <option value="__autre__">✏️ Autre (saisie libre)</option>
+        </select>
+        <input type="text" name="compagnie_libre" class="form-control mt-1" id="cp-libre" style="display:none" placeholder="Nom de la compagnie...">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Type de commission</label>
+        <select name="type_commission" class="form-select">
+          <option value="apport" {{ 'selected' if not commission or commission.type_commission=='apport' }}>📥 Apport (nouveau contrat)</option>
+          <option value="renouvellement" {{ 'selected' if commission and commission.type_commission=='renouvellement' }}>🔄 Renouvellement</option>
+          <option value="surcommission" {{ 'selected' if commission and commission.type_commission=='surcommission' }}>⭐ Surcommission / Bonus</option>
+          <option value="autre" {{ 'selected' if commission and commission.type_commission=='autre' }}>💬 Autre</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Période concernée</label>
+        <input type="text" name="periode" class="form-control"
+               value="{{ commission.periode if commission else '' }}"
+               placeholder="2025-T1, Janvier 2025, Annuel 2025...">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Client lié</label>
+        <select name="client_id" class="form-select">
+          <option value="">— Aucun —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}"
+            {{ 'selected' if (commission and commission.client_id==c.id) or (preselect_client and preselect_client|int==c.id) }}>
+            {{ c.prenom or '' }} {{ c.nom }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Contrat lié</label>
+        <select name="contrat_id" class="form-select">
+          <option value="">— Aucun —</option>
+          {% for ct in contrats %}
+          <option value="{{ ct.id }}"
+            {{ 'selected' if (commission and commission.contrat_id==ct.id) or (preselect_contrat and preselect_contrat|int==ct.id) }}>
+            {{ ct.numero or 'Sans n°' }} — {{ ct.type_assurance or '' }} ({{ ct.nom }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section-title">Montants & Dates</div>
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Montant attendu (€) *</label>
+        <div class="input-group">
+          <input type="number" name="montant_attendu" step="0.01" min="0" class="form-control" required
+                 value="{{ commission.montant_attendu if commission else '' }}" id="mt-attendu">
+          <span class="input-group-text">€</span>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Date prévue de versement</label>
+        <input type="date" name="date_prevue" class="form-control"
+               value="{{ commission.date_prevue if commission else today }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Montant perçu (€)</label>
+        <div class="input-group">
+          <input type="number" name="montant_percu" step="0.01" min="0" class="form-control"
+                 value="{{ commission.montant_percu if commission and commission.montant_percu else '' }}"
+                 id="mt-percu" placeholder="Laisser vide si pas encore reçu">
+          <span class="input-group-text">€</span>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Date d'encaissement réelle</label>
+        <input type="date" name="date_encaissement" class="form-control"
+               value="{{ commission.date_encaissement if commission and commission.date_encaissement else '' }}">
+      </div>
+      <div class="col-md-12" id="ecart-info" style="display:none">
+        <div class="p-2" style="background:#fef9c3;border-radius:6px;font-size:13px;color:#92400e">
+          ⚠️ Écart détecté : <strong id="ecart-val"></strong> — vérifiez le montant perçu.
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section-title">Statut</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Statut</label>
+        <select name="statut" class="form-select">
+          {% for val, label in statuts %}
+          <option value="{{ val }}" {{ 'selected' if commission and commission.statut==val or (not commission and val=='attendue') }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-8">
+        <label class="form-label">Notes</label>
+        <input type="text" name="notes" class="form-control"
+               value="{{ commission.notes if commission else '' }}"
+               placeholder="Référence bordereau, contestation, motif annulation...">
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if commission else 'Enregistrer' }}
+      </button>
+      <a href="{{ url_for('compta_commissions') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+<script>
+function checkEcart() {
+  const attendu = parseFloat(document.getElementById('mt-attendu').value) || 0;
+  const percu = parseFloat(document.getElementById('mt-percu').value) || 0;
+  const div = document.getElementById('ecart-info');
+  if (percu > 0 && attendu > 0 && Math.abs(percu - attendu) / attendu > 0.05) {
+    const ecart = percu - attendu;
+    document.getElementById('ecart-val').textContent =
+      (ecart > 0 ? '+' : '') + ecart.toFixed(2).replace('.', ',') + ' € (' +
+      ((ecart/attendu)*100).toFixed(1) + '%)';
+    div.style.display = 'block';
+  } else {
+    div.style.display = 'none';
+  }
+}
+document.getElementById('mt-attendu').addEventListener('input', checkEcart);
+document.getElementById('mt-percu').addEventListener('input', checkEcart);
+</script>
+{% endblock %}

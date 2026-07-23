@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% block title %}Commissions — NAVISUR{% endblock %}
+{% block page_title %}Suivi des commissions{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('compta_commission_nouvelle') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Nouvelle</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">💰 Suivi des commissions</h1>
+    <p class="page-header-sub">Vue détaillée par compagnie — attendues, encaissées, en retard</p>
+  </div>
+  <a href="{{ url_for('compta_commission_nouvelle') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Nouvelle commission
+  </a>
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#eff6ff;color:#1a2e5a"><i class="bi bi-clock-history"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:20px">{{ "{:,.0f}".format(totaux.attendu).replace(",", " ") }} €</div>
+        <div class="stat-label">Total attendu</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:20px">{{ "{:,.0f}".format(totaux.percu).replace(",", " ") }} €</div>
+        <div class="stat-label">Total encaissé</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon orange"><i class="bi bi-hourglass-split"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:20px">{{ "{:,.0f}".format(totaux.attendu - totaux.percu).replace(",", " ") }} €</div>
+        <div class="stat-label">Reste à percevoir</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card" style="border-left:3px solid #dc2626">
+      <div class="stat-icon red"><i class="bi bi-alarm"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:20px">{{ "{:,.0f}".format(totaux.en_retard).replace(",", " ") }} €</div>
+        <div class="stat-label">En retard</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Récap par compagnie -->
+{% if stats_cie %}
+<div class="card-crm mb-4">
+  <div class="card-crm-header">
+    <span class="card-crm-title">🏢 Récapitulatif par compagnie — {{ annee }}</span>
+  </div>
+  <table class="table-crm">
+    <thead>
+      <tr><th>Compagnie</th><th>Nb lignes</th><th>Attendu</th><th>Encaissé</th><th>Reste</th><th>Taux</th></tr>
+    </thead>
+    <tbody>
+      {% for c in stats_cie %}
+      <tr>
+        <td class="fw-600">{{ c[0] }}</td>
+        <td class="text-muted">{{ c[1] }}</td>
+        <td class="text-money">{{ "{:,.2f}".format(c[2]).replace(",", " ") }} €</td>
+        <td class="text-money-pos">{{ "{:,.2f}".format(c[3]).replace(",", " ") }} €</td>
+        <td class="{{ 'text-money-neg' if c[4] > 0 else 'text-muted' }}">{{ "{:,.2f}".format(c[4]).replace(",", " ") }} €</td>
+        <td>
+          {% set pct = (c[3]/c[2]*100)|int if c[2] > 0 else 0 %}
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="background:#e2e8f0;border-radius:4px;height:8px;width:80px">
+              <div style="height:8px;border-radius:4px;width:{{ [pct,100]|min }}%;background:{% if pct==100 %}#22c55e{% elif pct>50 %}#c9a84c{% else %}#1a2e5a{% endif %}"></div>
+            </div>
+            <span style="font-size:12px;font-weight:600">{{ pct }}%</span>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Filtres -->
+<form method="get" class="search-bar">
+  <select name="annee" class="form-select" style="width:auto" onchange="this.form.submit()">
+    {% for a in annees %}<option value="{{ a }}" {{ 'selected' if a==annee }}>{{ a }}</option>{% endfor %}
+  </select>
+  <select name="statut" class="form-select" style="width:auto">
+    <option value="">Tous les statuts</option>
+    {% for val, label in statuts %}
+    <option value="{{ val }}" {{ 'selected' if statut==val }}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <select name="compagnie" class="form-select" style="width:auto">
+    <option value="">Toutes compagnies</option>
+    {% for c in compagnies %}
+    <option value="{{ c }}" {{ 'selected' if compagnie==c }}>{{ c }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-primary">Filtrer</button>
+  {% if statut or compagnie %}<a href="{{ url_for('compta_commissions', annee=annee) }}" class="btn btn-outline-secondary">Réinitialiser</a>{% endif %}
+</form>
+
+<!-- Liste commissions -->
+<div class="card-crm">
+  {% if commissions %}
+  <table class="table-crm">
+    <thead>
+      <tr><th>Compagnie</th><th>Client / Contrat</th><th>Type</th><th>Attendu</th><th>Perçu</th><th>Écart</th><th>Date prévue</th><th>Statut</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for c in commissions %}
+      {% set is_late = c.date_prevue and c.date_prevue < today and c.statut in ('attendue','releve_recu') %}
+      <tr class="{{ 'prime-retard' if is_late else '' }}">
+        <td class="fw-600">{{ c.compagnie }}</td>
+        <td>
+          {% if c.client_nom %}<div class="fw-500" style="font-size:13px">{{ c.client_prenom or '' }} {{ c.client_nom }}</div>{% endif %}
+          {% if c.contrat_num %}<div class="text-muted" style="font-size:11px">📄 {{ c.contrat_num }}</div>{% endif %}
+        </td>
+        <td>
+          <span class="badge-crm" style="background:#eff6ff;color:#1a2e5a;font-size:11px">
+            {% if c.type_commission=='apport' %}📥 Apport
+            {% elif c.type_commission=='renouvellement' %}🔄 Renouvellement
+            {% elif c.type_commission=='surcommission' %}⭐ Surcommission
+            {% else %}{{ c.type_commission }}{% endif %}
+          </span>
+          {% if c.periode %}<div class="text-muted" style="font-size:11px">{{ c.periode }}</div>{% endif %}
+        </td>
+        <td class="text-money">{{ "{:,.2f}".format(c.montant_attendu).replace(",", " ") }} €</td>
+        <td class="{{ 'text-money-pos' if c.montant_percu > 0 else 'text-muted' }}">
+          {{ "{:,.2f}".format(c.montant_percu).replace(",", " ") if c.montant_percu else '—' }} €
+        </td>
+        <td>
+          {% if c.ecart != 0 and c.montant_percu > 0 %}
+          <span style="color:{% if c.ecart > 0 %}#16a34a{% else %}#dc2626{% endif %};font-weight:600;font-size:13px">
+            {{ '{:+,.2f}'.format(c.ecart).replace(',', ' ') }} €
+            {% if c.ecart|abs / c.montant_attendu > 0.05 %} ⚠️{% endif %}
+          </span>
+          {% else %}—{% endif %}
+        </td>
+        <td class="{{ 'text-danger fw-600' if is_late else 'text-muted' }}" style="font-size:12px">
+          {% if is_late %}⚠️ {% endif %}{{ c.date_prevue or '—' }}
+        </td>
+        <td>
+          {% set badge = {'attendue':'badge-attendu','releve_recu':'badge-devis','encaissee':'badge-clos','retard':'badge-ouvert','contestee':'badge-suspendu','annulee':'badge-resilie'} %}
+          <span class="badge-crm {{ badge.get(c.statut,'badge-inactif') }}" style="font-size:11px">
+            {% for val, lbl in statuts %}{% if val==c.statut %}{{ lbl }}{% endif %}{% endfor %}
+          </span>
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            {% if c.statut not in ('encaissee','annulee') %}
+            <button class="btn btn-sm btn-success" onclick="encaisser({{ c.id }}, {{ c.montant_attendu }})"
+                    title="Marquer encaissée">✓</button>
+            {% endif %}
+            <a href="{{ url_for('compta_commission_modifier', id=c.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{{ url_for('compta_commission_supprimer', id=c.id) }}" onsubmit="return confirm('Supprimer ?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-graph-up-arrow"></i>
+    <h5>Aucune commission</h5>
+    <a href="{{ url_for('compta_commission_nouvelle') }}" class="btn btn-primary">Enregistrer une commission</a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- MODALE ENCAISSEMENT -->
+<div id="modal-enc" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:14px;padding:28px;width:400px;margin:16px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <h5 style="margin:0 0 20px;font-weight:700;color:#1a2e5a">✅ Encaisser la commission</h5>
+    <form method="post" id="form-enc">
+      <input type="hidden" name="commande" value="encaisser">
+      <div class="mb-3">
+        <label class="form-label">Montant réellement perçu (€)</label>
+        <input type="number" name="montant_percu" id="enc-montant" step="0.01" class="form-control" required>
+        <div class="form-text">Montant attendu : <span id="enc-attendu"></span> € — modifiez si différent</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Date d'encaissement</label>
+        <input type="date" name="date_encaissement" class="form-control" value="{{ today }}">
+      </div>
+      <div class="p-2 mb-3" style="background:#f0fdf4;border-radius:6px;font-size:12px;color:#166534">
+        ✅ Une ligne sera automatiquement créée dans le livre des recettes
+      </div>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success flex-grow-1" data-loading-title="Enregistrement du paiement..." data-loading-sub="Mise à jour des commissions">Confirmer l'encaissement</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('modal-enc').style.display='none'">Annuler</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function encaisser(id, montantAttendu) {
+  document.getElementById('form-enc').action = '/compta/commissions/' + id + '/encaisser';
+  document.getElementById('enc-montant').value = montantAttendu.toFixed(2);
+  document.getElementById('enc-attendu').textContent = montantAttendu.toFixed(2).replace('.', ',');
+  document.getElementById('modal-enc').style.display = 'flex';
+}
+document.getElementById('modal-enc').addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
+});
+</script>
+{% endblock %}

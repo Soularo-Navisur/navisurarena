@@ -1,0 +1,1028 @@
+{% extends 'base.html' %}
+{% block title %}Contrat {{ contrat.numero or '' }} — NAVISUR
+<!-- MODALE SAISIE PRIME TACITE RECONDUCTION -->
+{% if contrat.get('tacite_reconduction', 1) != 0 %}
+<div class="modal fade" id="modalPrimeTacite" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#1a2e5a;color:white">
+        <h5 class="modal-title">🔄 Mise à jour prime — Tacite reconduction</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-2 mb-3" style="background:#f8fafc;border-radius:8px;padding:12px;font-size:13px">
+          <div class="col-md-6">
+            <span class="text-muted">Contrat :</span> <strong class="font-mono">{{ contrat.numero }}</strong><br>
+            <span class="text-muted">Client :</span> <strong>{{ contrat.prenom or '' }} {{ contrat.nom }}</strong><br>
+            {% if contrat.nom_bateau %}<span class="text-muted">Bateau :</span> <strong>{{ contrat.nom_bateau }}</strong>{% endif %}
+          </div>
+          <div class="col-md-6">
+            <span class="text-muted">Compagnie :</span> <strong>{{ contrat.compagnie }}</strong><br>
+            <span class="text-muted">Échéance actuelle :</span> <strong>{{ contrat.date_fin }}</strong><br>
+            <span class="text-muted">Prime actuelle :</span> <strong style="color:#c9a84c">{{ "%.2f"|format(contrat.prime_annuelle) }} €</strong>
+          </div>
+        </div>
+
+        <form id="formPrimeTacite">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Année concernée</label>
+              <input type="number" id="pt_annee" name="annee" class="form-control"
+                     value="{{ today[:4]|int + (1 if contrat.date_fin and contrat.date_fin < today else 0) }}"
+                     min="2020" max="2040">
+            </div>
+            <div class="col-md-5">
+              <label class="form-label fw-semibold">Nouvelle prime TTC *</label>
+              <div class="input-group">
+                <input type="number" id="pt_prime" name="nouvelle_prime" class="form-control fw-bold"
+                       step="0.01" min="0" placeholder="0.00" required
+                       oninput="calcVariation()">
+                <span class="input-group-text">€</span>
+              </div>
+              <div id="pt_variation" class="form-text fw-semibold"></div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Note (optionnel)</label>
+              <input type="text" id="pt_note" name="note" class="form-control"
+                     placeholder="Hausse, stable...">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Date d'effet renouvellement</label>
+              <input type="date" id="pt_date" name="date_effet" class="form-control"
+                     value="{{ contrat.date_fin }}">
+              <div class="form-text">Nouvelle date d'échéance : <strong id="pt_new_echeance">—</strong></div>
+            </div>
+          </div>
+
+          <hr class="my-3">
+          <div style="background:#eff6ff;border-radius:8px;padding:14px">
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="checkbox" id="pt_creer_quittance"
+                     name="creer_quittance" value="1" checked>
+              <label class="form-check-label fw-semibold" for="pt_creer_quittance">
+                Créer la quittance en même temps
+              </label>
+            </div>
+            <div id="pt_quittance_options" class="row g-2 ms-2 mt-1">
+              <div class="col-md-5">
+                <label class="form-label small">Fréquence</label>
+                <select id="pt_frequence" name="frequence" class="form-select form-select-sm">
+                  <option value="annuel">Annuel</option>
+                  <option value="semestriel">Semestriel</option>
+                  <option value="trimestriel">Trimestriel</option>
+                  <option value="mensuel">Mensuel</option>
+                </select>
+              </div>
+              <div class="col-md-5">
+                <label class="form-label small">Mode de paiement</label>
+                <select id="pt_mode" name="mode_paiement" class="form-select form-select-sm">
+                  <option value="prelevement">Prélèvement automatique</option>
+                  <option value="cheque">Chèque / Virement</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </form>
+        <div id="pt_result" class="mt-3"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-outline-primary" onclick="savePrimeTacite(false)">
+          ✅ Valider sans quittance
+        </button>
+        <button type="button" class="btn btn-primary" onclick="savePrimeTacite(true)">
+          ✅ Valider et créer la quittance
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<script>
+const primePrecedente = {{ contrat.prime_annuelle or 0 }};
+
+function calcVariation() {
+  const nouvelle = parseFloat(document.getElementById('pt_prime').value) || 0;
+  const div = document.getElementById('pt_variation');
+  if (nouvelle > 0 && primePrecedente > 0) {
+    const v = ((nouvelle - primePrecedente) / primePrecedente * 100).toFixed(1);
+    const sign = v > 0 ? '+' : '';
+    div.textContent = `Prime précédente : ${primePrecedente.toFixed(2)} € → Variation : ${sign}${v}%`;
+    div.style.color = v > 5 ? '#dc2626' : v < 0 ? '#2563eb' : '#22c55e';
+  } else {
+    div.textContent = '';
+  }
+  // Calcul nouvelle échéance
+  const dateEffet = document.getElementById('pt_date').value;
+  if (dateEffet) {
+    const d = new Date(dateEffet);
+    d.setFullYear(d.getFullYear() + 1);
+    d.setDate(d.getDate() - 1);
+    document.getElementById('pt_new_echeance').textContent = d.toLocaleDateString('fr-FR');
+  }
+}
+document.getElementById('pt_date').addEventListener('input', calcVariation);
+document.getElementById('pt_creer_quittance').addEventListener('change', function() {
+  document.getElementById('pt_quittance_options').style.opacity = this.checked ? '1' : '0.4';
+});
+
+function savePrimeTacite(avecQuittance) {
+  const prime = parseFloat(document.getElementById('pt_prime').value);
+  if (!prime || prime <= 0) {
+    document.getElementById('pt_result').innerHTML =
+      '<div class="alert alert-danger py-2">Veuillez saisir une prime valide.</div>';
+    return;
+  }
+  const btn = event.target;
+  btn.disabled = true;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enregistrement...';
+
+  const form = document.getElementById('formPrimeTacite');
+  const data = new FormData(form);
+  if (!avecQuittance) {
+    data.delete('creer_quittance');
+  }
+
+  fetch('{{ url_for("contrat_maj_prime_tacite", id=contrat.id) }}', {
+    method: 'POST', body: data
+  })
+  .then(r => r.json())
+  .then(d => {
+    btn.disabled = false; btn.innerHTML = orig;
+    if (d.ok) {
+      document.getElementById('pt_result').innerHTML =
+        '<div class="alert alert-success py-2">' + d.message + '</div>';
+      setTimeout(() => { window.location.reload(); }, 2000);
+    } else {
+      document.getElementById('pt_result').innerHTML =
+        '<div class="alert alert-danger py-2">❌ ' + d.error + '</div>';
+    }
+  })
+  .catch(() => {
+    btn.disabled = false; btn.innerHTML = orig;
+    document.getElementById('pt_result').innerHTML =
+      '<div class="alert alert-danger py-2">❌ Erreur réseau.</div>';
+  });
+}
+</script>
+
+{% endblock %}
+{% block page_title %}Fiche contrat{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('contrat_note_couverture', id=contrat.id) }}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Note de couverture PDF"><i class="bi bi-file-earmark-text me-1"></i>Note couverture</a>
+  <a href="{{ url_for('attestation_capitainerie', id=contrat.id) }}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Attestation Capitainerie"><i class="bi bi-anchor me-1"></i>Attestation Capitainerie</a>
+  <a href="{{ url_for('contrat_historique', id=contrat.id) }}" class="btn btn-outline-secondary btn-sm" title="Historique des modifications"><i class="bi bi-clock-history me-1"></i>Historique</a>
+  <a href="{{ url_for('contrat_modifier', id=contrat.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+  <a href="{{ url_for('avenant_nouveau', id=contrat.id) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-diff me-1"></i>Avenant</a>
+  {% if contrat.statut in ('attente_pieces','devis_envoye') %}
+  <form method="post" action="{{ url_for('contrat_transmettre', id=contrat.id) }}" style="margin:0">
+    <button type="submit" class="btn btn-outline-secondary btn-sm">📤 Transmettre cie</button>
+  </form>
+  {% elif contrat.statut == 'suspendu' %}
+  <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalReactiver">✅ Réactiver</button>
+  <a href="{{ url_for('contrat_resilier', id=contrat.id) }}" class="btn btn-outline-danger btn-sm">🔴 Résilier</a>
+  {% elif contrat.statut == 'transmis_cie' %}
+  <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAccepter">✅ Retour compagnie</button>
+  {% elif contrat.statut == 'accepte_cie' %}
+  <form method="post" action="{{ url_for('contrat_activer', id=contrat.id) }}" style="margin:0">
+    <button type="submit" class="btn btn-success btn-sm" data-loading-title="Activation du contrat..." data-loading-sub="Mise à jour du statut">🟢 Mettre en place</button>
+  </form>
+  {% elif contrat.statut == 'en_cours' %}
+  {% if contrat.get('tacite_reconduction', 1) != 0 %}
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalPrimeTacite">
+    🔄 Nouvelle prime
+  </button>
+  {% else %}
+  <a href="{{ url_for('contrat_renouveler', id=contrat.id) }}" class="btn btn-primary btn-sm">🔁 Renouveler</a>
+  {% endif %}
+  <a href="{{ url_for('avenant_nouveau', id=contrat.id) }}" class="btn btn-outline-secondary btn-sm">📝 Avenant</a>
+  <form method="post" action="{{ url_for('contrat_suspendre', id=contrat.id) }}" style="margin:0"
+        onsubmit="return confirm('Suspendre ce contrat pour impayé ?')">
+    <input type="hidden" name="motif" value="impaye">
+    <button type="submit" class="btn btn-outline-warning btn-sm" data-loading-title="Résiliation en cours..." data-loading-sub="Calcul de la ristourne prorata">⏸️ Suspendre</button>
+  </form>
+  <a href="{{ url_for('contrat_resilier', id=contrat.id) }}" class="btn btn-outline-danger btn-sm">🔴 Résilier</a>
+  {% elif contrat.statut in ('resilie_client','resilie_cie','echu') %}
+  <a href="{{ url_for('contrat_resiliation_detail', id=contrat.id) }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-info-circle me-1"></i>Résiliation
+  </a>
+  {% endif %}
+<!-- Modal réactivation impayé -->
+<div class="modal fade" id="modalReactiver" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">✅ Réactivation du contrat</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form method="post" action="{{ url_for('contrat_reactiver_impaye', id=contrat.id) }}">
+        <div class="modal-body">
+          <p>L'impayé a été régularisé. Voulez-vous remettre le contrat en cours ?</p>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="regulariser_primes" value="1" id="reg-primes" checked>
+            <label class="form-check-label" for="reg-primes">
+              Marquer les primes impayées comme réglées
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-success">✅ Réactiver le contrat</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal retour compagnie -->
+<div class="modal fade" id="modalAccepter" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">✅ Acceptation compagnie</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form method="post" action="{{ url_for('contrat_accepter_cie', id=contrat.id) }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">N° de police émis par la compagnie</label>
+            <input type="text" name="numero_police_cie" class="form-control font-mono"
+                   placeholder="N° officiel compagnie (peut différer de votre n° interne)">
+            <div class="form-text">Ce numéro figure sur la police et l'attestation</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Date d'émission de la police</label>
+            <input type="date" name="date_emission_police" class="form-control" value="{{ today }}">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-success">Enregistrer l'acceptation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('client_detail', id=contrat.client_id) }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Retour fiche client
+  </a>
+</div>
+
+<!-- HERO -->
+<div style="background:linear-gradient(135deg,#1a2e5a,#2d4a8a);border-radius:14px;padding:24px 28px;color:white;margin-bottom:20px">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+      <div style="font-size:10px;opacity:.6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Contrat d'assurance</div>
+      <h2 style="font-size:22px;font-weight:700;margin:0 0 4px">{{ contrat.type_assurance or 'Contrat plaisance' }}</h2>
+      <div style="opacity:.7;font-size:13px">
+        {{ contrat.compagnie or '' }}{% if contrat.numero %} · <span style="font-family:monospace">{{ contrat.numero }}</span>{% endif %}
+      </div>
+      <div style="margin-top:10px;font-size:12px;opacity:.7;display:flex;gap:16px;flex-wrap:wrap">
+        <a href="{{ url_for('client_detail', id=contrat.client_id) }}" style="color:rgba(255,255,255,.8);text-decoration:none">
+          <i class="bi bi-person me-1"></i>{{ contrat.prenom or '' }} {{ contrat.nom }}
+        </a>
+        {% if contrat.nom_bateau %}<span>⚓ {{ contrat.nom_bateau }}</span>{% endif %}
+        {% if contrat.date_debut %}<span>{{ contrat.date_debut }} → {{ contrat.date_fin or '∞' }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="text-end">
+      <div style="font-size:30px;font-weight:800;color:#c9a84c">{{ "%.2f"|format(contrat.prime_annuelle) }} €</div>
+      <div style="opacity:.5;font-size:11px;margin-bottom:8px">prime annuelle</div>
+      {% set sc = {'en_cours':'badge-clos','resilie_client':'badge-resilie','resilie_cie':'badge-resilie','renouvele':'badge-inactif','en_attente':'badge-attendu'} %}
+      <span class="badge-crm {{ sc.get(contrat.statut,'badge-inactif') }}" style="font-size:13px">
+        {{ contrat.statut|replace('_',' ')|title }}
+      </span>
+      <br>
+      {% if contrat.get('tacite_reconduction', 1) != 0 %}
+      <span class="badge bg-primary mt-1" style="font-size:11px">🔄 Tacite reconduction</span>
+      {% else %}
+      <span class="badge bg-warning text-dark mt-1" style="font-size:11px">✍️ Renouvellement manuel</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- STATS RAPIDES -->
+<div class="row g-2 mb-3">
+  <div class="col-6 col-md-3">
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;text-align:center">
+      <div style="font-size:18px;font-weight:700;color:{{ '#22c55e' if pieces_ok==pieces_total and pieces_total>0 else '#f97316' if pieces_ok>0 else '#94a3b8' }}">{{ pieces_ok }}/{{ pieces_total }}</div>
+      <div style="font-size:11px;color:#64748b">Pièces reçues</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;text-align:center">
+      <div style="font-size:18px;font-weight:700;color:#c9a84c">{{ "%.0f"|format(total_paye) }} €</div>
+      <div style="font-size:11px;color:#64748b">/ {{ "%.0f"|format(total_attendu) }} € encaissé</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;text-align:center">
+      <div style="font-size:18px;font-weight:700;color:#1a2e5a">{{ relances|selectattr('statut','eq','a_faire')|list|length }}</div>
+      <div style="font-size:11px;color:#64748b">Relances en attente</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;text-align:center">
+      <div style="font-size:18px;font-weight:700;color:#1a2e5a">{{ docs|length }}</div>
+      <div style="font-size:11px;color:#64748b">Documents</div>
+    </div>
+  </div>
+</div>
+
+
+{% if contrat.statut == 'transmis_cie' %}
+<div class="p-3 mb-3" style="background:#eff6ff;border-radius:8px;border-left:4px solid #3b82f6;font-size:13px;color:#1e40af">
+  <strong>📤 Dossier transmis le {{ contrat.date_transmission_cie or "—" }}</strong>
+  — En attente du retour de la compagnie. Cliquez <strong>"Retour compagnie"</strong> quand vous recevez l'acceptation.
+</div>
+{% elif contrat.statut == 'accepte_cie' %}
+<div class="p-3 mb-3" style="background:#f0fdf4;border-radius:8px;border-left:4px solid #22c55e;font-size:13px;color:#166534">
+  <strong>✅ Accepté par la compagnie le {{ contrat.date_acceptation_cie or "—" }}</strong>
+  {% if contrat.numero_police_cie %} · N° police : <span class="font-mono fw-700">{{ contrat.numero_police_cie }}</span>{% endif %}
+  — Cliquez <strong>"Mettre en place"</strong> pour activer le contrat.
+</div>
+{% endif %}
+<!-- ONGLETS -->
+<ul class="nav nav-tabs mb-3" id="contratTabs">
+  <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-pieces">📋 Pièces ({{ pieces_ok }}/{{ pieces_total }})</a></li>
+  <li class="nav-item">
+    <a class="nav-link" data-bs-toggle="tab" href="#tab-financier">
+      💰 Suivi financier
+      {% if nb_quitt_impayees > 0 %}<span class="badge bg-danger ms-1">{{ nb_quitt_impayees }}</span>{% endif %}
+      {% if nb_quitt_non_envoyees > 0 %}<span class="badge bg-warning text-dark ms-1">{{ nb_quitt_non_envoyees }}</span>{% endif %}
+    </a>
+  </li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-relances">📣 Relances ({{ relances|length }})</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-docs">📁 Docs ({{ docs|length }})</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-avenants">📝 Avenants</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-journal">💬 Journal ({{ journal|length }})</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-historique">📜 Historique ({{ audit_logs|length }})</a></li>
+</ul>
+
+<div class="tab-content">
+
+  <!-- CHECKLIST PIÈCES -->
+  <div class="tab-pane fade show active" id="tab-pieces">
+    <div class="card-crm">
+      <div class="card-crm-header">
+        <span class="card-crm-title">📋 Checklist pièces &amp; signatures</span>
+        <a href="{{ url_for('contrat_checklist', id=contrat.id) }}" class="btn btn-sm btn-primary">Gérer la checklist</a>
+      </div>
+      {% if pieces %}
+      <div class="p-3">
+        {% set pct = (pieces_ok / pieces_total * 100)|int if pieces_total > 0 else 0 %}
+        <div class="d-flex justify-content-between mb-1" style="font-size:12px">
+          <span>{{ pieces_ok }}/{{ pieces_total }} pièces reçues</span>
+          <span class="fw-700" style="color:{{ '#22c55e' if pct==100 else '#f97316' }}">{{ pct }}%</span>
+        </div>
+        <div style="background:#e2e8f0;border-radius:6px;height:8px;margin-bottom:16px">
+          <div style="height:8px;border-radius:6px;width:{{ pct }}%;background:{{ '#22c55e' if pct==100 else '#f97316' if pct>50 else '#dc2626' }}"></div>
+        </div>
+        {% for p in pieces %}
+        <div class="d-flex align-items-center gap-2 py-2 {{ 'border-bottom' if not loop.last }}" style="font-size:13px">
+          <span style="font-size:18px;width:24px;text-align:center">{{ '✅' if p.recu else '⬜' }}</span>
+          <span class="{{ 'text-muted' if p.recu }}">
+            {{ p.libelle }}
+            {% if not p.obligatoire %}<span class="text-muted" style="font-size:11px"> (optionnel)</span>{% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state py-4">
+        <p class="mb-2">Aucune pièce définie</p>
+        <a href="{{ url_for('contrat_checklist', id=contrat.id) }}" class="btn btn-primary btn-sm">Initialiser la checklist</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- PRIMES -->
+  <!-- SUIVI FINANCIER v9.4 -->
+  <div class="tab-pane fade" id="tab-financier">
+
+    {% if nb_quitt_impayees > 0 %}
+    <div class="alert alert-danger py-2 mb-3" style="font-size:13px">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i>
+      <strong>{{ nb_quitt_impayees }} quittance(s) impayée(s)</strong> — Relance à effectuer.
+    </div>
+    {% endif %}
+
+    <!-- ══ ZONE 1 : HISTORIQUE DES PRIMES ══ -->
+    <div class="card-crm mb-4">
+      <div class="card-crm-header d-flex justify-content-between align-items-center">
+        <span class="card-crm-title">📈 Évolution de la prime</span>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#form-prime-new">
+          <i class="bi bi-plus me-1"></i>Ajouter une année
+        </button>
+      </div>
+      <!-- Formulaire ajout prime -->
+      <div class="collapse" id="form-prime-new">
+        <div class="p-3 border-bottom bg-light">
+          <form method="post" action="{{ url_for('prime_historique_save', id=contrat.id) }}">
+            <div class="row g-2 align-items-end">
+              <div class="col-md-1"><label class="form-label small fw-semibold">Année</label>
+                <input type="number" name="annee" class="form-control form-control-sm"
+                       value="{{ date.today().year if date else '' }}" min="2010" max="2040"></div>
+              <div class="col-md-2"><label class="form-label small">Prime HT</label>
+                <input type="number" name="prime_ht" class="form-control form-control-sm" step="0.01" placeholder="0"></div>
+              <div class="col-md-2"><label class="form-label small">Frais compagnie</label>
+                <input type="number" name="frais_compagnie" class="form-control form-control-sm" step="0.01" placeholder="0"></div>
+              <div class="col-md-2"><label class="form-label small">Taxes</label>
+                <input type="number" name="taxes" class="form-control form-control-sm" step="0.01" placeholder="0"></div>
+              <div class="col-md-2"><label class="form-label small fw-semibold">Prime TTC *</label>
+                <input type="number" name="prime_ttc" id="prime_ttc_input" class="form-control form-control-sm fw-bold" step="0.01" required placeholder="1500.00"></div>
+              <div class="col-md-2"><label class="form-label small">Note</label>
+                <input type="text" name="note" class="form-control form-control-sm" placeholder="Hausse, stable..."></div>
+              <div class="col-md-1"><button type="submit" class="btn btn-primary btn-sm w-100">OK</button></div>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% if primes_hist %}
+      <table class="table-crm">
+        <thead><tr><th>Année</th><th class="text-end">Prime TTC</th><th class="text-center">Variation</th><th>Note</th><th></th></tr></thead>
+        <tbody>
+          {% for ph in primes_hist %}
+          <tr>
+            <td class="fw-semibold">{{ ph.annee }}</td>
+            <td class="text-end fw-bold">{{ "%.2f"|format(ph.prime_ttc) }} €</td>
+            <td class="text-center">
+              {% if ph.variation_pct is none %}
+                <span class="text-muted">—</span>
+              {% elif ph.variation_pct < 0 %}
+                <span style="color:#3b82f6">🔵 {{ "%.1f"|format(ph.variation_pct) }}%</span>
+              {% elif ph.variation_pct <= 5 %}
+                <span style="color:#22c55e">🟢 +{{ "%.1f"|format(ph.variation_pct) }}%</span>
+              {% elif ph.variation_pct <= 10 %}
+                <span style="color:#f59e0b">🟡 +{{ "%.1f"|format(ph.variation_pct) }}%</span>
+              {% else %}
+                <span style="color:#dc2626">🔴 +{{ "%.1f"|format(ph.variation_pct) }}%</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">{{ ph.note or '—' }}</td>
+            <td>
+              <form method="post" action="{{ url_for('prime_historique_supprimer', id=contrat.id, ph_id=ph.id) }}"
+                    onsubmit="return confirm('Supprimer cette prime ?')">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state py-3"><p class="text-muted small">Aucune prime historique. Ajoutez la prime annuelle.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- ══ ZONE 2 : QUITTANCES ══ -->
+    <div class="card-crm mb-4">
+      <div class="card-crm-header d-flex justify-content-between align-items-center">
+        <span class="card-crm-title">🧾 Quittances</span>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#form-quittances-new">
+          <i class="bi bi-plus me-1"></i>Créer les quittances
+        </button>
+      </div>
+      <!-- Formulaire création quittances -->
+      <div class="collapse" id="form-quittances-new">
+        <div class="p-3 border-bottom bg-light">
+          <form method="post" action="{{ url_for('quittances_creer', id=contrat.id) }}">
+            <div class="row g-3">
+              <div class="col-md-2">
+                <label class="form-label small fw-semibold">Année</label>
+                <input type="number" name="annee" class="form-control form-control-sm"
+                       value="{{ today[:4] }}" min="2020" max="2040">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small fw-semibold">Prime TTC annuelle</label>
+                <input type="number" name="prime_ttc" class="form-control form-control-sm"
+                       step="0.01" value="{{ contrat.prime_annuelle }}" required>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small fw-semibold">Taux commission (%)</label>
+                <input type="number" name="taux_commission" class="form-control form-control-sm"
+                       step="0.1" value="{{ contrat.taux_commission or 15 }}">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">Fréquence</label>
+                <div class="d-flex gap-2 flex-wrap mt-1">
+                  {% for val, label in [('annuel','Annuel'),('semestriel','Semestriel'),('trimestriel','Trimestriel'),('mensuel','Mensuel')] %}
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="frequence" value="{{ val }}"
+                           id="freq_{{ val }}" {{ 'checked' if val == 'annuel' }}>
+                    <label class="form-check-label small" for="freq_{{ val }}">{{ label }}</label>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">Mode de paiement</label>
+                <div class="d-flex gap-2 flex-wrap mt-1">
+                  {% for val, label in [('prelevement','Prélèvement auto'),('cheque','Chèque / Virement')] %}
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="mode_paiement" value="{{ val }}"
+                           id="mode_{{ val }}" {{ 'checked' if val == 'prelevement' }}>
+                    <label class="form-check-label small" for="mode_{{ val }}">{{ label }}</label>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">Date première échéance *</label>
+                <input type="date" name="date_premiere_echeance" class="form-control form-control-sm" required
+                       value="{{ contrat.date_debut or today }}">
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small">&nbsp;</label>
+                <button type="submit" class="btn btn-primary btn-sm d-block w-100">Générer</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {% set annees_quitt = quittances_sf | map(attribute='annee') | unique | sort | list | reverse | list %}
+      {% if annees_quitt %}
+        {% for annee_q in annees_quitt %}
+          {% set quitt_annee = quittances_sf | selectattr('annee','eq',annee_q) | list %}
+          {% set mode_q = quitt_annee[0].mode_paiement if quitt_annee else 'prelevement' %}
+          <div class="p-3 border-bottom">
+            <div class="fw-semibold mb-2" style="color:#1a2e5a">
+              {{ annee_q }} —
+              {% if mode_q == 'prelevement' %}🔵 Prélèvement automatique{% else %}💳 Paiement direct{% endif %}
+              <span class="text-muted small ms-2">{{ quitt_annee | length }} quittance(s) — {{ quitt_annee[0].frequence }}</span>
+            </div>
+
+            {% if mode_q == 'prelevement' %}
+              {# CAS 1 : Prélèvement — affichage spécial #}
+              {% set q_princ = quitt_annee[0] %}
+              <div class="row g-2 align-items-center mb-2">
+                <div class="col-auto">
+                  <span class="fw-semibold">Montant total : {{ "%.2f"|format(q_princ.montant_ttc) }} €</span>
+                </div>
+                <div class="col-auto ms-3">
+                  {% if q_princ.envoyee_client %}
+                    <span class="badge bg-success">✅ Envoyée au client {{ q_princ.date_envoi_client or '' }}</span>
+                  {% else %}
+                    <form method="post" action="{{ url_for('quittance_action', qid=q_princ.id) }}" class="d-inline">
+                      <input type="hidden" name="action" value="marquer_envoyee">
+                      <button class="btn btn-sm btn-outline-primary">📤 Marquer comme envoyée</button>
+                    </form>
+                  {% endif %}
+                </div>
+              </div>
+              {% if cal_prelev.get(q_princ.id) %}
+              <table class="table-crm mt-2" style="max-width:600px">
+                <thead><tr><th>Date prélèvement</th><th class="text-end">Montant</th><th>Statut</th><th></th></tr></thead>
+                <tbody>
+                  {% for cp in cal_prelev[q_princ.id] %}
+                  <tr>
+                    <td class="small">{{ cp.date_prelevement }}</td>
+                    <td class="text-end">{{ "%.2f"|format(cp.montant) }} €</td>
+                    <td>
+                      {% if cp.statut == 'effectue' %}<span class="badge bg-success">✅ Effectué</span>
+                      {% elif cp.statut == 'rejete' %}<span class="badge bg-danger">❌ Rejeté</span>
+                      {% else %}<span class="badge bg-secondary">⏳ Prévu</span>{% endif %}
+                    </td>
+                    <td>
+                      {% if cp.statut == 'prevu' %}
+                      <form method="post" action="{{ url_for('quittance_action', qid=q_princ.id) }}" class="d-inline">
+                        <input type="hidden" name="action" value="prelev_statut">
+                        <input type="hidden" name="prelev_id" value="{{ cp.id }}">
+                        <input type="hidden" name="statut_prelev" value="effectue">
+                        <button class="btn btn-xs btn-outline-success" style="font-size:11px;padding:2px 8px">✅ Effectué</button>
+                      </form>
+                      <form method="post" action="{{ url_for('quittance_action', qid=q_princ.id) }}" class="d-inline">
+                        <input type="hidden" name="action" value="prelev_statut">
+                        <input type="hidden" name="prelev_id" value="{{ cp.id }}">
+                        <input type="hidden" name="statut_prelev" value="rejete">
+                        <button class="btn btn-xs btn-outline-danger" style="font-size:11px;padding:2px 8px">❌ Rejeté</button>
+                      </form>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              {% endif %}
+
+            {% else %}
+              {# CAS 2 : Paiement direct #}
+              <table class="table-crm">
+                <thead>
+                  <tr>
+                    <th>N°</th><th>Échéance</th><th class="text-end">Montant</th>
+                    <th>Envoyée</th><th>Statut</th><th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for q in quitt_annee %}
+                  <tr class="{{ 'table-danger' if q.statut_paiement == 'impayee' else '' }}">
+                    <td class="font-mono small">{{ q.numero_quittance }}/{{ q.total_quittances }}</td>
+                    <td class="small">{{ q.date_echeance }}</td>
+                    <td class="text-end fw-semibold">{{ "%.2f"|format(q.montant_ttc) }} €</td>
+                    <td class="small">
+                      {% if q.envoyee_client %}
+                        <span class="text-success">✅ {{ q.date_envoi_client or '' }}</span>
+                      {% else %}
+                        <span class="text-muted">❌ Non</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if q.statut_paiement == 'payee' %}<span class="badge bg-success">✅ Payée</span>
+                      {% elif q.statut_paiement == 'impayee' %}<span class="badge bg-danger">⚠️ Impayée</span>
+                      {% elif q.statut_paiement == 'en_cours_regularisation' %}<span class="badge bg-warning text-dark">⏳ Régul.</span>
+                      {% else %}<span class="badge bg-secondary">⏳ En attente</span>{% endif %}
+                    </td>
+                    <td>
+                      <div class="d-flex gap-1 flex-wrap">
+                        {% if not q.envoyee_client %}
+                        <form method="post" action="{{ url_for('quittance_action', qid=q.id) }}" class="d-inline">
+                          <input type="hidden" name="action" value="marquer_envoyee">
+                          <button class="btn btn-xs btn-outline-primary" style="font-size:11px;padding:2px 7px" title="Marquer envoyée">📤</button>
+                        </form>
+                        {% endif %}
+                        {% if q.statut_paiement == 'en_attente' and q.envoyee_client %}
+                        <form method="post" action="{{ url_for('quittance_action', qid=q.id) }}" class="d-inline">
+                          <input type="hidden" name="action" value="marquer_payee">
+                          <input type="hidden" name="date_paiement" value="{{ today }}">
+                          <button class="btn btn-xs btn-outline-success" style="font-size:11px;padding:2px 7px" title="Marquer payée">✅</button>
+                        </form>
+                        <form method="post" action="{{ url_for('quittance_action', qid=q.id) }}" class="d-inline">
+                          <input type="hidden" name="action" value="relance">
+                          <button class="btn btn-xs btn-outline-warning" style="font-size:11px;padding:2px 7px" title="Relance">📧</button>
+                        </form>
+                        <form method="post" action="{{ url_for('quittance_action', qid=q.id) }}" class="d-inline">
+                          <input type="hidden" name="action" value="signaler_impayee">
+                          <button class="btn btn-xs btn-outline-danger" style="font-size:11px;padding:2px 7px" title="Signaler impayé">⚠️</button>
+                        </form>
+                        {% endif %}
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+      <div class="empty-state py-3">
+        <p class="text-muted small">Aucune quittance créée. Cliquez sur "Créer les quittances" pour commencer.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ══ ZONE 3 : COMMISSIONS ══ -->
+    <div class="card-crm">
+      <div class="card-crm-header d-flex justify-content-between align-items-center">
+        <span class="card-crm-title">💼 Mes commissions sur ce contrat</span>
+        <div class="d-flex align-items-center gap-2">
+          <span class="small text-muted">Taux :</span>
+          <form method="post" action="{{ url_for('quittances_creer', id=contrat.id) }}" class="d-none" id="form-taux"></form>
+          <span class="fw-bold" style="color:#c9a84c">{{ contrat.taux_commission or 15 }} %</span>
+        </div>
+      </div>
+      {% if quittances_sf %}
+      <table class="table-crm">
+        <thead>
+          <tr><th>Période</th><th class="text-end">Attendue</th><th class="text-end">Reçue</th>
+              <th class="text-end">Écart</th><th>Bordereau</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for q in quittances_sf %}
+          {% if q.commission_attendue and q.commission_attendue > 0 %}
+          <tr>
+            <td class="small">{{ q.annee }} — Q{{ q.numero_quittance }}<br>
+              <span class="text-muted" style="font-size:10px">Éch. {{ q.date_echeance }}</span></td>
+            <td class="text-end fw-semibold">{{ "%.2f"|format(q.commission_attendue) }} €</td>
+            <td class="text-end">
+              {% if q.commission_recue and q.commission_recue > 0 %}
+                <span class="text-success fw-semibold">✅ {{ "%.2f"|format(q.commission_recue) }} €</span>
+              {% else %}
+                <span class="text-muted">⏳ 0,00 €</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% set ecart = (q.ecart_commission or 0) %}
+              {% if ecart != 0 %}
+                <span class="text-danger fw-bold">{{ "%+.2f"|format(ecart) }} €</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">{{ q.bordereau_reference or '—' }}</td>
+            <td>
+              {% if not q.commission_recue or q.commission_recue == 0 %}
+              <button class="btn btn-xs btn-outline-success" style="font-size:11px;padding:2px 8px"
+                      data-bs-toggle="modal" data-bs-target="#modal-comm-{{ q.id }}">
+                ✅ Enregistrer
+              </button>
+              <!-- Modal commission -->
+              <div class="modal fade" id="modal-comm-{{ q.id }}" tabindex="-1">
+                <div class="modal-dialog modal-sm">
+                  <div class="modal-content">
+                    <div class="modal-header py-2">
+                      <h6 class="modal-title">Commission reçue</h6>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                      <form method="post" action="{{ url_for('quittance_action', qid=q.id) }}">
+                        <input type="hidden" name="action" value="commission_recue">
+                        <div class="mb-2">
+                          <label class="form-label small">Montant reçu (€)</label>
+                          <input type="number" name="commission_recue" class="form-control form-control-sm"
+                                 step="0.01" value="{{ q.commission_attendue }}" required>
+                        </div>
+                        <div class="mb-2">
+                          <label class="form-label small">Date de réception</label>
+                          <input type="date" name="date_reception" class="form-control form-control-sm"
+                                 value="{{ today }}">
+                        </div>
+                        <div class="mb-2">
+                          <label class="form-label small">Réf. bordereau</label>
+                          <input type="text" name="bordereau_reference" class="form-control form-control-sm"
+                                 placeholder="AXA Janvier 2025">
+                        </div>
+                        <button type="submit" class="btn btn-success btn-sm w-100">Enregistrer</button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr style="background:#f8fafc;font-weight:700;font-size:13px">
+            <td>Total</td>
+            <td class="text-end">{{ "%.2f"|format(comm_attendue_total) }} €</td>
+            <td class="text-end text-success">{{ "%.2f"|format(comm_recue_total) }} €</td>
+            <td class="text-end {{ 'text-danger' if (comm_attendue_total - comm_recue_total) > 0 else '' }}">
+              {{ "%.2f"|format(comm_attendue_total - comm_recue_total) }} € restant
+            </td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+      {% else %}
+      <div class="empty-state py-3">
+        <p class="text-muted small">Créez d'abord des quittances pour voir le suivi des commissions.</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- RELANCES -->
+  <div class="tab-pane fade" id="tab-relances">
+    <div class="d-flex justify-content-end mb-2">
+      <a href="{{ url_for('relance_nouvelle') }}?contrat_id={{ contrat.id }}&client_id={{ contrat.client_id }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus me-1"></i>Planifier une relance
+      </a>
+    </div>
+    <div class="card-crm">
+      {% if relances %}
+      <table class="table-crm">
+        <thead><tr><th>Type</th><th>Date prévue</th><th>Moyen</th><th>Statut</th><th></th></tr></thead>
+        <tbody>
+          {% for r in relances %}
+          <tr>
+            <td style="font-size:12px">{{ r.type_relance|replace('_',' ')|title }}</td>
+            <td class="text-muted" style="font-size:12px">{{ r.date_prevue or '—' }}</td>
+            <td class="text-muted" style="font-size:12px">{{ r.moyen|title if r.moyen else '—' }}</td>
+            <td>
+              <span class="badge-crm {{ 'badge-clos' if r.statut=='effectuee' else 'badge-attendu' if r.statut=='a_faire' else 'badge-inactif' }}">
+                {{ r.statut|replace('_',' ')|title }}
+              </span>
+            </td>
+            <td>
+              {% if r.statut == 'a_faire' %}
+              <form method="post" action="{{ url_for('relance_effectuer', id=r.id) }}" style="margin:0">
+                <input type="hidden" name="reponse" value="">
+                <button class="btn btn-sm btn-success">✓</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state py-4"><p class="mb-0">Aucune relance planifiée</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- DOCUMENTS -->
+  <div class="tab-pane fade" id="tab-docs">
+    {% if docs %}
+    <table class="table-crm mb-3">
+      <thead><tr><th>Document</th><th>Type</th><th>Date</th><th></th></tr></thead>
+      <tbody>
+        {% for d in docs %}
+        <tr>
+          <td style="font-size:13px"><i class="bi {{ d.nom_original|file_icon }} me-1"></i>{{ d.nom_original[:40] }}{% if d.nom_original|length>40 %}…{% endif %}</td>
+          <td style="font-size:11px;color:#8b5cf6">{{ d.type_document or '—' }}</td>
+          <td class="text-muted" style="font-size:11px">{{ d.date_upload }}</td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('document_voir', doc_id=d.id) }}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+              <a href="{{ url_for('document_telecharger', doc_id=d.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download"></i></a>
+              <form method="post" action="{{ url_for('document_supprimer', doc_id=d.id) }}" onsubmit="return confirm('Supprimer ?')" style="margin:0">
+                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state py-3 mb-3"><p class="mb-0">Aucun document joint</p></div>
+    {% endif %}
+    <div class="card-crm" id="docs">
+      <div class="card-crm-header"><span class="card-crm-title">📎 Ajouter un document</span></div>
+      <div class="p-3">
+        <form method="post" action="{{ url_for('contrat_document_upload', contrat_id=contrat.id) }}" enctype="multipart/form-data">
+          <div class="row g-2">
+            <div class="col-md-5">
+              <select name="type_document" class="form-select form-select-sm">
+                <option>Contrat signé</option>
+                <option>Bulletin de souscription</option>
+                <option>Attestation d'assurance</option>
+                <option>Avenant</option>
+                <option>Conditions particulières</option>
+                <option>Quittance</option>
+                <option>Relevé de commission</option>
+                <option>Résiliation</option>
+                <option>Autre document</option>
+              </select>
+            </div>
+            <div class="col-md-5"><input type="file" name="fichier" class="form-control form-control-sm" required></div>
+            <div class="col-md-2"><button type="submit" class="btn btn-primary btn-sm w-100">+ Ajouter</button></div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- AVENANTS -->
+  <div class="tab-pane fade" id="tab-avenants">
+    <div class="d-flex justify-content-end mb-2">
+      <a href="{{ url_for('avenant_nouveau', id=contrat.id) }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus me-1"></i>Nouvel avenant
+      </a>
+    </div>
+    {% set avenants_list = [] %}
+    {# Chargement dynamique via lien #}
+    <div class="card-crm">
+      <div class="p-3 text-center">
+        <a href="{{ url_for('contrat_avenants', id=contrat.id) }}" class="btn btn-outline-secondary">
+          <i class="bi bi-file-earmark-diff me-1"></i>Voir tous les avenants de ce contrat
+        </a>
+        <div class="text-muted mt-2" style="font-size:12px">
+          Les avenants modifient les garanties, la prime ou les conditions du contrat
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JOURNAL -->
+  <div class="tab-pane fade" id="tab-journal">
+    <div class="d-flex justify-content-end mb-2">
+      <a href="{{ url_for('journal_nouveau') }}?client_id={{ contrat.client_id }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus me-1"></i>Enregistrer un échange
+      </a>
+    </div>
+    {% set icons = {'telephone':'📞','email':'✉️','courrier':'📮','reunion':'🤝','autre':'💬'} %}
+    {% if journal %}
+    <div class="card-crm"><div class="p-3">
+      {% for j in journal %}
+      <div class="journal-entry">
+        <div class="journal-icon">{{ icons.get(j.type_contact,'💬') }}</div>
+        <div class="flex-grow-1">
+          <div class="journal-objet">{{ j.objet }}</div>
+          <div class="journal-meta">{{ j.date_activite }} · {{ j.prenom or '' }} {{ j.nom }}</div>
+          {% if j.contenu %}<div class="journal-contenu mt-1">{{ j.contenu[:120] }}{% if j.contenu|length>120 %}…{% endif %}</div>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div></div>
+    {% else %}
+    <div class="empty-state py-4"><p class="mb-0">Aucun échange enregistré</p></div>
+    {% endif %}
+  </div>
+
+  <!-- HISTORIQUE AUDIT CONTRAT -->
+  <div class="tab-pane fade" id="tab-historique">
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">📜 Historique des modifications du contrat</span></div>
+      <div class="p-3">
+        {% if audit_logs %}
+        <table class="table-crm">
+          <thead><tr><th>Date</th><th>Action</th><th>Champ modifié</th><th>Ancienne valeur</th><th>Nouvelle valeur</th></tr></thead>
+          <tbody>
+            {% for log in audit_logs %}
+            <tr>
+              <td class="text-muted" style="white-space:nowrap">{{ log.date_action }}</td>
+              <td><span class="badge bg-secondary">{{ log.action }}</span></td>
+              <td class="fw-500">{{ log.champ_modifie or '—' }}</td>
+              <td><del class="text-muted">{{ log.ancienne_valeur or '—' }}</del></td>
+              <td><ins class="text-success fw-600" style="text-decoration:none">{{ log.nouvelle_valeur or '—' }}</ins></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state py-4"><i class="bi bi-clock-history" style="font-size:28px"></i><p class="mb-0">Aucune modification enregistrée sur ce contrat</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tabEl => {
+    tabEl.addEventListener('shown.bs.tab', event => {
+      const href = event.target.getAttribute('href');
+      if (href) sessionStorage.setItem(window.location.pathname + '_active_tab', href);
+    });
+  });
+
+  const hash = window.location.hash;
+  const savedTab = sessionStorage.getItem(window.location.pathname + '_active_tab');
+  const target = hash || savedTab;
+  if (target) {
+    const tabMap = {'#pieces':'#tab-pieces','#financier':'#tab-financier','#docs':'#tab-docs','#journal':'#tab-journal','#relances':'#tab-relances','#avenants':'#tab-avenants','#historique':'#tab-historique'};
+    const resolvedTarget = tabMap[target] || target;
+    const el = document.querySelector(`a[href="${resolvedTarget}"]`);
+    if (el) new bootstrap.Tab(el).show();
+  }
+});
+</script>
+<!-- Modal réactivation impayé -->
+<div class="modal fade" id="modalReactiver" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">✅ Réactivation du contrat</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form method="post" action="{{ url_for('contrat_reactiver_impaye', id=contrat.id) }}">
+        <div class="modal-body">
+          <p>L'impayé a été régularisé. Voulez-vous remettre le contrat en cours ?</p>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="regulariser_primes" value="1" id="reg-primes" checked>
+            <label class="form-check-label" for="reg-primes">
+              Marquer les primes impayées comme réglées
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-success">✅ Réactiver le contrat</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal retour compagnie -->
+<div class="modal fade" id="modalAccepter" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">✅ Acceptation compagnie</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <form method="post" action="{{ url_for('contrat_accepter_cie', id=contrat.id) }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">N° de police émis par la compagnie</label>
+            <input type="text" name="numero_police_cie" class="form-control font-mono"
+                   placeholder="N° officiel compagnie (peut différer de votre n° interne)">
+            <div class="form-text">Ce numéro figure sur la police et l'attestation</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Date d'émission de la police</label>
+            <input type="date" name="date_emission_police" class="form-control" value="{{ today }}">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-success">Enregistrer l'acceptation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}

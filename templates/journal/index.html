@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Journal d'activité — NAVISUR{% endblock %}
+{% block page_title %}Journal d'activité{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('journal_nouveau') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Saisir un échange</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">💬 Journal d'activité</h1>
+    <p class="page-header-sub">Historique de tous les échanges avec vos clients</p>
+  </div>
+  <a href="{{ url_for('journal_nouveau') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Saisir un échange
+  </a>
+</div>
+
+<form method="get" class="search-bar">
+  <div class="search-input-wrap">
+    <i class="bi bi-search"></i>
+    <input type="text" name="q" class="form-control" placeholder="Rechercher client, objet..." value="{{ search }}">
+  </div>
+  <select name="type" class="form-select" style="width:auto">
+    <option value="">Tous types</option>
+    <option value="telephone" {{ 'selected' if type_filtre=='telephone' }}>📞 Téléphone</option>
+    <option value="email" {{ 'selected' if type_filtre=='email' }}>✉️ Email</option>
+    <option value="courrier" {{ 'selected' if type_filtre=='courrier' }}>📮 Courrier</option>
+    <option value="reunion" {{ 'selected' if type_filtre=='reunion' }}>🤝 Réunion</option>
+  </select>
+  <button type="submit" class="btn btn-primary">Filtrer</button>
+  {% if search or type_filtre %}<a href="{{ url_for('journal_list') }}" class="btn btn-outline-secondary">Réinitialiser</a>{% endif %}
+</form>
+
+<div class="card-crm">
+  {% if activites %}
+  <div class="p-4">
+    {% set icons = {'telephone':'📞','email':'✉️','courrier':'📮','reunion':'🤝','autre':'💬'} %}
+    {% for a in activites %}
+    <div class="journal-entry">
+      <div class="journal-icon {{ a.type_contact }}">{{ icons.get(a.type_contact,'💬') }}</div>
+      <div class="flex-grow-1">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <span class="journal-objet">{{ a.objet }}</span>
+            <span class="badge-crm badge-{{ 'entrant' if a.sens == 'entrant' else 'sortant' }} ms-2" style="font-size:10px">
+              {{ '↙ Entrant' if a.sens == 'entrant' else '↗ Sortant' }}
+            </span>
+          </div>
+          <form method="post" action="{{ url_for('journal_supprimer', id=a.id) }}"
+                onsubmit="return confirm('Supprimer cet échange ?')">
+            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+          </form>
+        </div>
+        <div class="journal-meta">
+          📅 {{ a.date_activite }} &nbsp;·&nbsp;
+          <a href="{{ url_for('client_detail', id=a.client_id) }}" class="text-decoration-none fw-500">
+            {{ a.prenom or '' }} {{ a.nom }}
+          </a>
+          {% if a.contrat_num %}&nbsp;·&nbsp; 📄 {{ a.contrat_num }}{% endif %}
+        </div>
+        {% if a.contenu %}
+        <div class="journal-contenu mt-2 p-2" style="background:#f8fafc;border-radius:6px;border-left:3px solid #e2e8f0">{{ a.contenu }}</div>
+        {% endif %}
+        {% if a.resultat or a.suite_a_donner %}
+        <div class="mt-2 d-flex gap-3 flex-wrap" style="font-size:12px">
+          {% if a.resultat %}<span style="color:#475569"><strong>Résultat :</strong> {{ a.resultat }}</span>{% endif %}
+          {% if a.suite_a_donner %}<span style="color:#c9a84c"><strong>➜ Suite :</strong> {{ a.suite_a_donner }}</span>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-chat-square-text"></i>
+    <h5>Aucun échange enregistré</h5>
+    <a href="{{ url_for('journal_nouveau') }}" class="btn btn-primary">Saisir un échange</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — NAVISUR{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">🗓️ {{ titre }}</h1>
+  <a href="{{ url_for('agenda') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Agenda</a>
+</div>
+<form method="post">
+  <div class="form-card">
+    <div class="form-section-title">Rendez-vous</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label">Titre *</label>
+        <input type="text" name="titre" class="form-control" required
+               value="{{ rdv.titre if rdv else '' }}"
+               placeholder="RDV renouvellement M. Dupont, Appel compagnie Pantaenius...">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Type</label>
+        <select name="type_rdv" class="form-select">
+          {% for val, label in [('appel','📞 Appel'),('reunion','🤝 Réunion'),('visite','🏠 Visite client'),('autre','📅 Autre')] %}
+          <option value="{{ val }}" {{ 'selected' if rdv and rdv.type_rdv==val }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Date *</label>
+        <input type="date" name="date_rdv" class="form-control" required
+               value="{{ rdv.date_rdv if rdv else rdv_date }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Heure début</label>
+        <input type="time" name="heure_debut" class="form-control"
+               value="{{ rdv.heure_debut if rdv else '' }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Heure fin</label>
+        <input type="time" name="heure_fin" class="form-control"
+               value="{{ rdv.heure_fin if rdv else '' }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Lieu</label>
+        <input type="text" name="lieu" class="form-control"
+               value="{{ rdv.lieu if rdv else '' }}"
+               placeholder="Bureau, Domicile client, Téléphone, Teams...">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Statut</label>
+        <select name="statut" class="form-select">
+          {% for val, label in [('prevu','Prévu'),('confirme','✅ Confirmé'),('effectue','✓ Effectué'),('annule','❌ Annulé')] %}
+          <option value="{{ val }}" {{ 'selected' if rdv and rdv.statut==val or (not rdv and val=='prevu') }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section-title">Lien (facultatif)</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Client associé</label>
+        <select name="client_id" class="form-select">
+          <option value="">— Aucun —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}" {{ 'selected' if rdv and rdv.client_id==c.id }}>{{ c.prenom or '' }} {{ c.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Contrat associé</label>
+        <select name="contrat_id" class="form-select">
+          <option value="">— Aucun —</option>
+          {% for ct in contrats %}
+          <option value="{{ ct.id }}" {{ 'selected' if rdv and rdv.contrat_id==ct.id }}>{{ ct.numero or 'Sans n°' }} — {{ ct.type_assurance or '' }} ({{ ct.nom }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Notes</label>
+        <textarea name="notes" class="form-control" rows="2"
+                  placeholder="Points à aborder, documents à préparer...">{{ rdv.notes if rdv else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if rdv else 'Créer le rendez-vous' }}
+      </button>
+      {% if rdv %}
+      <form method="post" action="{{ url_for('rdv_supprimer', id=rdv.id) }}" onsubmit="return confirm('Supprimer ce RDV ?')" style="margin:0">
+        <button type="submit" class="btn btn-outline-danger">Supprimer</button>
+      </form>
+      {% endif %}
+      <a href="{{ url_for('agenda') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

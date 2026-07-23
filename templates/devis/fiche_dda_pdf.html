@@ -1,0 +1,50 @@
+{% extends 'print/print_base.html' %}
+{% block doc_title %}FICHE D'INFORMATION ET DE CONSEIL (DDA){% endblock %}
+{% block doc_type %}FICHE D'INFORMATION ET DE CONSEIL (DDA){% endblock %}
+{% block doc_ref %}Devis N° : {{ devis.id }}{% endblock %}
+
+{% block content %}
+<div class="doc-section">
+  <h3>1. Identification de l'Intermédiaire (Cabinet de Courtage)</h3>
+  <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:15px; border-radius:8px; margin-bottom:20px;">
+    <p style="margin-bottom:5px;"><strong>Cabinet :</strong> {{ params.get('cabinet_nom', '—') }}</p>
+    <p style="margin-bottom:5px;"><strong>Adresse :</strong> {{ params.get('cabinet_adresse', '—') }}, {{ params.get('cabinet_cp', '') }} {{ params.get('cabinet_ville', '') }}</p>
+    <p style="margin-bottom:5px;"><strong>Immatriculation ORIAS :</strong> {{ params.get('cabinet_orias', '—') }} (www.orias.fr)</p>
+    <p style="margin-bottom:0;"><strong>Contact :</strong> Tél : {{ params.get('cabinet_telephone', '—') }} · Email : {{ params.get('cabinet_email', '—') }}</p>
+  </div>
+
+  <h3>2. Identification du Client / Prospect</h3>
+  <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:15px; border-radius:8px; margin-bottom:20px;">
+    <p style="margin-bottom:5px;"><strong>Nom / Prénom :</strong> {{ client.prenom or '' }} {{ client.nom }}</p>
+    <p style="margin-bottom:0;"><strong>Adresse :</strong> {{ client.adresse or '—' }}, {{ client.code_postal or '' }} {{ client.ville or '' }}</p>
+  </div>
+
+  <h3>3. Proposition d'Assurance (Devis)</h3>
+  <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:15px; border-radius:8px; margin-bottom:20px;">
+    <p style="margin-bottom:5px;"><strong>Compagnie proposée :</strong> {{ devis.compagnie }}</p>
+    <p style="margin-bottom:5px;"><strong>Type d'assurance :</strong> {{ devis.type_assurance }}</p>
+    <p style="margin-bottom:5px;"><strong>Prime annuelle TTC :</strong> <strong>{{ "{:,.2f}".format(devis.prime_proposee or 0) }} € / an</strong></p>
+    <p style="margin-bottom:0;"><strong>Franchise :</strong> {{ "{:,.2f}".format(devis.franchise_proposee or 0) }} €</p>
+  </div>
+
+  <h3>4. Devoir de Conseil &amp; Adéquation (DDA)</h3>
+  <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:15px; border-radius:8px; margin-bottom:20px;">
+    <p style="margin-bottom:0; white-space:pre-line;">{{ devis.note_conseil or 'Aucun argumentaire de conseil renseigné.' }}</p>
+  </div>
+
+  <p style="font-size:11px; color:#64748b; margin-top:20px;">
+    Conformément à la Directive sur la Distribution d'Assurances (DDA), la présente fiche récapitule les besoins exprimés par le client et l'adéquation du produit proposé par le cabinet de courtage.
+  </p>
+</div>
+
+<div style="margin-top:40px; display:flex; justify-content:space-between;">
+  <div style="text-align:center; width:220px; border:1px solid #cbd5e1; padding:15px; border-radius:8px;">
+    <p style="font-weight:700; margin-bottom:30px;">Signature du Cabinet</p>
+    <p style="font-size:11px; color:#64748b;">Cachet &amp; Signature</p>
+  </div>
+  <div style="text-align:center; width:220px; border:1px solid #cbd5e1; padding:15px; border-radius:8px;">
+    <p style="font-weight:700; margin-bottom:30px;">Signature du Client</p>
+    <p style="font-size:11px; color:#64748b;">"Lu et approuvé"</p>
+  </div>
+</div>
+{% endblock %}

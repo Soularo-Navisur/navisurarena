@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Compagnies — NAVISUR{% endblock %}
+{% block page_title %}Registre compagnies{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('compagnie_nouvelle') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Nouvelle compagnie</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🏢 Registre des compagnies</h1>
+    <p class="page-header-sub">Partenaires & conventions de placement</p>
+  </div>
+  <a href="{{ url_for('compagnie_nouvelle') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Nouvelle compagnie
+  </a>
+</div>
+
+{% if compagnies %}
+<div class="row g-3">
+  {% for cp in compagnies %}
+  <div class="col-md-6 col-xl-4">
+    <a href="{{ url_for('compagnie_detail', id=cp.id) }}" class="text-decoration-none">
+      <div class="card-crm h-100" style="transition:box-shadow .15s;cursor:pointer"
+           onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,.12)'"
+           onmouseout="this.style.boxShadow=''">
+        <div class="p-4">
+          <!-- En-tête -->
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <div class="fw-700" style="font-size:17px;color:#1a2e5a">{{ cp.nom }}</div>
+              {% if cp.code_courtier %}
+              <div style="font-size:12px;color:#94a3b8;margin-top:2px">Code courtier : <span class="font-mono fw-600">{{ cp.code_courtier }}</span></div>
+              {% endif %}
+            </div>
+            {% if cp.taux_commission > 0 %}
+            <div class="text-end">
+              <div style="font-size:22px;font-weight:800;color:#c9a84c">{{ cp.taux_commission }}%</div>
+              <div style="font-size:10px;color:#94a3b8">commission</div>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Infos contact -->
+          {% if cp.email_general or cp.telephone_general %}
+          <div class="mb-3" style="font-size:12px;color:#475569">
+            {% if cp.telephone_general %}<div><i class="bi bi-telephone me-1"></i>{{ cp.telephone_general }}</div>{% endif %}
+            {% if cp.email_general %}<div><i class="bi bi-envelope me-1"></i>{{ cp.email_general }}</div>{% endif %}
+          </div>
+          {% endif %}
+
+          <!-- Stats -->
+          <div class="d-flex gap-3" style="font-size:12px">
+            <div class="text-center">
+              <div class="fw-700" style="color:#1a2e5a">{{ cp.nb_contrats }}</div>
+              <div class="text-muted">Contrats</div>
+            </div>
+            <div class="text-center">
+              <div class="fw-700" style="color:#1a2e5a">{{ cp.nb_contacts }}</div>
+              <div class="text-muted">Contact(s)</div>
+            </div>
+            <div class="text-center">
+              <div class="fw-700" style="color:#1a2e5a">{{ cp.nb_docs }}</div>
+              <div class="text-muted">Document(s)</div>
+            </div>
+            <div class="ms-auto">
+              {% if cp.actif %}
+              <span class="badge-crm badge-clos" style="font-size:11px">✅ Actif</span>
+              {% else %}
+              <span class="badge-crm badge-inactif" style="font-size:11px">Inactif</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card-crm">
+  <div class="empty-state py-5">
+    <i class="bi bi-building" style="font-size:48px;opacity:.2"></i>
+    <h5 class="mt-3">Aucune compagnie enregistrée</h5>
+    <p class="text-muted">Ajoutez vos partenaires pour disposer d'une liste déroulante dans tous les formulaires.</p>
+    <a href="{{ url_for('compagnie_nouvelle') }}" class="btn btn-primary">Ajouter la première compagnie</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

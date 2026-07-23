@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}Nettoyer les doublons — NAVISUR{% endblock %}
+{% block page_title %}Nettoyage des doublons{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🧹 Nettoyage des contrats en doublon</h1>
+    <p class="page-header-sub">Détecte les contrats créés plusieurs fois pour le même client/compagnie/date</p>
+  </div>
+  <a href="{{ url_for('admin_sante') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Retour Santé système
+  </a>
+</div>
+
+{% if doublons %}
+<div class="card-crm mb-4" style="border-left:3px solid #f59e0b">
+  <div class="card-crm-header d-flex justify-content-between align-items-center">
+    <span class="card-crm-title">⚠️ {{ doublons|length }} contrat(s) doublon(s) détecté(s)</span>
+    <span style="font-size:12px;color:var(--c-text-2)">Cochez ceux à supprimer, gardez le bon</span>
+  </div>
+  <div class="p-3">
+    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:var(--c-text-2)">
+      ⚠️ <strong>Attention :</strong> La suppression est irréversible. Pour chaque groupe de doublons, 
+      gardez <strong>le premier créé</strong> (ou celui que vous connaissez) et cochez les autres à supprimer.
+      Les quittances et relances liées seront aussi supprimées.
+    </div>
+
+    <form method="post" data-loading-title="Suppression des doublons..." data-loading-sub="Nettoyage de la base de données">
+      <div class="table-responsive">
+        <table class="table-crm">
+          <thead>
+            <tr>
+              <th style="width:40px"><input type="checkbox" id="select-all" title="Tout sélectionner"></th>
+              <th>N° Police</th>
+              <th>Client</th>
+              <th>Compagnie</th>
+              <th>Type</th>
+              <th>Prime</th>
+              <th>Date création</th>
+              <th>Devis lié</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% set last_group = namespace(key='') %}
+            {% for d in doublons %}
+              {% set group_key = d.client_id|string + '_' + (d.compagnie or '') + '_' + (d.date_creation or '') %}
+              {% if group_key != last_group.key %}
+                <tr style="background:rgba(245,158,11,.05)">
+                  <td colspan="9" style="font-size:11px;font-weight:700;color:#f59e0b;padding:6px 12px;border-top:2px solid rgba(245,158,11,.2)">
+                    Groupe doublon : {{ d.prenom or '' }} {{ d.nom }} — {{ d.compagnie or '—' }} — {{ d.date_creation }}
+                  </td>
+                </tr>
+                {% set last_group.key = group_key %}
+              {% endif %}
+              <tr>
+                <td>
+                  <input type="checkbox" name="supprimer_ids" value="{{ d.id }}"
+                         class="doublon-checkbox" style="width:16px;height:16px">
+                </td>
+                <td>
+                  <a href="{{ url_for('contrat_detail', id=d.id) }}" class="fw-600 font-mono" style="font-size:13px">
+                    {{ d.numero or '—' }}
+                  </a>
+                </td>
+                <td style="font-size:13px">{{ d.prenom or '' }} {{ d.nom }}</td>
+                <td style="font-size:13px">{{ d.compagnie or '—' }}</td>
+                <td style="font-size:12px">{{ d.type_assurance or '—' }}</td>
+                <td style="font-size:13px;color:var(--c-gold);font-weight:600">
+                  {% if d.prime_annuelle %}{{ "{:,.0f}".format(d.prime_annuelle) }} €{% else %}—{% endif %}
+                </td>
+                <td class="text-muted" style="font-size:12px">{{ d.date_creation }}</td>
+                <td style="font-size:12px">
+                  {% if d.devis_id %}
+                    <span class="badge-crm badge-client" style="font-size:10px">Devis #{{ d.devis_id }}</span>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <a href="{{ url_for('contrat_detail', id=d.id) }}" class="btn btn-xs btn-outline-secondary" 
+                     style="font-size:11px;padding:2px 8px" target="_blank">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex gap-2 mt-4 align-items-center">
+        <button type="submit" class="btn btn-danger"
+                onclick="return confirm('Supprimer définitivement les contrats sélectionnés ?')">
+          <i class="bi bi-trash me-1"></i>Supprimer les doublons cochés
+        </button>
+        <a href="{{ url_for('admin_sante') }}" class="btn btn-outline-secondary">Annuler</a>
+        <span style="font-size:12px;color:var(--c-text-2);margin-left:8px" id="selection-count"></span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// Sélectionner tout
+document.getElementById('select-all').addEventListener('change', function() {
+  document.querySelectorAll('.doublon-checkbox').forEach(cb => cb.checked = this.checked);
+  updateCount();
+});
+document.querySelectorAll('.doublon-checkbox').forEach(cb => {
+  cb.addEventListener('change', updateCount);
+});
+function updateCount() {
+  const n = document.querySelectorAll('.doublon-checkbox:checked').length;
+  document.getElementById('selection-count').textContent = n > 0 ? `${n} sélectionné(s)` : '';
+}
+</script>
+
+{% else %}
+<div class="card-crm">
+  <div style="text-align:center;padding:48px">
+    <div style="font-size:48px;margin-bottom:12px">✅</div>
+    <h5 style="color:var(--c-text-1)">Aucun doublon détecté</h5>
+    <p class="text-muted">La base de données est propre.</p>
+    <a href="{{ url_for('admin_sante') }}" class="btn btn-outline-secondary mt-2">
+      <i class="bi bi-arrow-left me-1"></i>Retour Santé système
+    </a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

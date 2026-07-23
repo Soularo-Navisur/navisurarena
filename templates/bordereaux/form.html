@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Nouveau bordereau — NAVISUR{% endblock %}
+{% block page_title %}Nouveau bordereau assureur{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📋 Nouveau bordereau</h1>
+    <p class="page-header-sub">Sélectionnez une compagnie puis les quittances payées à inclure</p>
+  </div>
+  <a href="{{ url_for('bordereaux_list') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+<form method="post" class="card-crm">
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Compagnie</label>
+      <select name="compagnie" class="form-select" onchange="window.location.href='?compagnie='+this.value">
+        <option value="">Choisir...</option>
+        {% for cp in compagnies %}
+        <option value="{{ cp }}" {{ 'selected' if compagnie==cp }}>{{ cp }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">Référence virement</label>
+      <input type="text" name="reference_virement" class="form-control" placeholder="VIR-2026-06-XXX">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label fw-semibold">RIB courtier</label>
+      <input type="text" name="rib_courtier" class="form-control" value="{{ rib_defaut }}">
+    </div>
+  </div>
+
+  {% if quittances %}
+  <div class="table-responsive">
+    <table class="table table-hover align-middle" style="font-size:13px">
+      <thead>
+        <tr>
+          <th><input type="checkbox" class="form-check-input" id="checkAll" onclick="document.querySelectorAll('.q-check').forEach(c=>c.checked=this.checked)"></th>
+          <th>Police</th>
+          <th>Client</th>
+          <th>Échéance</th>
+          <th class="text-end">Prime TTC</th>
+          <th class="text-end">Frais</th>
+          <th class="text-end">Net à reverser</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for q in quittances %}
+        <tr>
+          <td><input type="checkbox" name="quittance_ids" value="{{ q.id }}" class="form-check-input q-check"></td>
+          <td class="font-mono fw-semibold">{{ q.police or '—' }}</td>
+          <td>{{ q.prenom or '' }} {{ q.nom }}</td>
+          <td class="small text-muted">{{ q.date_echeance or '—' }}</td>
+          <td class="text-end">{{ "%.2f"|format(q.montant_ttc or 0) }} €</td>
+          <td class="text-end text-muted">{{ "%.2f"|format(q.frais_courtage or 0) }} €</td>
+          <td class="text-end fw-semibold" style="color:#16a34a">{{ "%.2f"|format((q.montant_ttc or 0) - (q.frais_courtage or 0)) }} €</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <button class="btn btn-primary mt-2">Générer le bordereau</button>
+  {% elif compagnie %}
+  <div class="alert alert-light py-4 text-center text-muted">
+    Aucune quittance payée disponible pour cette compagnie.
+  </div>
+  {% else %}
+  <div class="alert alert-light py-4 text-center text-muted">
+    Sélectionnez une compagnie pour voir les quittances payées.
+  </div>
+  {% endif %}
+</form>
+{% endblock %}

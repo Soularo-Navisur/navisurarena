@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+{% block title %}Résiliation — {{ contrat.numero or contrat.type_assurance }} — NAVISUR{% endblock %}
+{% block page_title %}Enregistrer une résiliation{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">🔴 Résiliation du contrat</h1>
+  <a href="{{ url_for('contrat_detail', id=contrat.id) }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+<!-- Résumé contrat -->
+<div class="card-crm mb-4" style="border-left:4px solid #dc2626">
+  <div class="p-4">
+    <div class="d-flex justify-content-between flex-wrap gap-2">
+      <div>
+        <div class="fw-700" style="font-size:17px;color:#1a2e5a">
+          {{ contrat.type_assurance or 'Contrat' }}
+          {% if contrat.nom_bateau %}<span class="text-muted fw-400 ms-2" style="font-size:14px">⚓ {{ contrat.nom_bateau }}</span>{% endif %}
+        </div>
+        <div class="text-muted" style="font-size:13px;margin-top:3px">
+          {{ contrat.compagnie or '—' }}
+          {% if contrat.numero %} · <span style="font-family:monospace">{{ contrat.numero }}</span>{% endif %}
+        </div>
+        <div class="text-muted" style="font-size:12px;margin-top:2px">
+          {{ contrat.prenom or '' }} {{ contrat.nom }} ·
+          {{ contrat.date_debut or '' }} → {{ contrat.date_fin or '' }}
+        </div>
+      </div>
+      <div class="text-end">
+        <div style="font-size:22px;font-weight:800;color:#c9a84c">{{ "{:,.2f}".format(contrat.prime_annuelle) }} €</div>
+        <div class="text-muted" style="font-size:11px">prime annuelle</div>
+        {% if comm_encaissee > 0 %}
+        <div style="font-size:13px;font-weight:600;color:#1a2e5a;margin-top:4px">Commission encaissée : {{ "{:,.2f}".format(comm_encaissee) }} €</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if resil %}
+<div class="p-3 mb-3" style="background:#fef9c3;border-radius:8px;border-left:4px solid #f59e0b;font-size:13px">
+  <strong>⚠️ Une résiliation est déjà enregistrée</strong> ({{ resil.date_resiliation }}).
+  Ce formulaire permet de la modifier.
+</div>
+{% endif %}
+
+<form method="post" id="form-resil">
+  <div class="row g-3">
+
+    <!-- COLONNE GAUCHE : Infos résiliation -->
+    <div class="col-lg-7">
+      <div class="form-card">
+
+        <div class="form-section-title">📅 Date &amp; Motif</div>
+        <div class="row g-3">
+          <div class="col-md-5">
+            <label class="form-label">Date de résiliation *</label>
+            <input type="date" name="date_resiliation" id="date-resil" class="form-control" required
+                   value="{{ resil.date_resiliation if resil else today }}">
+            <div class="form-text">Date de la demande ou du courrier</div>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label">Date d'effet</label>
+            <input type="date" name="date_effet" class="form-control"
+                   value="{{ resil.date_effet if resil else today }}">
+            <div class="form-text">Fin réelle de couverture (si différente)</div>
+          </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+          <div class="col-md-7">
+            <label class="form-label">Motif de résiliation *</label>
+            <select name="motif" id="sel-motif" class="form-select" required onchange="updateMotifGroupe(this)">
+              <option value="">— Sélectionner —</option>
+              <optgroup label="🧑 Résiliation à l'initiative du client">
+                {% for val, lbl in motifs if not val.startswith('cie_') and val not in ('commun_accord','echeance') %}
+                <option value="{{ val }}" {{ 'selected' if resil and resil.motif==val }}>{{ lbl }}</option>
+                {% endfor %}
+              </optgroup>
+              <optgroup label="🏢 Résiliation à l'initiative de la compagnie">
+                {% for val, lbl in motifs if val.startswith('cie_') %}
+                <option value="{{ val }}" {{ 'selected' if resil and resil.motif==val }}>{{ lbl }}</option>
+                {% endfor %}
+              </optgroup>
+              <optgroup label="🤝 Résiliation mutuelle / échéance">
+                {% for val, lbl in motifs if val in ('commun_accord','echeance') %}
+                <option value="{{ val }}" {{ 'selected' if resil and resil.motif==val }}>{{ lbl }}</option>
+                {% endfor %}
+              </optgroup>
+            </select>
+          </div>
+          <div class="col-md-5" id="zone-statut-info" style="display:none">
+            <label class="form-label">Nouveau statut du contrat</label>
+            <div id="badge-statut" class="mt-2"></div>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Précisions / Détails</label>
+            <textarea name="motif_detail" class="form-control" rows="2"
+                      placeholder="Nom de la nouvelle compagnie, raison de mécontentement, date de vente du bateau...">{{ resil.motif_detail if resil else '' }}</textarea>
+          </div>
+        </div>
+
+        <div class="form-section-title mt-2">💰 Ristourne prorata <span class="text-muted fw-400" style="font-size:12px">(remboursement compagnie → client, transite sans vous)</span></div>
+        <div class="row g-3">
+          <div class="col-md-5">
+            <label class="form-label">Montant de la ristourne (€)</label>
+            <div class="input-group">
+              <input type="number" name="ristourne_montant" step="0.01" min="0" class="form-control"
+                     value="{{ resil.ristourne_montant if resil else 0 }}" id="ristourne-input"
+                     placeholder="0">
+              <span class="input-group-text">€</span>
+            </div>
+          </div>
+          <div class="col-md-7 d-flex align-items-end">
+            <div class="p-3 w-100" style="background:#f0fdf4;border-radius:8px;font-size:12px;color:#166534">
+              <i class="bi bi-info-circle me-1"></i>
+              <strong>Flux financier :</strong> La compagnie rembourse directement le client.
+              Vous n'encaissez pas ce montant. Il est enregistré ici pour traçabilité.
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section-title mt-2">📝 Notes internes</div>
+        <textarea name="notes" class="form-control" rows="2"
+                  placeholder="Correspondance, conditions particulières, suivi...">{{ resil.notes if resil else '' }}</textarea>
+      </div>
+    </div>
+
+    <!-- COLONNE DROITE : Commission & Frais -->
+    <div class="col-lg-5">
+
+      <!-- Commission -->
+      <div class="form-card mb-3" style="border:2px solid #f97316">
+        <div class="form-section-title" style="color:#c2410c">📊 Régularisation de votre commission</div>
+
+        {% if comm_encaissee > 0 %}
+        <div class="p-3 mb-3" style="background:#fff7ed;border-radius:8px;font-size:13px">
+          <div class="d-flex justify-content-between">
+            <span class="text-muted">Commission encaissée</span>
+            <span class="fw-700">{{ "{:,.2f}".format(comm_encaissee) }} €</span>
+          </div>
+          {% if pct_restant > 0 %}
+          <div class="d-flex justify-content-between mt-1">
+            <span class="text-muted">Période restante</span>
+            <span class="fw-600" style="color:#f97316">{{ pct_restant }}%</span>
+          </div>
+          <div class="d-flex justify-content-between mt-1">
+            <span class="text-muted">Commission suggérée à déduire</span>
+            <span class="fw-700" style="color:#dc2626">{{ "{:,.2f}".format(comm_suggeree) }} €</span>
+          </div>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="p-3 mb-3 text-muted" style="font-size:12px">Aucune commission encaissée sur ce contrat.</div>
+        {% endif %}
+
+        <div class="mb-3">
+          <label class="form-label">Commission initiale encaissée (€)</label>
+          <div class="input-group">
+            <input type="number" name="commission_initiale" step="0.01" min="0" class="form-control"
+                   value="{{ resil.commission_initiale if resil else '{:.2f}'.format(comm_encaissee) }}">
+            <span class="input-group-text">€</span>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Montant à déduire / régulariser (€)</label>
+          <div class="input-group">
+            <input type="number" name="commission_a_deduire" step="0.01" min="0" class="form-control"
+                   id="comm-deduire"
+                   value="{{ resil.commission_a_deduire if resil else '{:.2f}'.format(comm_suggeree) }}">
+            <span class="input-group-text">€</span>
+          </div>
+          <div class="form-text">Laisser à 0 si aucune régularisation nécessaire</div>
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">Mode de régularisation</label>
+          {% for val, lbl, desc in [
+            ('aucun',             '✅ Aucune régularisation',    'Commission conservée en totalité'),
+            ('note_debit',        '📋 Note de débit compagnie',  'Vous déduisez sur le prochain relevé'),
+            ('deduction_prochaine','🔄 Déduction sur prochaine commission', 'À régulariser lors du prochain encaissement'),
+          ] %}
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="radio" name="commission_mode" value="{{ val }}"
+                   id="mode-{{ val }}"
+                   {{ 'checked' if (resil and resil.commission_mode==val) or (not resil and val=='aucun') }}>
+            <label class="form-check-label" for="mode-{{ val }}" style="font-size:13px">
+              <strong>{{ lbl }}</strong>
+              <div class="text-muted" style="font-size:11px">{{ desc }}</div>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Frais de courtage -->
+      <div class="form-card" style="border:2px solid #8b5cf6">
+        <div class="form-section-title" style="color:#6d28d9">🧾 Frais de courtage résiliation</div>
+        <p class="text-muted" style="font-size:12px;margin-bottom:12px">
+          Selon votre convention, vous pouvez facturer des frais lors d'une résiliation anticipée.
+        </p>
+
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" name="frais_courtage_appliquer" value="1"
+                 id="frais-cb" {{ 'checked' if resil and resil.frais_courtage_appliquer }}
+                 onchange="document.getElementById('zone-frais').style.display=this.checked?'block':'none'">
+          <label class="form-check-label fw-600" for="frais-cb">Appliquer des frais de courtage</label>
+        </div>
+
+        <div id="zone-frais" style="display:{{ 'block' if resil and resil.frais_courtage_appliquer else 'none' }}">
+          <div class="mb-2">
+            <label class="form-label">Montant des frais (€)</label>
+            <div class="input-group">
+              <input type="number" name="frais_courtage_montant" step="0.01" min="0" class="form-control"
+                     value="{{ resil.frais_courtage_montant if resil else 0 }}">
+              <span class="input-group-text">€</span>
+            </div>
+            <div class="form-text text-success fw-600">TVA non applicable, art. 293 B CGI</div>
+          </div>
+          <div class="p-2" style="background:#f3f4f6;border-radius:6px;font-size:12px;color:#475569">
+            💡 Une facture brouillon sera créée automatiquement.
+            Vous pourrez l'imprimer et la finaliser dans le module Quittances.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 mt-4">
+    <button type="submit" class="btn btn-danger" style="padding:10px 24px">
+      <i class="bi bi-x-circle me-2"></i>Enregistrer la résiliation
+    </button>
+    <a href="{{ url_for('contrat_detail', id=contrat.id) }}" class="btn btn-outline-secondary">Annuler</a>
+  </div>
+</form>
+
+<script>
+function updateMotifGroupe(sel) {
+  const val = sel.value;
+  const z = document.getElementById('zone-statut-info');
+  const b = document.getElementById('badge-statut');
+  if (!val) { z.style.display='none'; return; }
+  z.style.display = 'block';
+  let txt, cls;
+  if (val.startsWith('cie_'))            { txt='Résilié (compagnie)'; cls='badge-resilie'; }
+  else if (val==='echeance'||val==='commun_accord') { txt='Échu';           cls='badge-echu'; }
+  else                                   { txt='Résilié (client)';   cls='badge-resilie'; }
+  b.innerHTML = `<span class="badge-crm ${cls}" style="font-size:13px">${txt}</span>`;
+
+  // Suggestion commission selon date
+  recalcComm();
+}
+
+function recalcComm() {
+  const dateResil = document.getElementById('date-resil').value;
+  const debutStr  = '{{ contrat.date_debut or "" }}';
+  const finStr    = '{{ contrat.date_fin or "" }}';
+  const commEnc   = {{ comm_encaissee }};
+  if (!dateResil || !debutStr || !finStr || commEnc <= 0) return;
+  const debut = new Date(debutStr), fin = new Date(finStr), resil = new Date(dateResil);
+  const total   = (fin - debut) / 86400000;
+  const ecoule  = Math.max(0, (resil - debut) / 86400000);
+  const restant = Math.max(0, total - ecoule);
+  const pct     = total > 0 ? restant / total : 0;
+  const sugg    = (commEnc * pct).toFixed(2);
+  const el = document.getElementById('comm-deduire');
+  if (el) el.value = sugg;
+}
+
+document.getElementById('date-resil').addEventListener('change', recalcComm);
+// Init
+if (document.getElementById('sel-motif').value) updateMotifGroupe(document.getElementById('sel-motif'));
+</script>
+{% endblock %}

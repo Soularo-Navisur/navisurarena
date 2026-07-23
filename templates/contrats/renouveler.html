@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block title %}Renouveler — NAVISUR{% endblock %}
+{% block page_title %}Renouvellement contrat{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">🔁 Renouvellement en 1 clic</h1>
+  <a href="{{ url_for('contrat_detail', id=contrat.id) }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour contrat
+  </a>
+</div>
+
+<!-- Résumé ancien contrat -->
+<div class="card-crm mb-4" style="border-left:4px solid #94a3b8;background:#f8fafc">
+  <div class="p-4">
+    <div style="font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;margin-bottom:8px">📁 Contrat à renouveler</div>
+    <div class="d-flex justify-content-between flex-wrap gap-3">
+      <div>
+        <div class="fw-700" style="font-size:17px;color:#1a2e5a">{{ contrat.prenom or '' }} {{ contrat.nom }}</div>
+        <div class="text-muted">{{ contrat.type_assurance or '—' }} · {{ contrat.compagnie or '—' }}</div>
+        {% if contrat.nom_bateau %}<div class="text-muted" style="font-size:12px">⚓ {{ contrat.nom_bateau }}</div>{% endif %}
+      </div>
+      <div class="text-end">
+        <div style="font-size:20px;font-weight:700;color:#64748b;text-decoration:line-through">{{ "{:,.2f}".format(contrat.prime_annuelle) }} € / an</div>
+        <div style="font-size:12px;color:#94a3b8">{{ contrat.date_debut or '' }} → {{ contrat.date_fin or '' }}</div>
+        <span class="badge-crm badge-inactif mt-1">Sera archivé comme "Renouvelé"</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="post">
+  <div class="row g-3">
+    <!-- NOUVEAU CONTRAT -->
+    <div class="col-lg-7">
+      <div class="form-card">
+        <div class="form-section-title" style="color:#1a2e5a;font-size:16px">✨ Nouveau contrat {{ date_debut[:4] }}</div>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Date de début *</label>
+            <input type="date" name="date_debut" class="form-control" required value="{{ date_debut }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Date de fin *</label>
+            <input type="date" name="date_fin" class="form-control" required value="{{ date_fin }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Nouvelle prime annuelle (€) *</label>
+            <div class="input-group">
+              <input type="number" name="prime_annuelle" step="0.01" min="0" class="form-control" required
+                     value="{{ contrat.prime_annuelle }}" id="prime-input">
+              <span class="input-group-text">€ / an</span>
+            </div>
+            {% if contrat.prime_annuelle %}
+            <div class="form-text">Ancienne prime : {{ "{:,.2f}".format(contrat.prime_annuelle) }} €
+              <span id="evol-prime" class="fw-600 ms-1"></span>
+            </div>
+            {% endif %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Compagnie</label>
+            <select name="compagnie" class="form-select" onchange="toggleCompagnieFree(this)">
+          <option value="">— Sélectionner —</option>
+          {%- for cp in compagnies_liste %}
+          <option value="{{ cp.nom }}"
+            {{- ' selected' if contrat.compagnie or ''==cp.nom }}>
+            {{ cp.nom }}{% if cp.taux_commission > 0 %} ({{ cp.taux_commission }}%){% endif %}
+          </option>
+          {%- endfor %}
+          <option value="__autre__">✏️ Autre (saisie libre)</option>
+        </select>
+        <input type="text" name="compagnie_libre" class="form-control mt-1" id="cp-libre" style="display:none" placeholder="Nom de la compagnie...">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Notes</label>
+            <textarea name="notes" class="form-control" rows="2"
+                      placeholder="Nouvelles garanties, modifications de franchise..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMMISSION AUTO -->
+    <div class="col-lg-5">
+      <div class="form-card" style="border:2px solid #c9a84c">
+        <div class="form-section-title" style="color:#92400e;font-size:14px">💰 Commission créée automatiquement</div>
+
+        <div class="mb-3">
+          <label class="form-label">Taux de commission (%)</label>
+          <div class="input-group">
+            <input type="number" name="taux_commission" step="0.5" min="0" max="100" class="form-control"
+                   value="10" id="taux-input">
+            <span class="input-group-text">%</span>
+          </div>
+        </div>
+
+        <div style="background:#fef9c3;border-radius:8px;padding:14px;text-align:center;margin-bottom:16px">
+          <div style="font-size:11px;color:#92400e;text-transform:uppercase;font-weight:600;margin-bottom:4px">Commission attendue</div>
+          <div style="font-size:28px;font-weight:800;color:#c2410c" id="comm-preview">—</div>
+          <div style="font-size:12px;color:#92400e;margin-top:2px">Type : Renouvellement · Statut : Attendue</div>
+        </div>
+
+        <!-- Ce qui sera créé automatiquement -->
+        <div style="font-size:12px;color:#475569">
+          <div class="fw-600 mb-2" style="color:#1a2e5a">✅ Ce que NAVISUR va créer :</div>
+          <ul class="list-unstyled" style="line-height:2">
+            <li>📄 Nouveau contrat (copie + nouvelles dates/prime)</li>
+            <li>🔄 Archivage de l'ancien (statut "Renouvelé")</li>
+            <li>📋 Checklist pièces réinitialisée</li>
+            <li>💰 Commission de renouvellement attendue</li>
+            <li>📣 Relance signature planifiée</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary flex-grow-1" style="padding:12px">
+          <i class="bi bi-arrow-repeat me-2"></i><strong>Renouveler le contrat</strong>
+        </button>
+      </div>
+      <div class="text-muted text-center mt-2" style="font-size:11px">
+        L'opération est irréversible · L'ancien contrat sera archivé
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+const oldPrime = {{ contrat.prime_annuelle or 0 }};
+function updatePreview() {
+  const prime = parseFloat(document.getElementById('prime-input').value) || 0;
+  const taux  = parseFloat(document.getElementById('taux-input').value) || 0;
+  const comm  = (prime * taux / 100).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  document.getElementById('comm-preview').textContent = comm + ' €';
+  // Evolution prime
+  const el = document.getElementById('evol-prime');
+  if (el && oldPrime > 0) {
+    const diff = prime - oldPrime;
+    const pct  = (diff / oldPrime * 100).toFixed(1);
+    el.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(2).replace('.', ',') + ' € (' + (diff >= 0 ? '+' : '') + pct + '%)';
+    el.style.color = diff > 0 ? '#dc2626' : diff < 0 ? '#16a34a' : '#94a3b8';
+  }
+}
+document.getElementById('prime-input').addEventListener('input', updatePreview);
+document.getElementById('taux-input').addEventListener('input', updatePreview);
+updatePreview();
+</script>
+{% endblock %}

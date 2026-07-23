@@ -1,0 +1,162 @@
+{% extends 'print_base.html' %}
+{% block doc_type %}Dossier client{% endblock %}
+{% block doc_ref %}CLI-{{ client.id }}{% endblock %}
+
+{% block content %}
+
+<div class="doc-title-section">
+  <div>
+    <div class="doc-title">{{ client.civilite or '' }} {{ client.prenom or '' }} {{ client.nom }}</div>
+    <div class="doc-subtitle">Dossier client complet · Édité le {{ now.strftime('%d/%m/%Y à %H:%M') }}</div>
+  </div>
+  <div class="doc-ref">
+    <span class="doc-badge {{ 'doc-badge-green' if client.statut == 'client' else 'doc-badge-gold' if client.statut == 'prospect' else 'doc-badge-gray' }}">
+      {{ client.statut|title }}
+    </span>
+    {% if client.date_creation %}
+    <div style="margin-top:4px;font-size:8pt;color:var(--p-slate)">Depuis {{ client.date_creation[:4] }}</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Coordonnées -->
+<div class="doc-section">
+  <div class="doc-section-title">👤 Coordonnées</div>
+  <div class="doc-info-grid cols-3">
+    {% if client.email %}
+    <div class="doc-info-row">
+      <span class="doc-info-label">Email</span>
+      <span class="doc-info-value">{{ client.email }}</span>
+    </div>
+    {% endif %}
+    {% if client.telephone %}
+    <div class="doc-info-row">
+      <span class="doc-info-label">Mobile</span>
+      <span class="doc-info-value">{{ client.telephone }}</span>
+    </div>
+    {% endif %}
+    {% if client.telephone_fixe %}
+    <div class="doc-info-row">
+      <span class="doc-info-label">Fixe</span>
+      <span class="doc-info-value">{{ client.telephone_fixe }}</span>
+    </div>
+    {% endif %}
+    {% if client.adresse %}
+    <div class="doc-info-row" style="grid-column:1/-1">
+      <span class="doc-info-label">Adresse</span>
+      <span class="doc-info-value">{{ client.adresse }}{% if client.code_postal or client.ville %} — {{ client.code_postal or '' }} {{ client.ville or '' }}{% endif %}</span>
+    </div>
+    {% endif %}
+    {% if client.date_naissance %}
+    <div class="doc-info-row">
+      <span class="doc-info-label">Date de naissance</span>
+      <span class="doc-info-value">{{ client.date_naissance }}</span>
+    </div>
+    {% endif %}
+    {% if client.type_permis_mer %}
+    <div class="doc-info-row">
+      <span class="doc-info-label">Permis mer</span>
+      <span class="doc-info-value">{{ client.type_permis_mer|title }}</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Bateaux -->
+{% if bateaux %}
+<div class="doc-section">
+  <div class="doc-section-title">⛵ Flotte ({{ bateaux|length }} navire{{ 's' if bateaux|length > 1 }})</div>
+  {% for b in bateaux %}
+  <div class="doc-boat-card">
+    <div class="doc-boat-icon">⛵</div>
+    <div class="doc-boat-info" style="flex:1">
+      <div class="boat-name">{{ b.nom_bateau or '(sans nom)' }}</div>
+      <div class="boat-detail">
+        {% if b.marque or b.modele %}{{ b.marque or '' }} {{ b.modele or '' }}{% endif %}
+        {% if b.immatriculation %} · {{ b.immatriculation }}{% endif %}
+        {% if b.longueur %} · {{ b.longueur }} m{% endif %}
+        {% if b.annee_fabrication %} · {{ b.annee_fabrication }}{% endif %}
+        {% if b.valeur_assurance %} · Valeur : {{ "{:,.0f}".format(b.valeur_assurance) }} €{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Contrats -->
+{% if contrats %}
+<div class="doc-section">
+  <div class="doc-section-title">📄 Contrats d'assurance</div>
+  <table class="doc-table">
+    <thead>
+      <tr>
+        <th>N° Police</th>
+        <th>Compagnie</th>
+        <th>Type</th>
+        <th>Bateau</th>
+        <th>Période</th>
+        <th>Prime / an</th>
+        <th>Statut</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ct in contrats %}
+      <tr>
+        <td class="mono" style="font-size:8.5pt">{{ ct.numero or '—' }}</td>
+        <td>{{ ct.compagnie or '—' }}</td>
+        <td style="font-size:8.5pt">{{ ct.type_assurance or '—' }}</td>
+        <td style="font-size:8.5pt">{{ ct.nom_bateau or '—' }}</td>
+        <td style="font-size:8pt">{{ ct.date_debut or '—' }}<br>→ {{ ct.date_fin or '—' }}</td>
+        <td>{% if ct.prime_annuelle %}{{ "{:,.0f}".format(ct.prime_annuelle) }} €{% else %}—{% endif %}</td>
+        <td>
+          {% if ct.statut == 'en_cours' %}<span class="doc-badge doc-badge-green" style="font-size:7.5pt">Actif</span>
+          {% elif ct.statut == 'resilié' %}<span class="doc-badge doc-badge-gray" style="font-size:7.5pt">Résilié</span>
+          {% else %}<span class="doc-badge doc-badge-gold" style="font-size:7.5pt">{{ ct.statut|title }}</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    {% set total_prime = contrats | selectattr('statut', 'eq', 'en_cours') | sum(attribute='prime_annuelle') %}
+    {% if total_prime %}
+    <tfoot>
+      <tr>
+        <td colspan="5">Total primes actives</td>
+        <td>{{ "{:,.0f}".format(total_prime) }} €</td>
+        <td></td>
+      </tr>
+    </tfoot>
+    {% endif %}
+  </table>
+</div>
+{% endif %}
+
+<!-- Sinistres ouverts -->
+{% if sinistres %}
+<div class="doc-section">
+  <div class="doc-section-title">⚠️ Sinistres en cours ({{ sinistres|length }})</div>
+  <table class="doc-table">
+    <thead>
+      <tr><th>N° Sinistre</th><th>Date</th><th>Nature</th><th>Statut</th></tr>
+    </thead>
+    <tbody>
+      {% for s in sinistres %}
+      <tr>
+        <td class="mono">{{ s.numero or '—' }}</td>
+        <td>{{ s.date_sinistre or '—' }}</td>
+        <td>{{ s.nature or '—' }}</td>
+        <td><span class="doc-badge doc-badge-gold" style="font-size:7.5pt">{{ s.statut|title }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<div class="doc-legal">
+  Document confidentiel établi par <strong>{{ params.get('nom_cabinet', 'Riviera Marine Assurances') }}</strong>.
+  Toute reproduction ou diffusion est interdite sans autorisation.
+  {% if params.get('print_pied_page') %}{{ params.print_pied_page }}{% endif %}
+</div>
+
+{% endblock %}

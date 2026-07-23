@@ -1,0 +1,506 @@
+{% extends 'base.html' %}
+{% block title %}Comptabilité — NAVISUR{% endblock %}
+{% block scripts %}
+<script>
+// ── NAVISUR v9.3 — Graphique portefeuille par type de risque ──
+{% if portefeuille_risques %}
+const portLabels = [{% for r in portefeuille_risques %}'{{ r.type_assurance | replace("Assurance ","") | replace("\"", "") }}'{% if not loop.last %},{% endif %}{% endfor %}];
+const portData   = [{% for r in portefeuille_risques %}{{ r.nb }}{% if not loop.last %},{% endif %}{% endfor %}];
+const portColors = ['#1a2e5a','#c9a84c','#3b82f6','#22c55e','#f97316','#8b5cf6','#ec4899','#0ea5e9'];
+new Chart(document.getElementById('chartPortefeuille'), {
+  type: 'doughnut',
+  data: {
+    labels: portLabels,
+    datasets: [{
+      data: portData,
+      backgroundColor: portColors.slice(0, portLabels.length),
+      borderWidth: 2, borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.label} : ${ctx.parsed} contrat(s) (${Math.round(ctx.parsed/portData.reduce((a,b)=>a+b,0)*100)}%)`
+        }
+      }
+    }
+  }
+});
+{% endif %}
+
+// ── NAVISUR v9.3 — Graphique taux de transformation ──
+{% if devis_par_cie %}
+const transfoLabels = [{% for d in devis_par_cie %}'{{ d.compagnie }}'{% if not loop.last %},{% endif %}{% endfor %}];
+const transfoNbDevis = [{% for d in devis_par_cie %}{{ d.nb_devis }}{% if not loop.last %},{% endif %}{% endfor %}];
+const transfoNbOk    = [{% for d in devis_par_cie %}{{ d.nb_ok }}{% if not loop.last %},{% endif %}{% endfor %}];
+const transfoTaux    = transfoNbDevis.map((nb, i) => nb > 0 ? Math.round(transfoNbOk[i]/nb*100) : 0);
+new Chart(document.getElementById('chartTransfo'), {
+  type: 'bar',
+  data: {
+    labels: transfoLabels,
+    datasets: [
+      { label: 'Devis envoyés', data: transfoNbDevis, backgroundColor: 'rgba(26,46,90,0.25)', borderRadius: 4 },
+      { label: 'Contrats signés', data: transfoNbOk, backgroundColor: 'rgba(201,168,76,0.85)', borderRadius: 4 }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top' },
+      tooltip: {
+        callbacks: {
+          afterBody: (items) => {
+            const i = items[0].dataIndex;
+            return [`Taux : ${transfoTaux[i]}%`];
+          }
+        }
+      }
+    },
+    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+  }
+});
+{% endif %}
+
+// ── NAVISUR v9.3 — Graphique top compagnies primes ──
+{% if top_compagnies %}
+const topCieLabels = [{% for c in top_compagnies %}'{{ c.compagnie }}'{% if not loop.last %},{% endif %}{% endfor %}];
+const topCiePrimes = [{% for c in top_compagnies %}{{ c.total_primes }}{% if not loop.last %},{% endif %}{% endfor %}];
+const topCieColors = topCiePrimes.map((_, i) => i === 0 ? '#c9a84c' :
+                     i === 1 ? 'rgba(201,168,76,0.7)' : 'rgba(26,46,90,0.5)');
+new Chart(document.getElementById('chartTopCie'), {
+  type: 'bar',
+  data: {
+    labels: topCieLabels,
+    datasets: [{
+      label: 'Primes gérées (€)',
+      data: topCiePrimes,
+      backgroundColor: topCieColors,
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString('fr-FR') + ' €' } }
+    }
+  }
+});
+{% endif %}
+</script>
+
+{% endblock %}
+{% block page_title %}Comptabilité{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📊 Dashboard Comptable</h1>
+    <p class="page-header-sub">Micro-entreprise BNC · Franchise TVA (art. 293 B CGI)</p>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    <form method="get" class="d-flex gap-2">
+      <select name="annee" class="form-select form-select-sm" onchange="this.form.submit()">
+        {% for a in annees %}<option value="{{ a }}" {{ 'selected' if a==annee }}>{{ a }}</option>{% endfor %}
+      </select>
+    </form>
+    <a href="{{ url_for('compta_recette_nouvelle') }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-circle me-1"></i>Saisir une recette
+    </a>
+  </div>
+</div>
+
+<!-- ── JAUGE PLAFOND MICRO ── -->
+<div class="card-crm mb-4" style="border: 2px solid {% if pct_plafond >= seuil_rouge %}#dc2626{% elif pct_plafond >= seuil_orange %}#f59e0b{% else %}#22c55e{% endif %}">
+  <div class="p-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+      <div>
+        <div style="font-size:13px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">
+          Progression vers le plafond micro-BNC {{ annee }}
+        </div>
+        <div style="font-size:32px;font-weight:800;color:#1a2e5a">
+          {{ "{:,.2f}".format(ca_annee).replace(",", " ") }} €
+        </div>
+        <div style="font-size:13px;color:#64748b;margin-top:4px">
+          sur {{ "{:,.0f}".format(plafond).replace(",", " ") }} € autorisés ·
+          <strong style="color:{% if pct_plafond >= seuil_rouge %}#dc2626{% elif pct_plafond >= seuil_orange %}#f59e0b{% else %}#22c55e{% endif %}">
+            {{ pct_plafond }} %
+          </strong> utilisé
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:20px;font-weight:700;color:#1a2e5a">
+          {{ "{:,.2f}".format(plafond - ca_annee).replace(",", " ") }} €
+        </div>
+        <div style="font-size:12px;color:#64748b">restant disponible</div>
+        {% if pct_plafond >= seuil_rouge %}
+        <div class="mt-2 p-2" style="background:#fee2e2;border-radius:8px;font-size:12px;color:#b91c1c;font-weight:600">
+          🔴 ATTENTION — Plafond bientôt atteint !
+        </div>
+        {% elif pct_plafond >= seuil_orange %}
+        <div class="mt-2 p-2" style="background:#fef9c3;border-radius:8px;font-size:12px;color:#92400e;font-weight:600">
+          🟠 Vigilance — 70% du plafond atteint
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="mt-3" style="background:#e2e8f0;border-radius:8px;height:16px;overflow:hidden">
+      <div style="height:16px;border-radius:8px;transition:width .5s;
+                  width:{{ [pct_plafond, 100]|min }}%;
+                  background:{% if pct_plafond >= seuil_rouge %}linear-gradient(90deg,#dc2626,#ef4444){% elif pct_plafond >= seuil_orange %}linear-gradient(90deg,#d97706,#f59e0b){% else %}linear-gradient(90deg,#1a2e5a,#c9a84c){% endif %}">
+      </div>
+    </div>
+    <div class="d-flex justify-content-between mt-1" style="font-size:10px;color:#94a3b8">
+      <span>0 €</span>
+      <span>{{ "{:,.0f}".format(plafond * seuil_orange / 100)|replace(",", " ") }} € ({{ seuil_orange|int }}%)</span>
+      <span>{{ "{:,.0f}".format(plafond * seuil_rouge / 100)|replace(",", " ") }} € ({{ seuil_rouge|int }}%)</span>
+      <span>{{ "{:,.0f}".format(plafond)|replace(",", " ") }} €</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── KPIs ── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#eff6ff;color:#1a2e5a"><i class="bi bi-cash-stack"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:20px">{{ "{:,.0f}".format(ca_annee).replace(",", " ") }} €</div>
+        <div class="stat-label">CA encaissé {{ annee }}</div>
+        {% if ca_prev_annee > 0 %}
+        <div style="font-size:11px;margin-top:2px;color:{% if ca_annee >= ca_prev_annee %}#16a34a{% else %}#dc2626{% endif %}">
+          {{ '▲' if ca_annee >= ca_prev_annee else '▼' }}
+          {{ "{:+,.0f}".format(ca_annee - ca_prev_annee).replace(",", " ") }} € vs {{ annee-1 }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon orange"><i class="bi bi-building-check"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:20px">{{ "{:,.0f}".format(cot_estimees).replace(",", " ") }} €</div>
+        <div class="stat-label">Cotisations estimées ({{ taux_cot }}%)</div>
+        {% if vl_actif %}<div style="font-size:11px;color:#94a3b8">+ {{ "{:,.0f}".format(vl_estime) }} € VL IR</div>{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-wallet2"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:20px">{{ "{:,.0f}".format(ca_annee - total_cot).replace(",", " ") }} €</div>
+        <div class="stat-label">Résultat net estimé</div>
+        <div style="font-size:11px;color:#94a3b8">après charges sociales</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="stat-card" style="cursor:pointer" onclick="window.location='{{ url_for('compta_commissions') }}'">
+      <div class="stat-icon" style="background:#fef9c3;color:#92400e"><i class="bi bi-hourglass-split"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:20px">{{ "{:,.0f}".format(mt_attente).replace(",", " ") }} €</div>
+        <div class="stat-label">Commissions en attente</div>
+        <div style="font-size:11px;color:#94a3b8">{{ nb_attente }} dossier(s)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── GRAPHIQUES ── -->
+<div class="row g-3 mb-4">
+  <!-- CA mensuel -->
+  <div class="col-lg-8">
+    <div class="card-crm">
+      <div class="card-crm-header">
+        <span class="card-crm-title">📈 Évolution du CA mensuel</span>
+        <span class="text-muted" style="font-size:12px">{{ annee }} vs {{ annee-1 }}</span>
+      </div>
+      <div class="p-4">
+        <canvas id="chartCA" height="100"></canvas>
+      </div>
+    </div>
+  </div>
+  <!-- Répartition par nature -->
+  <div class="col-lg-4">
+    <div class="card-crm">
+      <div class="card-crm-header">
+        <span class="card-crm-title">🥧 Répartition des recettes</span>
+      </div>
+      <div class="p-4">
+        {% if repartition %}
+        <canvas id="chartRep" height="200"></canvas>
+        {% else %}
+        <div class="empty-state py-4"><i class="bi bi-pie-chart" style="font-size:32px;opacity:.2"></i><p class="mt-2 mb-0">Aucune donnée</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOP COMPAGNIES ── -->
+{% if par_compagnie %}
+<div class="card-crm mb-4">
+  <div class="card-crm-header">
+    <span class="card-crm-title">🏢 Commissions par compagnie — {{ annee }}</span>
+    <a href="{{ url_for('compta_commissions', annee=annee) }}" class="btn btn-sm btn-outline-secondary">Détail</a>
+  </div>
+  <div class="p-4">
+    <canvas id="chartCie" height="60"></canvas>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── COTISATIONS URSSAF RÉSUMÉ ── -->
+<div class="card-crm mb-4">
+  <div class="card-crm-header">
+    <span class="card-crm-title">🏛️ Estimation URSSAF {{ annee }}</span>
+    <a href="{{ url_for('compta_urssaf', annee=annee) }}" class="btn btn-sm btn-outline-secondary">Détail déclarations</a>
+  </div>
+  <div class="p-4">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div style="background:#f8fafc;border-radius:10px;padding:16px;text-align:center">
+          <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:600">CA déclarable</div>
+          <div style="font-size:24px;font-weight:700;color:#1a2e5a;margin-top:4px">{{ "{:,.2f}".format(ca_annee).replace(",", " ") }} €</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div style="background:#fff7ed;border-radius:10px;padding:16px;text-align:center">
+          <div style="font-size:11px;color:#92400e;text-transform:uppercase;font-weight:600">Cotisations sociales ({{ taux_cot }}%)</div>
+          <div style="font-size:24px;font-weight:700;color:#c2410c;margin-top:4px">{{ "{:,.2f}".format(cot_estimees).replace(",", " ") }} €</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div style="background:#fef9c3;border-radius:10px;padding:16px;text-align:center">
+          <div style="font-size:11px;color:#92400e;text-transform:uppercase;font-weight:600">Total à payer estimé</div>
+          <div style="font-size:24px;font-weight:700;color:#d97706;margin-top:4px">{{ "{:,.2f}".format(total_cot).replace(",", " ") }} €</div>
+        </div>
+      </div>
+    </div>
+    {% if vl_actif %}
+    <div class="mt-3 p-3" style="background:#eff6ff;border-radius:8px;font-size:13px;color:#1e40af">
+      <i class="bi bi-info-circle me-1"></i>
+      Versement libératoire IR activé : {{ "{:,.2f}".format(vl_estime).replace(",", " ") }} € supplémentaires ({{ taux_vl }}%)
+    </div>
+    {% endif %}
+    <div class="mt-3 p-3" style="background:#f0fdf4;border-radius:8px;font-size:12px;color:#166534">
+      <i class="bi bi-shield-check me-1"></i>
+      <strong>Franchise TVA activée</strong> — Article 293 B du CGI. Aucune TVA à collecter ni à déclarer.
+    </div>
+  </div>
+</div>
+
+
+<!-- ── NAVISUR v9.3 — ALERTE PARAMÈTRES FISCAUX ── -->
+{% if not fiscal_ok %}
+<div class="alert alert-warning d-flex gap-2 mb-4" style="border-left:4px solid #f59e0b">
+  <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+  <div>
+    <strong>Paramètres fiscaux {{ annee }} non renseignés.</strong>
+    Les calculs URSSAF utilisent les valeurs par défaut.
+    <a href="{{ url_for('admin_parametres_fiscaux') }}" class="ms-2 fw-semibold">Configurer →</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── NAVISUR v9.3 — ALERTE CONCENTRATION PORTEFEUILLE ── -->
+{% if alerte_concentration %}
+<div class="alert alert-warning d-flex gap-2 mb-4" style="border-left:4px solid #f59e0b">
+  <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+  <span>
+    <strong>Concentration portefeuille :</strong>
+    {{ alerte_concentration.pct }}% de vos primes sont chez
+    <strong>{{ alerte_concentration.compagnie }}</strong>.
+    Pensez à diversifier vos compagnies.
+  </span>
+</div>
+{% endif %}
+
+<!-- ── NAVISUR v9.3 — LIGNE GRAPHIQUES : PORTEFEUILLE + TRANSFORMATION ── -->
+<div class="row g-4 mb-4">
+
+  <!-- Graphique 2 — Portefeuille par type de risque -->
+  <div class="col-md-6">
+    <div class="card-crm h-100">
+      <div class="card-crm-header">
+        <span class="card-crm-title">🗂️ Portefeuille actif par type de risque</span>
+      </div>
+      <div class="p-4">
+        {% if portefeuille_risques %}
+        <canvas id="chartPortefeuille" height="220"></canvas>
+        {% else %}
+        <div class="empty-state py-4"><i class="bi bi-pie-chart" style="font-size:32px;opacity:.2"></i><p class="mt-2 mb-0">Aucun contrat actif</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Graphique 3 — Taux de transformation par compagnie -->
+  <div class="col-md-6">
+    <div class="card-crm h-100">
+      <div class="card-crm-header">
+        <span class="card-crm-title">🎯 Taux de transformation devis → contrat — {{ annee }}</span>
+      </div>
+      <div class="p-4">
+        {% if devis_par_cie %}
+        <canvas id="chartTransfo" height="220"></canvas>
+        {% else %}
+        <div class="empty-state py-4"><p class="text-muted">Aucun devis cette année</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── NAVISUR v9.3 — LIGNE GRAPHIQUES : TOP COMPAGNIES ── -->
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <div class="card-crm">
+      <div class="card-crm-header">
+        <span class="card-crm-title">🏆 Top compagnies par volume de primes gérées</span>
+      </div>
+      <div class="p-4">
+        {% if top_compagnies %}
+        <canvas id="chartTopCie" height="80"></canvas>
+        {% else %}
+        <div class="empty-state py-3"><p class="text-muted">Aucune donnée disponible</p></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── NAVISUR v9.3 — PRÉVISIONNEL COMMISSIONS ── -->
+<div class="card-crm mb-4">
+  <div class="card-crm-header">
+    <span class="card-crm-title">🔮 Prévisionnel commissions à encaisser</span>
+    <span class="text-muted small">(estimation basée sur les commissions attendues en DB)</span>
+  </div>
+  <div class="p-4">
+    <div class="row g-3 text-center">
+      <div class="col-md-4">
+        <div style="background:#f8fafc;border-radius:10px;padding:20px;border-top:3px solid #1a2e5a">
+          <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:8px">
+            {{ previsionnel.mois_0.label }}
+          </div>
+          <div style="font-size:28px;font-weight:800;color:#1a2e5a">
+            {{ "{:,.0f}".format(previsionnel.mois_0.montant).replace(",", " ") }} €
+          </div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:4px">(estimation)</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div style="background:#f8fafc;border-radius:10px;padding:20px;border-top:3px solid #c9a84c">
+          <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:8px">
+            {{ previsionnel.mois_1.label }}
+          </div>
+          <div style="font-size:28px;font-weight:800;color:#c9a84c">
+            {{ "{:,.0f}".format(previsionnel.mois_1.montant).replace(",", " ") }} €
+          </div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:4px">(estimation)</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div style="background:#f8fafc;border-radius:10px;padding:20px;border-top:3px solid #94a3b8">
+          <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;font-weight:600;margin-bottom:8px">
+            {{ previsionnel.mois_2.label }}
+          </div>
+          <div style="font-size:28px;font-weight:800;color:#64748b">
+            {{ "{:,.0f}".format(previsionnel.mois_2.montant).replace(",", " ") }} €
+          </div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:4px">(estimation)</div>
+        </div>
+      </div>
+    </div>
+    <p class="text-muted small mt-3 mb-0">
+      <i class="bi bi-info-circle me-1"></i>
+      Calcul basé sur les commissions avec statut "Attendue" ou "Relevé reçu" dans la base.
+      Alimentez régulièrement vos commissions attendues pour avoir une prévision fiable.
+    </p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const moisLabels = {{ mois_noms | safe }};
+const caData     = {{ ca_par_mois | safe }};
+const caPrevData = {{ ca_par_mois_prev | safe }};
+
+// Graphique CA mensuel
+new Chart(document.getElementById('chartCA'), {
+  type: 'bar',
+  data: {
+    labels: moisLabels,
+    datasets: [
+      {
+        label: '{{ annee }}',
+        data: caData,
+        backgroundColor: 'rgba(26,46,90,0.85)',
+        borderRadius: 4,
+      },
+      {
+        label: '{{ annee-1 }}',
+        data: caPrevData,
+        backgroundColor: 'rgba(201,168,76,0.4)',
+        borderRadius: 4,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'top' } },
+    scales: {
+      y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString('fr-FR') + ' €' } }
+    }
+  }
+});
+
+// Graphique répartition
+{% if repartition %}
+const repLabels = [{% for r in repartition %}'{{ r[0]|replace("_"," ")|title }}'{% if not loop.last %},{% endif %}{% endfor %}];
+const repData   = [{% for r in repartition %}{{ r[1] }}{% if not loop.last %},{% endif %}{% endfor %}];
+new Chart(document.getElementById('chartRep'), {
+  type: 'doughnut',
+  data: {
+    labels: repLabels,
+    datasets: [{
+      data: repData,
+      backgroundColor: ['#1a2e5a','#c9a84c','#3b82f6','#22c55e','#f97316','#8b5cf6'],
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }
+  }
+});
+{% endif %}
+
+// Graphique compagnies
+{% if par_compagnie %}
+new Chart(document.getElementById('chartCie'), {
+  type: 'bar',
+  data: {
+    labels: [{% for c in par_compagnie %}'{{ c[0] }}'{% if not loop.last %},{% endif %}{% endfor %}],
+    datasets: [{
+      label: 'CA commissions (€)',
+      data: [{% for c in par_compagnie %}{{ c[1] }}{% if not loop.last %},{% endif %}{% endfor %}],
+      backgroundColor: 'rgba(201,168,76,0.85)',
+      borderRadius: 4,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { x: { ticks: { callback: v => v.toLocaleString('fr-FR') + ' €' } } }
+  }
+});
+{% endif %}
+</script>
+{% endblock %}

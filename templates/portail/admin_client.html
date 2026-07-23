@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Accès portail — {{ client.prenom or '' }} {{ client.nom }}{% endblock %}
+{% block page_title %}Portail client{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:16px">
+  <a href="{{ url_for('client_detail', id=client.id) }}" style="font-size:13px;color:#64748b;text-decoration:none">
+    ← Retour fiche client
+  </a>
+</div>
+
+<div class="row g-4">
+  <!-- Statut accès -->
+  <div class="col-md-5">
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">🔐 Accès portail</span></div>
+      <div class="p-3">
+        {% if portail %}
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <span class="badge-crm {{ 'badge-client' if portail.actif else 'badge-inactif' }}" style="font-size:13px;padding:5px 14px">
+            {{ '✅ Actif' if portail.actif else '⏸️ Désactivé' }}
+          </span>
+          <span style="font-size:12px;color:#64748b;font-family:monospace">{{ portail.email_login }}</span>
+        </div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:16px">
+          Créé le {{ portail.date_creation[:10] if portail.date_creation else '—' }}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          {% if portail.actif %}
+          <form method="post"><input type="hidden" name="action" value="desactiver">
+            <button type="submit" class="btn btn-sm btn-outline-warning">⏸️ Désactiver</button>
+          </form>
+          {% else %}
+          <form method="post"><input type="hidden" name="action" value="activer">
+            <button type="submit" class="btn btn-sm btn-outline-success">✅ Réactiver</button>
+          </form>
+          {% endif %}
+          <form method="post" onsubmit="return confirm('Générer un nouveau mot de passe temporaire ?')">
+            <input type="hidden" name="action" value="reset_password">
+            <button type="submit" class="btn btn-sm btn-outline-secondary">🔑 Réinitialiser MDP</button>
+          </form>
+        </div>
+        {% else %}
+        <p style="font-size:13px;color:#64748b;margin-bottom:16px">Aucun accès portail pour ce client.</p>
+        <form method="post">
+          <input type="hidden" name="action" value="creer">
+          <div class="mb-3">
+            <label class="form-label">Email de connexion</label>
+            <input type="email" name="email_login" class="form-control"
+                   value="{{ client.email or '' }}" placeholder="email@client.fr">
+            <div class="form-text">Par défaut : email du client</div>
+          </div>
+          <button type="submit" class="btn btn-primary" data-loading-title="Création de l'accès portail...">
+            Créer l'accès portail
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Demandes reçues -->
+  <div class="col-md-7">
+    <div class="card-crm">
+      <div class="card-crm-header d-flex justify-content-between align-items-center">
+        <span class="card-crm-title">💬 Demandes du client</span>
+        <span style="font-size:12px;color:#64748b">{{ demandes|length }} demande(s)</span>
+      </div>
+      <div class="p-3">
+        {% if demandes %}
+        {% for d in demandes %}
+        <div style="padding:12px 0;border-bottom:1px solid var(--c-border){% if loop.last %};border-bottom:none{% endif %}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:700;color:var(--c-text-1)">{{ d.type_demande }}</div>
+              <div style="font-size:12px;color:var(--c-text-2);margin-top:2px">{{ d.date_creation[:16] }}</div>
+              <div style="font-size:13px;margin-top:6px;color:var(--c-text-1)">{{ d.message }}</div>
+              {% if d.reponse %}
+              <div style="margin-top:8px;padding:8px;background:rgba(201,168,76,.08);border-left:2px solid #c9a84c;border-radius:0 6px 6px 0;font-size:12px;color:var(--c-text-2)">
+                ↩️ {{ d.reponse }}
+              </div>
+              {% endif %}
+            </div>
+            <div>
+              <span class="badge-crm {{ 'badge-prospect' if d.statut=='en_attente' else 'badge-client' }}">
+                {{ 'En attente' if d.statut=='en_attente' else 'Traitée' }}
+              </span>
+            </div>
+          </div>
+          {% if d.statut == 'en_attente' %}
+          <form method="post" action="{{ url_for('portail_demande_repondre', demande_id=d.id) }}" class="mt-2">
+            <div class="d-flex gap-2">
+              <input type="text" name="reponse" class="form-control form-control-sm"
+                     placeholder="Votre réponse..." required>
+              <select name="statut" class="form-select form-select-sm" style="width:auto">
+                <option value="traitee">Traitée</option>
+                <option value="en_attente">En attente</option>
+              </select>
+              <button type="submit" class="btn btn-sm btn-primary" style="white-space:nowrap">
+                Répondre
+              </button>
+            </div>
+          </form>
+          {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <p style="text-align:center;color:var(--c-text-2);padding:24px;font-size:13px">Aucune demande reçue.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

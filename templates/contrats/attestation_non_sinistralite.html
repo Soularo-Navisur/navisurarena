@@ -1,0 +1,58 @@
+{% extends 'print/print_base.html' %}
+{% block doc_title %}ATTESTATION DE NON-SINISTRALITÉ{% endblock %}
+{% block doc_type %}ATTESTATION DE NON-SINISTRALITÉ{% endblock %}
+{% block doc_ref %}Police N° : {{ contrat.numero or 'N/A' }}{% endblock %}
+
+{% block content %}
+<div class="doc-section">
+  <p>Nous soussignés, <strong>{{ params.get('nom_cabinet', 'Riviera Marine Assurances') }}</strong>, Courtiers d'Assurances, certifions par la présente que :</p>
+  
+  <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:20px; border-radius:8px; margin:20px 0;">
+    <p style="margin-bottom:5px;"><strong>Assuré :</strong> {{ contrat.prenom }} {{ contrat.nom }}</p>
+    <p style="margin-bottom:5px;"><strong>Navire :</strong> {{ contrat.nom_bateau or '—' }} (Immat : {{ contrat.immatriculation or '—' }})</p>
+    <p style="margin-bottom:5px;"><strong>Compagnie :</strong> {{ contrat.compagnie }}</p>
+    <p style="margin-bottom:5px;"><strong>Police N° :</strong> {{ contrat.numero or '—' }}</p>
+    <p style="margin-bottom:0;"><strong>Période d'assurance :</strong> Du {{ contrat.date_debut }} au {{ contrat.date_fin }}</p>
+  </div>
+
+  <p>Il est attesté qu'au cours de la période d'assurance ci-dessus mentionnée (et jusqu'à la résiliation intervenue le <strong>{{ resil.date_resiliation if resil else '—' }}</strong> suite à la vente du navire), le soussigné n'a enregistré :</p>
+  
+  <div style="background:#fef2f2; border:1px solid #fecaca; padding:15px; border-radius:8px; margin:15px 0; text-align:center; font-weight:700; color:#991b1b;">
+    {% if nb_sinistres == 0 %}
+    ✅ AUCUN SINISTRE DÉCLARÉ NI INDEMNISÉ
+    {% else %}
+    ⚠️ {{ nb_sinistres }} SINISTRE(S) DÉCLARÉ(S) (Voir détail ci-dessous)
+    {% endif %}
+  </div>
+
+  {% if sinistres and sinistres|length > 0 %}
+  <table style="width:100%; border-collapse:collapse; margin-top:15px; font-size:12px;">
+    <thead>
+      <tr style="background:#f1f5f9; border-bottom:1px solid #cbd5e1;">
+        <th style="padding:8px; text-align:left;">Date</th>
+        <th style="padding:8px; text-align:left;">Type de sinistre</th>
+        <th style="padding:8px; text-align:right;">Montant Indemnisé</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in sinistres %}
+      <tr style="border-bottom:1px solid #e2e8f0;">
+        <td style="padding:8px;">{{ s.date_sinistre }}</td>
+        <td style="padding:8px;">{{ s.type_sinistre }}</td>
+        <td style="padding:8px; text-align:right;">{{ "{:,.2f}".format(s.montant_indemnise or 0) }} €</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <p style="margin-top:30px;">Cette attestation est délivrée pour servir et faire valoir ce que de droit auprès de tout nouvel assureur maritime.</p>
+</div>
+
+<div style="margin-top:60px; display:flex; justify-content:flex-end;">
+  <div style="text-align:center; width:250px;">
+    <p>Fait à Marseille, le {{ today }}</p>
+    <p style="margin-top:40px; font-weight:700;">Le Cabinet de Courtage</p>
+  </div>
+</div>
+{% endblock %}

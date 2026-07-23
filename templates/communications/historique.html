@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% block title %}Communications — {{ client.nom }} — NAVISUR{% endblock %}
+{% block page_title %}Historique communications{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📬 Communications — {{ client.prenom or '' }} {{ client.nom }}</h1>
+    <p class="page-header-sub">Emails envoyés via Brevo + messagerie</p>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-primary btn-sm" onclick="verifierStatuts()">
+      <i class="bi bi-arrow-clockwise me-1"></i>Vérifier les statuts
+    </button>
+    <a href="{{ url_for('client_detail', id=client.id) }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Retour fiche client
+    </a>
+  </div>
+</div>
+
+<div id="statuts-result" class="mb-3"></div>
+
+{% if communications %}
+<div class="form-card" style="max-width:100%">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle" style="font-size:13px">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Modèle</th>
+          <th>Destinataire</th>
+          <th>Objet</th>
+          <th class="text-center">Statut</th>
+          <th>Ouverture</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cm in communications %}
+        <tr>
+          <td class="small text-muted">{{ cm.date_envoi[:16] if cm.date_envoi else '—' }}</td>
+          <td class="small">{{ cm.modele_utilise or '—' }}</td>
+          <td class="small font-mono">{{ cm.destinataire_email or '—' }}</td>
+          <td style="max-width:220px" class="text-truncate">{{ cm.objet or '—' }}</td>
+          <td class="text-center">
+            {% if cm.statut == 'envoye' %}
+              <span class="badge bg-success">✅ Envoyé</span>
+            {% elif cm.statut == 'ouvert' %}
+              <span class="badge bg-primary">👁️ Ouvert</span>
+            {% elif cm.statut == 'clique' %}
+              <span class="badge bg-info text-dark">🔗 Cliqué</span>
+            {% elif cm.statut == 'erreur' %}
+              <span class="badge bg-danger">❌ Erreur</span>
+            {% elif cm.statut == 'mailto' %}
+              <span class="badge bg-secondary">📧 Messagerie</span>
+            {% else %}
+              <span class="badge bg-light text-dark">{{ cm.statut }}</span>
+            {% endif %}
+          </td>
+          <td class="small text-muted">
+            {% if cm.date_ouverture %}
+              {{ cm.date_ouverture[:16] }}
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if cm.corps_email %}
+            <button class="btn btn-sm btn-outline-secondary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modal-corps-{{ cm.id }}">
+              <i class="bi bi-eye"></i>
+            </button>
+            <!-- Modal corps -->
+            <div class="modal fade" id="modal-corps-{{ cm.id }}" tabindex="-1">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title">{{ cm.objet or 'Email' }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div style="font-size:12px;color:#64748b;margin-bottom:12px">
+                      Envoyé le {{ cm.date_envoi[:16] if cm.date_envoi else '—' }}
+                      à {{ cm.destinataire_email or '—' }}
+                    </div>
+                    <div style="white-space:pre-wrap;font-family:'Segoe UI',sans-serif;font-size:13px;background:#f8fafc;padding:16px;border-radius:8px">{{ cm.corps_email }}</div>
+                  </div>
+                  <div class="modal-footer">
+                    {% if client.email %}
+                    <button type="button" class="btn btn-primary btn-sm"
+                            onclick="renvoyer('{{ cm.destinataire_email }}', '{{ cm.objet|replace("'","") }}', `{{ cm.corps_email|replace('`','\\`') }}`)">
+                      <i class="bi bi-arrow-repeat me-1"></i>Renvoyer
+                    </button>
+                    {% endif %}
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fermer</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card-crm">
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-envelope-x" style="font-size:48px;opacity:.3"></i>
+    <p class="mt-3">Aucune communication enregistrée pour ce client.</p>
+    <a href="{{ url_for('emails_list') }}" class="btn btn-primary btn-sm mt-2">
+      <i class="bi bi-envelope me-1"></i>Envoyer un email
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<script>
+function verifierStatuts() {
+  const btn = event.target.closest('button');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Vérification...';
+  fetch('/brevo/verifier-statuts/{{ client.id }}', { method: 'POST' })
+    .then(r => r.json()).then(d => {
+      btn.disabled = false; btn.innerHTML = orig;
+      document.getElementById('statuts-result').innerHTML =
+        d.ok
+          ? `<div class="alert alert-success py-2">${d.message}</div>`
+          : `<div class="alert alert-warning py-2">${d.message}</div>`;
+      if (d.nb > 0) setTimeout(() => location.reload(), 1500);
+    }).catch(() => { btn.disabled = false; btn.innerHTML = orig; });
+}
+
+function renvoyer(email, objet, corps) {
+  bootstrap.Modal.getInstance(event.target.closest('.modal')).hide();
+  fetch('/brevo/envoyer', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      client_id: '{{ client.id }}',
+      email_dest: email, objet: objet, corps: corps,
+      modele_nom: 'Renvoi'
+    })
+  }).then(r => r.json()).then(d => {
+    document.getElementById('statuts-result').innerHTML =
+      d.succes
+        ? '<div class="alert alert-success py-2">✅ Email renvoyé !</div>'
+        : `<div class="alert alert-warning py-2">Erreur : ${d.erreur||'inconnue'}</div>`;
+  });
+}
+</script>
+{% endblock %}

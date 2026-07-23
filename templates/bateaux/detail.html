@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block title %}{{ bateau.nom_bateau or 'Bateau' }} — Riviera Marine Assurances{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/bateau_photo.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  BateauPhoto.initFiche(
+    '{{ (bateau.marque or "") | replace("'", "") }}',
+    '{{ (bateau.modele or "") | replace("'", "") }}',
+    '{{ (bateau.type_bateau or "") | replace("'", "") }}',
+    {{ bateau.id }}
+  );
+});
+</script>
+{% endblock %}
+{% block page_title %}Fiche de risque{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <a href="{{ url_for('client_detail', id=bateau.client_id) }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Retour client
+  </a>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('bateau_modifier', id=bateau.id) }}" class="btn btn-primary btn-sm"><i class="bi bi-pencil me-1"></i>Modifier</a>
+    <form method="post" action="{{ url_for('bateau_supprimer', id=bateau.id) }}" onsubmit="return confirm('Supprimer ce bateau ?')">
+      <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+    </form>
+  </div>
+</div>
+
+{% if bateau.annee_fabrication and (2026 - bateau.annee_fabrication) > 20 %}
+<div class="alert alert-warning mb-3 d-flex align-items-center" role="alert" style="border-left:4px solid #f59e0b">
+  <i class="bi bi-exclamation-triangle-fill fs-4 me-2 text-warning"></i>
+  <div>
+    <strong>Alerte Expertise Maritime :</strong> Ce navire a plus de 20 ans (construit en {{ bateau.annee_fabrication }}). Vérifiez la présence d'un rapport d'expertise maritime récent au dossier.
+  </div>
+</div>
+{% endif %}
+
+<!-- HERO BATEAU avec photo -->
+<div class="card-crm mb-4" style="overflow:hidden">
+  <div class="row g-0">
+    <!-- Photo lazy (gauche) -->
+    <div class="col-lg-4 col-md-5" style="min-height:220px">
+      <div id="photo-container-fiche" class="bateau-photo-container" style="border-radius:0;border:none;height:100%;min-height:220px">
+        <div class="bateau-photo-skeleton" style="height:100%;min-height:220px"></div>
+      </div>
+    </div>
+    <!-- Infos principales (droite) -->
+    <div class="col-lg-8 col-md-7">
+      <div style="padding:20px 24px;background:linear-gradient(135deg,#0c3a5c,#1a6b9a);color:#fff;height:100%;display:flex;flex-direction:column;justify-content:center">
+        <h2 style="font-size:22px;font-weight:800;color:#fff;margin:0 0 4px">{{ bateau.nom_bateau or '(sans nom)' }}</h2>
+        <div style="opacity:.8;font-size:14px;margin-bottom:12px">
+          {{ bateau.marque or '' }}{% if bateau.modele %} {{ bateau.modele }}{% endif %}
+          {% if bateau.annee_fabrication %} · {{ bateau.annee_fabrication }}{% endif %}
+          {% if bateau.immatriculation %} · <strong class="font-mono">{{ bateau.immatriculation }}</strong>{% endif %}
+        </div>
+        <div class="d-flex gap-2 flex-wrap mb-3">
+          {% if bateau.type_bateau %}<span class="badge-crm badge-client">{{ bateau.type_bateau }}</span>{% endif %}
+          {% if bateau.usage %}<span class="badge-crm badge-prospect">{{ bateau.usage|title }}</span>{% endif %}
+          {% if bateau.valeur_assurance %}<span style="color:rgba(255,255,255,.9);font-size:13px"><i class="bi bi-shield me-1"></i>{{ "{:,.0f}".format(bateau.valeur_assurance) }} €</span>{% endif %}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          {% if bateau.port_attache %}<div style="font-size:12px;opacity:.7"><i class="bi bi-geo-alt me-1"></i>{{ bateau.port_attache }}</div>{% endif %}
+          {% if bateau.longueur %}<div style="font-size:12px;opacity:.7"><i class="bi bi-rulers me-1"></i>{{ bateau.longueur }} m</div>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- INFOS GÉNÉRALES -->
+  <div class="col-lg-6">
+    <div class="card-crm mb-3">
+      <div class="card-crm-header"><span class="card-crm-title">🛥️ Informations navire</span></div>
+      <div class="p-3">
+        <div class="info-row"><span class="info-label">Propriétaire</span><span class="info-value"><a href="{{ url_for('client_detail', id=bateau.client_id) }}">{{ bateau.prenom or '' }} {{ bateau.nom }}</a></span></div>
+        <div class="info-row"><span class="info-label">Type</span><span class="info-value">{{ bateau.type_bateau or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Marque / Modèle</span><span class="info-value">{{ bateau.marque or '—' }} {{ bateau.modele or '' }}</span></div>
+        <div class="info-row"><span class="info-label">Immatriculation</span><span class="info-value fw-600 font-mono">{{ bateau.immatriculation or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Année fabrication</span><span class="info-value">{{ bateau.annee_fabrication or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Dimensions</span><span class="info-value">
+          {% if bateau.longueur %}{{ bateau.longueur }} m{% endif %}{% if bateau.largeur %} × {{ bateau.largeur }} m{% endif %}
+          {% if not bateau.longueur and not bateau.largeur %}—{% endif %}
+        </span></div>
+        <div class="info-row"><span class="info-label">Pavillon</span><span class="info-value">{{ bateau.pavillon or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Port d'attache</span><span class="info-value">{{ bateau.port_attache or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Zone navigation</span><span class="info-value">{{ bateau.zone_navigation or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Usage</span><span class="info-value">{{ bateau.usage|title if bateau.usage else '—' }}</span></div>
+      </div>
+    </div>
+
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">💰 Valeurs</span></div>
+      <div class="p-3">
+        <div class="info-row"><span class="info-label">Valeur assurée</span><span class="info-value text-money" style="font-size:18px">{% if bateau.valeur_assurance %}{{ "{:,.0f}".format(bateau.valeur_assurance) }} €{% else %}—{% endif %}</span></div>
+        <div class="info-row"><span class="info-label">Valeur à neuf</span><span class="info-value">{% if bateau.valeur_a_neuf and bateau.valeur_a_neuf > 0 %}{{ "{:,.0f}".format(bateau.valeur_a_neuf) }} €{% else %}—{% endif %}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOTORISATION -->
+  <div class="col-lg-6">
+    <div class="card-crm mb-3">
+      <div class="card-crm-header"><span class="card-crm-title">⚙️ Motorisation</span></div>
+      <div class="p-3">
+        <div class="fw-500 mb-2" style="font-size:12px;text-transform:uppercase;color:var(--text-muted)">Moteur principal</div>
+        <div class="info-row"><span class="info-label">Marque</span><span class="info-value">{{ bateau.moteur_marque or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Modèle</span><span class="info-value">{{ bateau.moteur_modele or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Puissance</span><span class="info-value">{% if bateau.moteur_puissance %}{{ bateau.moteur_puissance|int }} CV{% else %}—{% endif %}</span></div>
+        <div class="info-row"><span class="info-label">Année</span><span class="info-value">{{ bateau.moteur_annee or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Type montage</span><span class="info-value">{{ bateau.moteur_type|replace('_',' ')|title if bateau.moteur_type else '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Carburant</span><span class="info-value">{{ bateau.moteur_carburant|title if bateau.moteur_carburant else '—' }}</span></div>
+        <div class="info-row"><span class="info-label">N° de série</span><span class="info-value font-mono">{{ bateau.moteur_serie or '—' }}</span></div>
+        {% if bateau.moteur2_marque %}
+        <div class="fw-500 mt-3 mb-2" style="font-size:12px;text-transform:uppercase;color:var(--text-muted)">2ème moteur</div>
+        <div class="info-row"><span class="info-label">Marque</span><span class="info-value">{{ bateau.moteur2_marque }}</span></div>
+        <div class="info-row"><span class="info-label">Puissance</span><span class="info-value">{% if bateau.moteur2_puissance %}{{ bateau.moteur2_puissance|int }} CV{% else %}—{% endif %}</span></div>
+        <div class="info-row"><span class="info-label">N° de série</span><span class="info-value font-mono">{{ bateau.moteur2_serie or '—' }}</span></div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if bateau.notes %}
+    <div class="card-crm mb-3">
+      <div class="card-crm-header"><span class="card-crm-title">📝 Notes</span></div>
+      <div class="p-3" style="font-size:14px;color:#374151">{{ bateau.notes }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- CONTRATS LIÉS -->
+<div class="card-crm mt-3">
+  <div class="card-crm-header">
+    <span class="card-crm-title"><i class="bi bi-file-earmark-text me-2 text-primary"></i>Contrats liés ({{ contrats|length }})</span>
+    <a href="{{ url_for('contrat_nouveau') }}?client_id={{ bateau.client_id }}" class="btn btn-sm btn-outline-secondary">Nouveau contrat</a>
+  </div>
+  {% if contrats %}
+  <table class="table-crm">
+    <thead><tr><th>N°</th><th>Compagnie</th><th>Produit</th><th>Prime/an</th><th>Statut</th></tr></thead>
+    <tbody>
+      {% for ct in contrats %}
+      <tr>
+        <td class="fw-500">{{ ct.numero or '—' }}</td>
+        <td>{{ ct.compagnie or '—' }}</td>
+        <td>{{ ct.type_assurance or '—' }}</td>
+        <td class="text-money">{{ "%.2f"|format(ct.prime_annuelle) }} €</td>
+        <td><span class="badge-crm badge-{{ ct.statut }}">{{ ct.statut|replace('_',' ')|title }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state py-4"><i class="bi bi-file-earmark" style="font-size:28px"></i><p class="mb-0">Aucun contrat lié</p></div>
+  {% endif %}
+</div>
+
+<!-- SINISTRES LIÉS -->
+<div class="card-crm mt-3">
+  <div class="card-crm-header">
+    <span class="card-crm-title"><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Sinistres liés ({{ sinistres|length }})</span>
+  </div>
+  {% if sinistres %}
+  <table class="table-crm">
+    <thead><tr><th>N°</th><th>Client</th><th>Type</th><th>Date</th><th>Montant</th><th>Statut</th></tr></thead>
+    <tbody>
+      {% for s in sinistres %}
+      <tr>
+        <td>{{ s.numero or '—' }}</td>
+        <td>{{ s.prenom or '' }} {{ s.nom }}</td>
+        <td>{{ s.type_sinistre or '—' }}</td>
+        <td class="text-muted">{{ s.date_sinistre or '—' }}</td>
+        <td class="text-money">{{ "%.0f"|format(s.montant_estime) }} €</td>
+        <td><span class="badge-crm badge-{{ s.statut }}">{{ s.statut|title }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state py-4"><i class="bi bi-shield-check" style="font-size:28px"></i><p class="mb-0">Aucun sinistre</p></div>
+  {% endif %}
+</div>
+{% endblock %}

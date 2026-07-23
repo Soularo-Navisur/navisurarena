@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Saisie multi-devis — NAVISUR{% endblock %}
+{% block page_title %}Saisie multi-devis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">📋 Saisie multi-devis</h1>
+  <p style="font-size:13px;color:#64748b;margin-top:4px">Comparez plusieurs compagnies pour un même risque</p>
+</div>
+
+<form method="post" id="form-multi">
+  <div class="form-card mb-3">
+    <div class="form-section-title">👤 Client &amp; Risque</div>
+    <div class="row g-3">
+      <div class="col-md-5">
+        <label class="form-label">Client *</label>
+        <select name="client_id" id="sel-client-multi" class="form-select" required
+                onchange="loadRisquesMulti(this.value)">
+          <option value="">— Sélectionner —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}" {{ 'selected' if client_id and client_id|int==c.id }}>
+            {{ c.prenom or '' }} {{ c.nom }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Risque concerné</label>
+        <select name="risque_id" id="sel-risque-multi" class="form-select">
+          <option value="">— Sélectionner un risque —</option>
+          {% for r in risques %}
+          <option value="{{ r.id }}">{{ r.type_risque|replace('_',' ')|title }} — {{ r.libelle }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Type de produit *</label>
+        <select name="type_assurance" class="form-select" required>
+          <option value="">— Sélectionner —</option>
+          {% for p in produits %}
+          <option value="{{ p }}">{{ p }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="form-section-title" style="margin:0">🏢 Propositions par compagnie</div>
+      <button type="button" class="btn btn-outline-secondary btn-sm" onclick="addRow()">
+        <i class="bi bi-plus me-1"></i>Ajouter une compagnie
+      </button>
+    </div>
+
+    <table class="table-crm" id="table-devis">
+      <thead>
+        <tr>
+          <th style="width:200px">Compagnie *</th>
+          <th style="width:140px">Prime annuelle (€)</th>
+          <th style="width:120px">Franchise (€)</th>
+          <th>Note de conseil (DDA) *</th>
+          <th style="width:40px"></th>
+        </tr>
+      </thead>
+      <tbody id="tbody-devis">
+        <!-- Lignes générées par JS -->
+      </tbody>
+    </table>
+
+    <div class="p-3 mt-2" style="background:#eff6ff;border-radius:8px;font-size:12px;color:#1e40af">
+      <i class="bi bi-info-circle me-1"></i>
+      Saisissez une ligne par compagnie consultée. La note de conseil est obligatoire (DDA) — expliquez brièvement pourquoi vous recommandez ou non ce produit.
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 mt-3">
+    <button type="submit" class="btn btn-primary" style="padding:10px 24px">
+      <i class="bi bi-check-lg me-1"></i>Créer les devis
+    </button>
+    <a href="javascript:history.back()" class="btn btn-outline-secondary">Annuler</a>
+  </div>
+</form>
+
+<script>
+let rowCount = 0;
+
+function addRow(cp='', prime='', note='') {
+  const tbody = document.getElementById('tbody-devis');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" name="compagnie[]" class="form-control form-control-sm"
+               value="${cp}" placeholder="Pantaenius, Generali..." required></td>
+    <td><input type="number" name="prime[]" class="form-control form-control-sm"
+               value="${prime}" step="1" min="0" placeholder="0"></td>
+    <td><input type="number" name="franchise[]" class="form-control form-control-sm"
+               step="50" min="0" placeholder="0"></td>
+    <td><input type="text" name="note_conseil[]" class="form-control form-control-sm"
+               value="${note}" placeholder="Ex : Meilleur rapport garanties/prix pour la zone méditerranée..."></td>
+    <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove()">
+      <i class="bi bi-trash"></i></button></td>
+  `;
+  tbody.appendChild(tr);
+  rowCount++;
+}
+
+function loadRisquesMulti(clientId) {
+  if (!clientId) return;
+  fetch('/api/clients/' + clientId + '/risques')
+    .then(r => r.json())
+    .then(data => {
+      const sel = document.getElementById('sel-risque-multi');
+      let opts = '<option value="">— Sélectionner un risque —</option>';
+      if (data.risques && data.risques.length) {
+        data.risques.forEach(r => {
+          opts += `<option value="${r.id}">${r.type} — ${r.libelle}</option>`;
+        });
+      }
+      if (data.bateaux && data.bateaux.length) {
+        data.bateaux.forEach(b => {
+          opts += `<option value="b_${b.id}">${b.libelle}</option>`;
+        });
+      }
+      sel.innerHTML = opts;
+    });
+}
+
+// Init with 3 rows
+addRow();addRow();addRow();
+
+// Load risques if client pre-selected
+const selClient = document.getElementById('sel-client-multi');
+if (selClient.value) loadRisquesMulti(selClient.value);
+</script>
+{% endblock %}

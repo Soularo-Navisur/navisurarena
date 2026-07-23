@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Bordereaux assureurs — NAVISUR{% endblock %}
+{% block page_title %}Bordereaux assureurs{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📋 Bordereaux assureurs</h1>
+    <p class="page-header-sub">Virements à reverser aux compagnies (prime - frais)</p>
+  </div>
+  <a href="{{ url_for('bordereau_nouveau') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus me-1"></i>Nouveau bordereau
+  </a>
+</div>
+
+<div class="card-crm">
+  {% if rows %}
+  <table class="table-crm">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Compagnie</th>
+        <th class="text-end">Prime TTC</th>
+        <th class="text-end">Frais</th>
+        <th class="text-end">Virement</th>
+        <th>Réf.</th>
+        <th>Statut</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in rows %}
+      <tr>
+        <td>{{ b.date_bordereau or '—' }}</td>
+        <td class="fw-semibold">{{ b.compagnie }}</td>
+        <td class="text-end">{{ "%.2f"|format(b.montant_total_ttc) }} €</td>
+        <td class="text-end text-muted">{{ "%.2f"|format(b.total_frais_courtage) }} €</td>
+        <td class="text-end fw-bold" style="color:#16a34a">{{ "%.2f"|format(b.montant_virement) }} €</td>
+        <td class="font-mono small">{{ b.reference_virement or '—' }}</td>
+        <td>
+          {% if b.statut == 'envoye' %}<span class="badge-crm badge-clos">Envoyé</span>
+          {% elif b.statut == 'paye' %}<span class="badge-crm badge-clos">Payé</span>
+          {% else %}<span class="badge-crm badge-inactif">Brouillon</span>{% endif %}
+        </td>
+        <td>
+          <a href="{{ url_for('bordereau_imprimer', id=b.id) }}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Imprimer">
+            <i class="bi bi-printer"></i>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state py-5">
+    <i class="bi bi-file-earmark-text" style="font-size:40px;opacity:.2"></i>
+    <h5 class="mt-3">Aucun bordereau</h5>
+    <a href="{{ url_for('bordereau_nouveau') }}" class="btn btn-primary btn-sm mt-2">Créer un bordereau</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

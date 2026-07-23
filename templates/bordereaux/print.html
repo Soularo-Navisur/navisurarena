@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><title>Bordereau {{ b.id }}</title>
+<style>
+@page { size:A4; margin:14mm 16mm; }
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',sans-serif;font-size:13px;color:#1a2e5a}
+.page{width:100%;max-width:210mm;margin:0 auto;padding:10mm}
+.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a2e5a;padding-bottom:16px;margin-bottom:24px}
+.doc-type{font-family:serif;font-size:26px;font-weight:600;color:#1a2e5a}
+.doc-num{font-size:13px;color:#c9a84c;font-weight:700;margin-top:4px}
+.boxes{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+.box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px}
+.bt{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:6px}
+.bn{font-size:15px;font-weight:700;color:#1a2e5a;margin-bottom:4px}
+.bd{font-size:11.5px;color:#475569;line-height:1.6}
+.intro{background:#f0f4ff;border-left:4px solid #1a2e5a;border-radius:0 6px 6px 0;padding:10px 14px;margin-bottom:20px;font-size:12px}
+table{width:100%;border-collapse:collapse;margin-bottom:20px}
+th{background:#1a2e5a;color:#fff;padding:10px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;text-align:left}
+td{padding:10px 12px;border-bottom:1px solid #f1f5f9;font-size:12px}
+td:last-child,th:last-child{text-align:right}
+.totals{display:flex;justify-content:flex-end;margin-bottom:20px}
+.totals-box{width:280px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden}
+.tr{display:flex;justify-content:space-between;padding:8px 14px;font-size:12px;border-bottom:1px solid #f1f5f9}
+.tr:last-child{background:#1a2e5a;color:#fff;font-weight:700;font-size:14px;border:none}
+.tr .tl{color:#64748b}.tr:last-child .tl{color:rgba(255,255,255,.7)}
+.sig{margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.sig-box{border-top:1px solid #e2e8f0;padding-top:8px;font-size:11px;color:#64748b}
+.footer{text-align:center;font-size:10px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px;margin-top:24px}
+@media print{body{background:#fff!important}}
+@media screen{body{background:#f1f5f9}.page{box-shadow:0 4px 24px rgba(0,0,0,.12);background:#fff;margin:20px auto}}
+</style></head>
+<body>
+<div class="page">
+<div class="header">
+  <div>
+    <div style="font-size:18px;font-weight:800">{{ params.cabinet_nom or 'Riviera Marine Assurances' }}</div>
+    <div style="font-size:11px;color:#64748b;margin-top:4px">
+      {% if params.cabinet_adresse %}{{ params.cabinet_adresse }}<br>{% endif %}
+      {% if params.cabinet_orias %}ORIAS n° {{ params.cabinet_orias }}{% endif %}
+    </div>
+  </div>
+  <div style="text-align:right">
+    <div class="doc-type">Bordereau assureur</div>
+    <div class="doc-num">N° {{ b.id }} — {{ b.date_bordereau }}</div>
+  </div>
+</div>
+
+<div class="boxes">
+  <div class="box">
+    <div class="bt">Compagnie destinataire</div>
+    <div class="bn">{{ b.compagnie }}</div>
+    <div class="bd">Virement depuis le compte du courtier</div>
+  </div>
+  <div class="box">
+    <div class="bt">Résumé</div>
+    <div class="bd">
+      Quittances inclues : <strong>{{ lignes|length }}</strong><br>
+      Référence virement : <strong>{{ b.reference_virement or '—' }}</strong><br>
+      RIB : <span style="font-family:monospace">{{ b.rib_courtier or params.cabinet_iban or '—' }}</span>
+    </div>
+  </div>
+</div>
+
+<div class="intro">
+  <strong>Objet :</strong> Reversé des primes nettes de frais de courtage — Total virement : <strong>{{ "%.2f"|format(b.montant_virement) }} €</strong>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>N° Police</th>
+      <th>Assuré</th>
+      <th class="text-end">Prime TTC</th>
+      <th class="text-end">Frais courtage</th>
+      <th class="text-end">Net à reverser</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for l in lignes %}
+    <tr>
+      <td class="font-mono">{{ l.police or l.police_numero or '—' }}</td>
+      <td>{{ l.prenom or '' }} {{ l.nom or l.client_nom or '' }}</td>
+      <td class="text-end">{{ "%.2f"|format(l.prime_ttc or 0) }} €</td>
+      <td class="text-end text-muted">{{ "%.2f"|format(l.frais_courtage or 0) }} €</td>
+      <td class="text-end fw-semibold" style="color:#16a34a">{{ "%.2f"|format(l.net_a_reverser or 0) }} €</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="totals">
+  <div class="totals-box">
+    <div class="tr"><span class="tl">Total primes TTC</span><span>{{ "%.2f"|format(b.montant_total_ttc) }} €</span></div>
+    <div class="tr"><span class="tl">Total frais courtage</span><span>{{ "%.2f"|format(b.total_frais_courtage) }} €</span></div>
+    <div class="tr"><span class="tl">MONTANT VIREMENT</span><span>{{ "%.2f"|format(b.montant_virement) }} €</span></div>
+  </div>
+</div>
+
+<div class="sig">
+  <div class="sig-box">Fait à {{ params.cabinet_ville or '…' }}, le {{ now.strftime('%d/%m/%Y') }}<br><br><br><strong>{{ params.cabinet_nom or 'Riviera Marine Assurances' }}</strong></div>
+  <div class="sig-box" style="text-align:right">Visa compagnie<br><br><br>Date et signature</div>
+</div>
+
+<div class="footer">
+  <strong>{{ params.cabinet_nom or 'Riviera Marine Assurances' }}</strong>
+  {% if params.cabinet_orias %} — ORIAS n° {{ params.cabinet_orias }}{% endif %}
+  <br>Document émis le {{ now.strftime('%d/%m/%Y') }}
+</div>
+</div>
+</body></html>

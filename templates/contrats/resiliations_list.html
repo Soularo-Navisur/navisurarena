@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block title %}Résiliations — NAVISUR{% endblock %}
+{% block page_title %}Résiliations{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🔴 Résiliations {{ annee }}</h1>
+    <p class="page-header-sub">Suivi des résiliations et régularisations</p>
+  </div>
+  <form method="get" class="d-flex gap-2">
+    <select name="annee" class="form-select form-select-sm" onchange="this.form.submit()" style="width:auto">
+      {% for a in annees %}<option value="{{ a }}" {{ 'selected' if a==annee }}>{{ a }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
+
+<!-- Stats -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon red"><i class="bi bi-x-circle"></i></div>
+      <div><div class="stat-value">{{ stats.nb }}</div><div class="stat-label">Résiliations</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fef2f2;color:#dc2626"><i class="bi bi-person-dash"></i></div>
+      <div><div class="stat-value">{{ stats.client }}</div><div class="stat-label">Par le client</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon orange"><i class="bi bi-building-x"></i></div>
+      <div><div class="stat-value">{{ stats.cie }}</div><div class="stat-label">Par la cie</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f0fdf4;color:#16a34a"><i class="bi bi-arrow-return-left"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:16px">{{ "{:,.0f}".format(stats.ristourne_total).replace(",", " ") }} €</div>
+        <div class="stat-label">Ristournes (info)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon orange"><i class="bi bi-dash-circle"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:16px">{{ "{:,.0f}".format(stats.comm_deduire).replace(",", " ") }} €</div>
+        <div class="stat-label">Comm. à régulariser</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f5f3ff;color:#8b5cf6"><i class="bi bi-receipt"></i></div>
+      <div>
+        <div class="stat-value" style="font-size:16px">{{ "{:,.0f}".format(stats.frais_total).replace(",", " ") }} €</div>
+        <div class="stat-label">Frais courtage</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filtres motif -->
+<form method="get" class="search-bar mb-3">
+  <input type="hidden" name="annee" value="{{ annee }}">
+  <select name="motif" class="form-select" style="width:auto">
+    <option value="">Tous motifs</option>
+    <optgroup label="Client">
+      {% for val, lbl in motifs if not val.startswith('cie_') and val not in ('commun_accord','echeance') %}
+      <option value="{{ val }}" {{ 'selected' if motif_filter==val }}>{{ lbl }}</option>
+      {% endfor %}
+    </optgroup>
+    <optgroup label="Compagnie">
+      {% for val, lbl in motifs if val.startswith('cie_') %}
+      <option value="{{ val }}" {{ 'selected' if motif_filter==val }}>{{ lbl }}</option>
+      {% endfor %}
+    </optgroup>
+    <optgroup label="Autre">
+      {% for val, lbl in motifs if val in ('commun_accord','echeance') %}
+      <option value="{{ val }}" {{ 'selected' if motif_filter==val }}>{{ lbl }}</option>
+      {% endfor %}
+    </optgroup>
+  </select>
+  <button type="submit" class="btn btn-primary">Filtrer</button>
+  {% if motif_filter %}<a href="{{ url_for('resiliations_list', annee=annee) }}" class="btn btn-outline-secondary">✕</a>{% endif %}
+</form>
+
+<div class="card-crm">
+  {% if resiliations %}
+  <table class="table-crm">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Client</th>
+        <th>Contrat</th>
+        <th>Motif</th>
+        <th class="text-end">Ristourne</th>
+        <th class="text-end">Comm. à déduire</th>
+        <th>Frais</th>
+        <th>Suivi</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set motifs_dict = dict(motifs) %}
+      {% for r in resiliations %}
+      <tr>
+        <td class="text-muted" style="font-size:12px;white-space:nowrap">{{ r.date_resiliation }}</td>
+        <td>
+          <div class="fw-600">{{ r.prenom or '' }} {{ r.nom }}</div>
+          {% if r.email %}<div class="text-muted" style="font-size:11px">{{ r.email }}</div>{% endif %}
+        </td>
+        <td style="font-size:12px">
+          <div>{{ r.type_assurance or '—' }}</div>
+          {% if r.numero %}<div class="font-mono text-muted" style="font-size:11px">{{ r.numero }}</div>{% endif %}
+          <div class="text-muted" style="font-size:11px">{{ r.compagnie or '' }}</div>
+        </td>
+        <td style="font-size:12px">
+          {% set lbl = motifs_dict.get(r.motif, r.motif) %}
+          {% if r.motif.startswith('cie_') %}
+          <span class="badge-crm badge-ouvert" style="font-size:11px">🏢 {{ lbl }}</span>
+          {% elif r.motif in ('commun_accord','echeance') %}
+          <span class="badge-crm badge-inactif" style="font-size:11px">🤝 {{ lbl }}</span>
+          {% else %}
+          <span class="badge-crm badge-resilie" style="font-size:11px">👤 {{ lbl }}</span>
+          {% endif %}
+        </td>
+        <td class="text-end" style="font-size:13px">
+          {% if r.ristourne_montant > 0 %}
+          <div class="fw-600" style="color:#16a34a">{{ "{:,.2f}".format(r.ristourne_montant) }} €</div>
+          <div style="font-size:10px;color:#94a3b8">{{ '✅ Reçue' if r.ristourne_recue else '⏳ En attente' }}</div>
+          {% else %}<span class="text-muted">—</span>{% endif %}
+        </td>
+        <td class="text-end" style="font-size:13px">
+          {% if r.commission_a_deduire > 0 %}
+          <div class="fw-600 text-danger">-{{ "{:,.2f}".format(r.commission_a_deduire) }} €</div>
+          <div style="font-size:10px;color:#94a3b8">{{ '✅ Régularisée' if r.commission_regularisee else '⏳ À régulariser' }}</div>
+          {% else %}<span class="text-muted">—</span>{% endif %}
+        </td>
+        <td style="font-size:12px">
+          {% if r.frais_courtage_appliquer and r.frais_courtage_montant > 0 %}
+          <span class="fw-600" style="color:#8b5cf6">{{ "{:,.0f}".format(r.frais_courtage_montant) }} €</span>
+          {% else %}<span class="text-muted">—</span>{% endif %}
+        </td>
+        <td>
+          <div class="d-flex gap-1 flex-column" style="font-size:11px">
+            {% if r.ristourne_montant > 0 and not r.ristourne_recue %}
+            <form method="post" action="{{ url_for('resiliation_ristourne_recue', id=r.id) }}" style="margin:0">
+              <button class="btn btn-xs btn-outline-success" style="font-size:11px;padding:2px 8px">✓ Ristourne reçue</button>
+            </form>
+            {% endif %}
+            {% if r.commission_a_deduire > 0 and not r.commission_regularisee %}
+            <form method="post" action="{{ url_for('resiliation_regulariser', id=r.id) }}" style="margin:0">
+              <button class="btn btn-xs btn-outline-secondary" style="font-size:11px;padding:2px 8px">✓ Comm. régularisée</button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{{ url_for('contrat_resiliation_detail', id=r.contrat_id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+            <a href="{{ url_for('contrat_resilier', id=r.contrat_id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state py-5">
+    <i class="bi bi-x-circle" style="font-size:48px;opacity:.2"></i>
+    <h5 class="mt-3">Aucune résiliation en {{ annee }}</h5>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

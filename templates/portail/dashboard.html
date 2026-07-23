@@ -1,0 +1,125 @@
+{% extends 'portail/base_portail.html' %}
+{% block title %}Mon espace{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:24px">
+  <h1 style="font-family:'Playfair Display',serif;font-size:24px;font-weight:900;color:#0f1e3c;margin:0">
+    Bonjour {{ cp.prenom or '' }} {{ cp.nom }} 👋
+  </h1>
+  <p style="color:#64748b;font-size:14px;margin-top:4px">
+    Votre espace assurance plaisance
+  </p>
+</div>
+
+<!-- KPIs rapides -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="p-card text-center">
+      <div style="font-size:28px;font-weight:900;color:#c9a84c;font-family:'Playfair Display',serif">{{ contrats|length }}</div>
+      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-top:2px">Contrat{{ 's' if contrats|length > 1 }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="p-card text-center">
+      <div style="font-size:28px;font-weight:900;color:#c9a84c;font-family:'Playfair Display',serif">{{ docs|length }}</div>
+      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-top:2px">Documents</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="p-card text-center">
+      <div style="font-size:28px;font-weight:900;color:{{ '#dc2626' if sinistres|length > 0 else '#c9a84c' }};font-family:'Playfair Display',serif">{{ sinistres|length }}</div>
+      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-top:2px">Sinistre{{ 's' if sinistres|length > 1 }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="p-card text-center">
+      {% set en_attente = demandes|selectattr('statut','eq','en_attente')|list|length %}
+      <div style="font-size:28px;font-weight:900;color:{{ '#f59e0b' if en_attente > 0 else '#c9a84c' }};font-family:'Playfair Display',serif">{{ en_attente }}</div>
+      <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-top:2px">Demande{{ 's' if en_attente > 1 }} en cours</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Contrats actifs -->
+  <div class="col-lg-7">
+    <div class="p-card">
+      <div class="p-card-title"><i class="bi bi-file-earmark-check" style="color:#c9a84c"></i> Mes contrats actifs</div>
+      {% if contrats %}
+        {% for ct in contrats %}
+        <div class="contrat-card">
+          <div style="font-size:28px">⛵</div>
+          <div class="contrat-info">
+            <div class="contrat-company">{{ ct.compagnie or '—' }}</div>
+            <div class="contrat-detail">
+              {{ ct.nom_bateau or '—' }}
+              {% if ct.type_assurance %} · {{ ct.type_assurance }}{% endif %}
+            </div>
+            <div class="contrat-detail" style="font-size:11px;margin-top:3px">
+              Échéance : <strong>{{ ct.date_fin or '—' }}</strong>
+              · <span class="contrat-num">{{ ct.numero }}</span>
+            </div>
+          </div>
+          <div>
+            <span class="badge-actif">✅ Actif</span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p style="color:#94a3b8;font-size:13px;text-align:center;padding:24px 0">Aucun contrat actif</p>
+      {% endif %}
+      <div style="margin-top:12px">
+        <a href="{{ url_for('portail_attestations') }}" style="font-size:13px;color:#c9a84c;text-decoration:none">
+          🛡️ Télécharger mes attestations →
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions rapides + Dernières demandes -->
+  <div class="col-lg-5">
+    <!-- Actions rapides -->
+    <div class="p-card mb-3">
+      <div class="p-card-title"><i class="bi bi-lightning" style="color:#c9a84c"></i> Actions rapides</div>
+      <div class="d-grid gap-2">
+        <a href="{{ url_for('portail_attestations') }}" class="btn btn-sm"
+           style="background:#0f1e3c;color:white;border-radius:8px;padding:10px;font-size:13px;font-weight:600;text-decoration:none;text-align:center">
+          🛡️ Télécharger une attestation
+        </a>
+        <a href="{{ url_for('portail_documents') }}" class="btn btn-sm"
+           style="background:#f8fafc;border:1px solid #e2e8f0;color:#1e293b;border-radius:8px;padding:10px;font-size:13px;font-weight:500;text-decoration:none;text-align:center">
+          📁 Mes documents
+        </a>
+        <a href="{{ url_for('portail_demandes') }}" class="btn btn-sm"
+           style="background:#f8fafc;border:1px solid #e2e8f0;color:#1e293b;border-radius:8px;padding:10px;font-size:13px;font-weight:500;text-decoration:none;text-align:center">
+          💬 Faire une demande
+        </a>
+      </div>
+    </div>
+
+    <!-- Dernières demandes -->
+    {% if demandes %}
+    <div class="p-card">
+      <div class="p-card-title"><i class="bi bi-chat-square-text" style="color:#c9a84c"></i> Mes dernières demandes</div>
+      {% for d in demandes[:3] %}
+      <div style="padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:13px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:600;color:#1e293b">{{ d.type_demande }}</span>
+          <span class="{{ 'badge-attente' if d.statut == 'en_attente' else 'badge-traite' }}">
+            {{ 'En attente' if d.statut == 'en_attente' else 'Traitée' }}
+          </span>
+        </div>
+        <div style="color:#64748b;margin-top:2px;font-size:12px">{{ d.date_creation[:10] }}</div>
+        {% if d.reponse %}
+        <div style="margin-top:6px;padding:8px;background:#f8fafc;border-radius:6px;font-size:12px;border-left:2px solid #c9a84c">
+          {{ d.reponse[:100] }}{% if d.reponse|length > 100 %}…{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+      <a href="{{ url_for('portail_demandes') }}" style="font-size:12px;color:#c9a84c;text-decoration:none;display:block;margin-top:10px">Voir toutes mes demandes →</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

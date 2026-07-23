@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% block title %}URSSAF — NAVISUR{% endblock %}
+{% block page_title %}Déclarations URSSAF{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🏛️ Assistant URSSAF</h1>
+    <p class="page-header-sub">Déclarations auto-entrepreneur · Micro-entreprise BNC</p>
+  </div>
+  <div class="d-flex gap-2">
+    <form method="get" class="d-flex gap-2">
+      <select name="annee" class="form-select form-select-sm" onchange="this.form.submit()">
+        {% for a in annees %}<option value="{{ a }}" {{ 'selected' if a==annee }}>{{ a }}</option>{% endfor %}
+      </select>
+    </form>
+    <a href="{{ lien_urssaf }}" target="_blank" class="btn btn-primary">
+      <i class="bi bi-box-arrow-up-right me-1"></i>autoentrepreneur.urssaf.fr
+    </a>
+  </div>
+</div>
+
+<!-- INFO BOX -->
+<div class="card-crm mb-4" style="border-left:4px solid #1a2e5a">
+  <div class="p-4">
+    <div class="row g-3 align-items-center">
+      <div class="col-md-6">
+        <div style="font-size:13px;color:#64748b;margin-bottom:8px">Statut fiscal</div>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge-crm" style="background:#eff6ff;color:#1a2e5a">Micro-entreprise BNC</span>
+          <span class="badge-crm" style="background:#f0fdf4;color:#166534">Franchise TVA (art. 293 B)</span>
+          <span class="badge-crm" style="background:#fef9c3;color:#92400e">{{ periodicite|title }}</span>
+          {% if vl_actif %}<span class="badge-crm" style="background:#f5f3ff;color:#5b21b6">VL IR activé</span>{% endif %}
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="row g-2 text-center">
+          <div class="col-4">
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase">CA {{ annee }}</div>
+            <div style="font-size:18px;font-weight:700;color:#1a2e5a">{{ "{:,.0f}".format(ca_annee).replace(",", " ") }} €</div>
+          </div>
+          <div class="col-4">
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase">Cotisations ({{ taux_cot }}%)</div>
+            <div style="font-size:18px;font-weight:700;color:#c2410c">{{ "{:,.0f}".format(cot_annee).replace(",", " ") }} €</div>
+          </div>
+          <div class="col-4">
+            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase">Total à payer</div>
+            <div style="font-size:18px;font-weight:700;color:#d97706">{{ "{:,.0f}".format(tot_annee).replace(",", " ") }} €</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DÉCLARATIONS -->
+<div class="row g-3">
+  {% for d in decls %}
+  {% set is_late = d.statut == 'en_retard' %}
+  {% set is_done = d.statut == 'faite' %}
+  <div class="col-md-6">
+    <div class="card-crm" style="border-left: 4px solid {% if is_done %}#22c55e{% elif is_late %}#dc2626{% else %}#c9a84c{% endif %}">
+      <div class="p-4">
+        <!-- Titre période -->
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <div style="font-size:18px;font-weight:800;color:#1a2e5a">
+              {% if d.trimestre %}T{{ d.trimestre }} {{ d.annee }}
+              {% else %}{% set mois_noms = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'] %}
+              {{ mois_noms[d.mois-1] }} {{ d.annee }}{% endif %}
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-top:2px">
+              {% if d.trimestre %}
+              Mois {{ (d.trimestre-1)*3+1 }} à {{ d.trimestre*3 }}
+              {% endif %}
+            </div>
+          </div>
+          <div style="text-align:right">
+            {% if is_done %}
+            <span style="background:#dcfce7;color:#166534;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700">✅ Faite</span>
+            {% elif is_late %}
+            <span style="background:#fee2e2;color:#b91c1c;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700">🔴 En retard</span>
+            {% else %}
+            <span style="background:#fef9c3;color:#92400e;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700">⏳ À faire</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Données -->
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <div style="background:#f8fafc;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">CA à déclarer</div>
+              <div style="font-size:20px;font-weight:800;color:#1a2e5a">{{ "{:,.2f}".format(d.ca_periode).replace(",", " ") }} €</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div style="background:{% if is_late %}#fef2f2{% elif is_done %}#f0fdf4{% else %}#fff7ed{% endif %};border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">Cotisations dues</div>
+              <div style="font-size:20px;font-weight:800;color:{% if is_late %}#dc2626{% elif is_done %}#16a34a{% else %}#c2410c{% endif %}">
+                {{ "{:,.2f}".format(d.total_a_payer).replace(",", " ") }} €
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Détail calcul -->
+        <div style="background:#f8fafc;border-radius:8px;padding:12px;font-size:12px;margin-bottom:16px">
+          <div class="d-flex justify-content-between mb-1">
+            <span style="color:#64748b">Cotisations sociales ({{ taux_cot }}%)</span>
+            <span class="fw-600">{{ "{:,.2f}".format(d.cotisations_sociales).replace(",", " ") }} €</span>
+          </div>
+          {% if d.versement_liberatoire > 0 %}
+          <div class="d-flex justify-content-between mb-1">
+            <span style="color:#64748b">Versement libératoire IR ({{ taux_vl }}%)</span>
+            <span class="fw-600">{{ "{:,.2f}".format(d.versement_liberatoire).replace(",", " ") }} €</span>
+          </div>
+          {% endif %}
+          <div style="border-top:1px solid #e2e8f0;margin-top:6px;padding-top:6px" class="d-flex justify-content-between">
+            <span style="font-weight:700;color:#1a2e5a">TOTAL À PAYER</span>
+            <span style="font-weight:800;color:#c2410c">{{ "{:,.2f}".format(d.total_a_payer).replace(",", " ") }} €</span>
+          </div>
+        </div>
+
+        <!-- Date limite -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <span style="font-size:12px;color:#64748b">Date limite :</span>
+            <span style="font-size:13px;font-weight:700;color:{% if is_late %}#dc2626{% elif is_done %}#16a34a{% else %}#1a2e5a{% endif %};margin-left:6px">
+              {{ d.date_limite or '—' }}
+            </span>
+          </div>
+          {% if d.date_declaration %}
+          <span style="font-size:11px;color:#94a3b8">Déclaré le {{ d.date_declaration }}</span>
+          {% endif %}
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex gap-2">
+          {% if not is_done %}
+          <a href="{{ lien_urssaf }}" target="_blank" class="btn btn-primary flex-grow-1">
+            <i class="bi bi-box-arrow-up-right me-1"></i>Déclarer sur URSSAF
+          </a>
+          <form method="post" action="{{ url_for('urssaf_marquer_faite', id=d.id) }}" style="margin:0">
+            <button type="submit" class="btn btn-success" title="Marquer comme effectuée">✓ Faite</button>
+          </form>
+          {% else %}
+          <div class="flex-grow-1 p-2 text-center" style="background:#f0fdf4;border-radius:8px;font-size:13px;color:#166534;font-weight:600">
+            ✅ Déclarée le {{ d.date_declaration }}
+          </div>
+          <form method="post" action="{{ url_for('urssaf_reinit', id=d.id) }}" style="margin:0">
+            <button type="submit" class="btn btn-outline-secondary btn-sm" title="Réinitialiser">↺</button>
+          </form>
+          {% endif %}
+        </div>
+
+        {% if d.ca_periode == 0 and not is_done %}
+        <div class="mt-2 p-2" style="background:#f1f5f9;border-radius:6px;font-size:12px;color:#64748b">
+          ℹ️ Aucune recette enregistrée pour cette période — vous devez quand même déclarer 0 €.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if not decls %}
+  <div class="col-12">
+    <div class="card-crm">
+      <div class="empty-state py-5">
+        <i class="bi bi-building-check" style="font-size:48px;opacity:.2"></i>
+        <h5 class="mt-3">Aucune déclaration pour {{ annee }}</h5>
+        <p class="text-muted">Les périodes seront initialisées automatiquement</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- RAPPEL RÉGLEMENTAIRE -->
+<div class="card-crm mt-4">
+  <div class="card-crm-header"><span class="card-crm-title">📚 Rappel réglementaire</span></div>
+  <div class="p-4">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <h6 class="fw-700 mb-2" style="color:#1a2e5a">Dates limites trimestrielles</h6>
+        <ul class="list-unstyled" style="font-size:13px;color:#475569">
+          <li class="mb-1">📅 <strong>30 avril</strong> — T1 (janvier, février, mars)</li>
+          <li class="mb-1">📅 <strong>31 juillet</strong> — T2 (avril, mai, juin)</li>
+          <li class="mb-1">📅 <strong>31 octobre</strong> — T3 (juillet, août, septembre)</li>
+          <li class="mb-1">📅 <strong>31 janvier N+1</strong> — T4 (octobre, novembre, décembre)</li>
+        </ul>
+      </div>
+      <div class="col-md-6">
+        <h6 class="fw-700 mb-2" style="color:#1a2e5a">Taux applicables BNC</h6>
+        <ul class="list-unstyled" style="font-size:13px;color:#475569">
+          <li class="mb-1">💰 <strong>{{ taux_cot }}%</strong> — Cotisations sociales</li>
+          {% if vl_actif %}<li class="mb-1">📊 <strong>{{ taux_vl }}%</strong> — Versement libératoire IR</li>{% endif %}
+          <li class="mb-1">🏢 <strong>77 700 €</strong> — Plafond CA micro-BNC</li>
+          <li class="mb-1">🚫 <strong>TVA non applicable</strong> — Art. 293 B CGI</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

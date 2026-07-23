@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Erreur interne — NAVISUR</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body { background:#f0f4f8; font-family:'Segoe UI',sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; margin:0; }
+  .error-box { background:white; border-radius:16px; padding:48px 56px; text-align:center; max-width:560px; box-shadow:0 8px 40px rgba(26,46,90,.1); }
+  .error-icon { font-size:72px; margin-bottom:16px; }
+  .error-anchor { width:60px; height:4px; background:#c9a84c; border-radius:2px; margin:16px auto; }
+  h1 { font-size:22px; font-weight:700; color:#1a2e5a; margin-bottom:12px; }
+  p { color:#64748b; margin-bottom:24px; line-height:1.6; }
+  .hint { background:#fef9c3; border:1px solid #fde047; border-radius:8px; padding:12px 16px; font-size:13px; color:#854d0e; margin-bottom:24px; text-align:left; }
+  .btn-home { background:#1a2e5a; color:white; padding:12px 32px; border-radius:8px; text-decoration:none; font-weight:600; display:inline-block; margin-right:8px; }
+  .btn-log { background:transparent; color:#1a2e5a; border:2px solid #1a2e5a; padding:11px 24px; border-radius:8px; text-decoration:none; font-weight:600; display:inline-block; font-size:13px; }
+  .btn-home:hover { background:#c9a84c; color:#1a2e5a; }
+</style>
+</head>
+<body>
+<div class="error-box">
+  <div class="error-icon">⚠️</div>
+  <div class="error-anchor"></div>
+  <h1>Une erreur s'est produite</h1>
+  <p>Le logiciel a rencontré un problème inattendu.<br>
+     Vos données ne sont <strong>pas perdues</strong> — la base est protégée.</p>
+  <div class="hint">
+    <strong>Que faire ?</strong><br>
+    Revenez à l'accueil et réessayez. Si le problème persiste,
+    consultez le <a href="/admin/logs" style="color:#1a2e5a">journal des erreurs</a> pour comprendre ce qui s'est passé.
+  </div>
+  <a href="/" class="btn-home">← Retour à l'accueil</a>
+  <a href="/admin/logs" class="btn-log">📋 Voir les logs</a>
+</div>
+</body>
+</html>

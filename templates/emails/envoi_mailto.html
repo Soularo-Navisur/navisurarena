@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Email prêt — NAVISUR{% endblock %}
+{% block page_title %}Email enregistré{% endblock %}
+
+{% block content %}
+<div class="card-crm" style="max-width:600px;margin:40px auto">
+  <div class="p-5 text-center">
+    <div style="font-size:52px;margin-bottom:16px">✅</div>
+    <h4 style="font-weight:700;color:#1a2e5a;margin-bottom:8px">Email enregistré dans le journal</h4>
+    <p style="color:#64748b;margin-bottom:24px">
+      L'échange a été ajouté au journal d'activité du client.<br>
+      Cliquez ci-dessous pour ouvrir votre messagerie.
+    </p>
+    <div class="d-flex gap-2 justify-content-center flex-wrap">
+      <a href="{{ mailto }}" class="btn btn-primary" style="padding:11px 24px">
+        <i class="bi bi-envelope-fill me-2"></i>Ouvrir dans ma messagerie
+      </a>
+      {% if client_id %}
+      <a href="{{ url_for('client_detail', id=client_id) }}" class="btn btn-outline-secondary">
+        Retour à la fiche client
+      </a>
+      {% endif %}
+      <a href="{{ url_for('emails_list') }}" class="btn btn-outline-secondary">
+        Retour aux modèles
+      </a>
+    </div>
+    {% if email_dest %}
+    <div class="mt-4 p-3" style="background:#f8fafc;border-radius:8px">
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">Destinataire</div>
+      <div style="font-size:14px;font-weight:600;font-family:monospace">{{ email_dest }}</div>
+      <div style="font-size:12px;color:#64748b;margin-top:4px">Objet : {{ sujet }}</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+// Ouvrir automatiquement la messagerie après 1 seconde
+setTimeout(() => { window.location.href = {{ mailto|tojson }}; }, 800);
+</script>
+{% endblock %}

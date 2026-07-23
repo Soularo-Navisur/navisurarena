@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — Riviera Marine Assurances{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">{{ titre }}</h1>
+  <a href="{{ url_for('emails_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+<form method="post">
+  <div class="form-card">
+    <div class="form-section-title">Modèle</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Catégorie</label>
+        <input type="text" name="categorie" class="form-control"
+               value="{{ template.categorie if template else '' }}" list="cats"
+               placeholder="Bienvenue, Renouvellement, Sinistre...">
+        <datalist id="cats">
+          {% for c in ['Bienvenue','Renouvellement','Sinistre','Devis','Pièces manquantes','Résiliation','Attestation','Autre'] %}
+          <option value="{{ c }}">{% endfor %}
+        </datalist>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Titre *</label>
+        <input type="text" name="titre" class="form-control" required
+               value="{{ template.titre if template else '' }}"
+               placeholder="Renouvellement annuel plaisance">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Sujet de l'email</label>
+        <input type="text" name="sujet" class="form-control"
+               value="{{ template.sujet if template else '' }}"
+               placeholder="Renouvellement contrat n° {num_contrat}">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Corps du message *</label>
+        <textarea name="corps" class="form-control" rows="14" required
+                  style="font-family:'Courier New',monospace;font-size:13px;line-height:1.7">{{ template.corps if template else '' }}</textarea>
+        <div class="form-text mt-1">
+          Variables disponibles : <code>{prenom}</code> <code>{nom}</code> <code>{num_contrat}</code>
+          <code>{date_echeance}</code> <code>{nom_bateau}</code> <code>{type_bateau}</code> <code>{compagnie}</code>
+          <code>{num_sinistre}</code> <code>{date_sinistre}</code>
+        </div>
+      </div>
+    </div>
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if template else 'Créer le modèle' }}
+      </button>
+      <a href="{{ url_for('emails_list') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

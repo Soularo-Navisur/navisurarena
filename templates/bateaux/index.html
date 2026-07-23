@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Bateaux / Risques — Riviera Marine Assurances{% endblock %}
+{% block page_title %}Bateaux & Risques{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('bateau_nouveau') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Nouveau</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🛥️ Bateaux & Fiches de risque</h1>
+    <p class="page-header-sub">{{ bateaux|length }} bateau(x) enregistré(s)</p>
+  </div>
+  <a href="{{ url_for('bateau_nouveau') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Nouveau bateau
+  </a>
+</div>
+
+<form method="get" class="search-bar">
+  <div class="search-input-wrap">
+    <i class="bi bi-search"></i>
+    <input type="text" name="q" class="form-control" placeholder="Rechercher nom, marque, immatriculation, client..." value="{{ search }}">
+  </div>
+  <button type="submit" class="btn btn-primary">Chercher</button>
+  {% if search %}<a href="{{ url_for('bateaux_list') }}" class="btn btn-outline-secondary">Réinitialiser</a>{% endif %}
+</form>
+
+<div class="card-crm">
+  {% if bateaux %}
+  <table class="table-crm">
+    <thead>
+      <tr>
+        <th>Bateau</th>
+        <th>Propriétaire</th>
+        <th>Type</th>
+        <th>Immatriculation</th>
+        <th>Année</th>
+        <th>Valeur assurée</th>
+        <th>Motorisation</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in bateaux %}
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div class="bateau-icon">⚓</div>
+            <div>
+              <div class="fw-500">{{ b.nom_bateau or '(sans nom)' }}</div>
+              <div class="text-muted" style="font-size:12px">{{ b.marque or '' }}{% if b.modele %} — {{ b.modele }}{% endif %}</div>
+            </div>
+          </div>
+        </td>
+        <td>{{ b.prenom or '' }} {{ b.nom }}</td>
+        <td class="text-muted">{{ b.type_bateau or '—' }}</td>
+        <td class="fw-500 font-mono">{{ b.immatriculation or '—' }}</td>
+        <td class="text-muted">{{ b.annee_fabrication or '—' }}</td>
+        <td class="text-money">{% if b.valeur_assurance %}{{ "{:,.0f}".format(b.valeur_assurance) }} €{% else %}—{% endif %}</td>
+        <td class="text-muted" style="font-size:12px">
+          {% if b.moteur_marque %}
+            {{ b.moteur_marque }}{% if b.moteur_puissance %} {{ b.moteur_puissance|int }} CV{% endif %}
+            <span class="badge-crm {% if b.moteur_carburant == 'gasoil' %}badge-en_cours{% else %}badge-prospect{% endif %}" style="font-size:10px">
+              {{ b.moteur_carburant|upper if b.moteur_carburant else '' }}
+            </span>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{{ url_for('bateau_detail', id=b.id) }}" class="btn btn-sm btn-outline-secondary" title="Voir"><i class="bi bi-eye"></i></a>
+            <a href="{{ url_for('bateau_modifier', id=b.id) }}" class="btn btn-sm btn-outline-secondary" title="Modifier"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{{ url_for('bateau_supprimer', id=b.id) }}" onsubmit="return confirm('Supprimer ce bateau ?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-water"></i>
+    <h5>Aucun bateau enregistré</h5>
+    <p class="text-muted">{% if search %}Aucun résultat pour "{{ search }}"{% else %}Ajoutez le premier bateau{% endif %}</p>
+    <a href="{{ url_for('bateau_nouveau') }}" class="btn btn-primary">Nouveau bateau</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

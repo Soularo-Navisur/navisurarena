@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Modifier' if depense else 'Nouvelle' }} dépense — NAVISUR{% endblock %}
+{% block page_title %}{{ 'Modifier' if depense else 'Nouvelle' }} dépense{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">📉 {{ 'Modifier la dépense' if depense else 'Saisir une dépense' }}</h1>
+  <a href="{{ url_for('compta_depenses') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+<form method="post">
+  <div class="form-card" style="max-width:740px">
+    <div class="form-section-title">📅 Identification</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Date de la dépense *</label>
+        <input type="date" name="date_depense" class="form-control" required
+               value="{{ depense.date_depense if depense else today }}">
+      </div>
+      <div class="col-md-8">
+        <label class="form-label">Fournisseur / Prestataire</label>
+        <input type="text" name="fournisseur" class="form-control"
+               value="{{ depense.fournisseur if depense else '' }}"
+               placeholder="MACSF, Orange Pro, ORIAS, formateur...">
+      </div>
+    </div>
+
+    <div class="form-section-title">💰 Montant & Catégorie</div>
+    <div class="row g-3">
+      <div class="col-md-5">
+        <label class="form-label">Catégorie *</label>
+        <select name="categorie" class="form-select" required>
+          <option value="">— Sélectionner —</option>
+          {% for val, label in categories %}
+          <option value="{{ val }}" {{ 'selected' if depense and depense.categorie==val }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Montant (€) *</label>
+        <div class="input-group">
+          <input type="number" name="montant" step="0.01" min="0.01" class="form-control" required
+                 value="{{ depense.montant if depense else '' }}">
+          <span class="input-group-text">€</span>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Mode de paiement</label>
+        <select name="mode_paiement" class="form-select">
+          {% for m in modes %}
+          <option value="{{ m }}" {{ 'selected' if depense and depense.mode_paiement==m or (not depense and m=='virement') }}>
+            {% if m=='virement' %}🏦 Virement
+            {% elif m=='cheque' %}📝 Chèque
+            {% elif m=='especes' %}💵 Espèces
+            {% elif m=='prelevement' %}🔄 Prélèvement
+            {% else %}{{ m|title }}{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section-title">🔄 Récurrence & Notes</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Récurrence</label>
+        <div class="d-flex gap-2 flex-wrap mt-1">
+          {% for val, lbl in [('ponctuel','⚡ Ponctuel'),('mensuel','🔄 Mensuel'),('trimestriel','📅 Trimestriel'),('annuel','📆 Annuel')] %}
+          <label style="cursor:pointer;margin:0">
+            <input type="radio" name="recurrence" value="{{ val }}" class="d-none c-radio"
+                   {{ 'checked' if (depense and depense.recurrence==val) or (not depense and val=='ponctuel') }}>
+            <span class="btn btn-sm btn-outline-secondary">{{ lbl }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-md-8">
+        <label class="form-label">Notes / Commentaire</label>
+        <input type="text" name="notes" class="form-control"
+               value="{{ depense.notes if depense else '' }}"
+               placeholder="N° de facture fournisseur, détails...">
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if depense else 'Enregistrer' }}
+      </button>
+      <a href="{{ url_for('compta_depenses') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+<script>
+document.querySelectorAll('.c-radio').forEach(r => {
+  r.addEventListener('change', function() {
+    document.querySelectorAll(`input[name="${this.name}"]`).forEach(x => {
+      x.nextElementSibling.classList.replace('btn-primary','btn-outline-secondary');
+    });
+    this.nextElementSibling.classList.replace('btn-outline-secondary','btn-primary');
+  });
+  if (r.checked) r.nextElementSibling.classList.replace('btn-outline-secondary','btn-primary');
+});
+</script>
+{% endblock %}

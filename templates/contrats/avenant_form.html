@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Nouvel avenant — {{ contrat.numero or '' }} — NAVISUR{% endblock %}
+{% block page_title %}Avenant contrat{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">📝 Nouvel avenant</h1>
+  <a href="{{ url_for('contrat_detail', id=contrat.id) }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+<!-- Contrat concerné -->
+<div class="card-crm mb-4" style="border-left:4px solid #8b5cf6">
+  <div class="p-3 d-flex justify-content-between align-items-center">
+    <div>
+      <div class="fw-700" style="color:#1a2e5a">{{ contrat.type_assurance or 'Contrat' }} — {{ contrat.prenom or '' }} {{ contrat.nom }}</div>
+      <div class="text-muted" style="font-size:12px">{{ contrat.compagnie or '—' }}{% if contrat.numero %} · {{ contrat.numero }}{% endif %} · Prime : {{ "{:,.2f}".format(contrat.prime_annuelle) }} €/an</div>
+    </div>
+    <span class="badge-crm badge-en_cours">En cours</span>
+  </div>
+</div>
+
+<form method="post">
+  <div class="form-card">
+    <div class="form-section-title">📋 Identification de l'avenant</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Date de l'avenant *</label>
+        <input type="date" name="date_avenant" class="form-control" required value="{{ today }}">
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">Type de modification *</label>
+        <select name="type_avenant" class="form-select" required id="type-aven" onchange="showPrimeField(this)">
+          <option value="">— Sélectionner —</option>
+          {% for val, lbl in types %}
+          <option value="{{ val }}">{{ lbl }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Statut</label>
+        <select name="statut" class="form-select">
+          <option value="en_cours">⏳ En cours</option>
+          <option value="accepte">✅ Accepté</option>
+          <option value="refuse">❌ Refusé</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section-title">📝 Détails de la modification</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label">Description *</label>
+        <textarea name="description" class="form-control" rows="3" required
+                  placeholder="Décrivez précisément la modification demandée ou acceptée..."></textarea>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Ancienne valeur / situation</label>
+        <input type="text" name="ancienne_valeur" class="form-control"
+               placeholder="Ex : Zone côtière — Zone 1">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Nouvelle valeur / situation</label>
+        <input type="text" name="nouvelle_valeur" class="form-control"
+               placeholder="Ex : Zone hauturière — Zone 2">
+      </div>
+      <div class="col-md-4" id="zone-prime" style="display:none">
+        <label class="form-label">Nouvelle prime annuelle (€)</label>
+        <div class="input-group">
+          <input type="number" name="prime_nouvelle" step="0.01" min="0" class="form-control"
+                 placeholder="{{ contrat.prime_annuelle }}">
+          <span class="input-group-text">€</span>
+        </div>
+        <div class="form-text">Laissez vide si la prime ne change pas</div>
+      </div>
+    </div>
+
+    <div class="form-section-title">📝 Notes internes</div>
+    <textarea name="notes" class="form-control" rows="2"
+              placeholder="Correspondance avec la compagnie, conditions, délais..."></textarea>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>Enregistrer l'avenant
+      </button>
+      <a href="{{ url_for('contrat_detail', id=contrat.id) }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+
+<script>
+function showPrimeField(sel) {
+  const show = ['changement_prime','changement_garanties','regularisation'].includes(sel.value);
+  document.getElementById('zone-prime').style.display = show ? 'block' : 'none';
+}
+</script>
+{% endblock %}

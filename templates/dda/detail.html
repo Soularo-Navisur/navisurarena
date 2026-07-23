@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% block title %}Recueil DDA — {{ recueil.prenom }} {{ recueil.nom }}{% endblock %}
+{% block page_title %}Recueil de besoins{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <a href="{{ url_for('dda_list') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('dda_modifier', id=recueil.id) }}" class="btn btn-primary btn-sm">
+      <i class="bi bi-pencil me-1"></i>Modifier
+    </a>
+    <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-printer me-1"></i>Imprimer
+    </button>
+  </div>
+</div>
+
+<!-- EN-TÊTE IMPRIMABLE -->
+<div style="background:linear-gradient(135deg,#0c3a5c,#1a6b9a);border-radius:14px;padding:28px 32px;color:white;margin-bottom:24px">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+    <div>
+      <div style="font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Recueil de besoins DDA — Art. L521-4 C. Ass.</div>
+      <div style="font-size:22px;font-weight:700">{{ recueil.prenom or '' }} {{ recueil.nom }}</div>
+      {% if recueil.email %}<div style="opacity:.7;font-size:13px;margin-top:2px">{{ recueil.email }}</div>{% endif %}
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:11px;opacity:.6;text-transform:uppercase">Cabinet</div>
+      <div style="font-weight:600">{{ params.get('cabinet_nom','Riviera Marine Assurances') }}</div>
+      {% if params.get('cabinet_orias') %}<div style="opacity:.7;font-size:12px">ORIAS n° {{ params.get('cabinet_orias') }}</div>{% endif %}
+      <div style="margin-top:8px">
+        <span style="background:rgba(255,255,255,.15);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600">
+          {% if recueil.statut == 'valide' %}✅ Validé
+          {% elif recueil.statut == 'en_cours' %}🔄 En cours
+          {% else %}📝 Brouillon{% endif %}
+        </span>
+        {% if recueil.accepte_signature %}
+        <span style="background:rgba(34,197,94,.3);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;margin-left:6px">
+          ✍️ Lu &amp; approuvé
+        </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:24px;margin-top:16px;font-size:13px;opacity:.8">
+    <span><i class="bi bi-calendar3 me-1"></i>{{ recueil.date_recueil }}</span>
+    {% if recueil.conseiller %}<span><i class="bi bi-person me-1"></i>{{ recueil.conseiller }}</span>{% endif %}
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- COLONNE GAUCHE -->
+  <div class="col-lg-6">
+    <div class="card-crm mb-3">
+      <div class="card-crm-header"><span class="card-crm-title">🎯 Objectifs</span></div>
+      <div class="p-3">
+        <div class="info-row"><span class="info-label">Objectif principal</span><span class="info-value">{{ recueil.objectif_assurance or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Type de navigation</span><span class="info-value">{{ recueil.type_navigation or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Zone de navigation</span><span class="info-value">{{ recueil.zone_navigation or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Expérience</span><span class="info-value">{{ recueil.experience_navigation or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Personnes à bord</span><span class="info-value">{{ recueil.nb_personnes_bord or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Valeur navire</span><span class="info-value fw-600 text-money">{{ recueil.valeur_bateau or '—' }}</span></div>
+      </div>
+    </div>
+
+    <div class="card-crm mb-3">
+      <div class="card-crm-header"><span class="card-crm-title">📊 Situation</span></div>
+      <div class="p-3">
+        <div class="info-row"><span class="info-label">Situation actuelle</span><span class="info-value">{{ recueil.situation_assurance or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Sinistres (5 ans)</span><span class="info-value">{{ recueil.sinistres_anterieurs or '—' }}</span></div>
+        <div class="info-row"><span class="info-label">Budget annuel</span><span class="info-value fw-600">{{ recueil.budget_annuel or '—' }}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLONNE DROITE -->
+  <div class="col-lg-6">
+    <div class="card-crm mb-3">
+      <div class="card-crm-header"><span class="card-crm-title">🛡️ Garanties</span></div>
+      <div class="p-3">
+        {% if recueil.garanties_souhaitees %}
+        <div class="mb-3">
+          <div class="text-muted mb-1" style="font-size:11px;font-weight:600;text-transform:uppercase">Garanties souhaitées</div>
+          <div style="font-size:13px;color:#374151;background:#f0fdf4;padding:10px;border-radius:6px;border-left:3px solid #22c55e">
+            {{ recueil.garanties_souhaitees }}
+          </div>
+        </div>
+        {% endif %}
+        {% if recueil.garanties_exclues %}
+        <div class="mb-3">
+          <div class="text-muted mb-1" style="font-size:11px;font-weight:600;text-transform:uppercase">Non prioritaires / À exclure</div>
+          <div style="font-size:13px;color:#374151;background:#fef2f2;padding:10px;border-radius:6px;border-left:3px solid #ef4444">
+            {{ recueil.garanties_exclues }}
+          </div>
+        </div>
+        {% endif %}
+        {% if recueil.besoins_specifiques %}
+        <div>
+          <div class="text-muted mb-1" style="font-size:11px;font-weight:600;text-transform:uppercase">Besoins spécifiques</div>
+          <div style="font-size:13px;color:#374151">{{ recueil.besoins_specifiques }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card-crm" style="border:2px solid #7c3aed">
+      <div class="card-crm-header" style="background:#f5f3ff">
+        <span class="card-crm-title" style="color:#5b21b6">✅ Recommandation du conseiller</span>
+      </div>
+      <div class="p-4">
+        {% if recueil.recommandation %}
+        <div style="font-size:13px;color:#374151;line-height:1.7;white-space:pre-wrap">{{ recueil.recommandation }}</div>
+        {% else %}
+        <div class="text-muted" style="font-size:13px">Aucune recommandation saisie.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ZONE SIGNATURE (pour impression) -->
+<div class="card-crm mt-3">
+  <div class="card-crm-header"><span class="card-crm-title">✍️ Validation</span></div>
+  <div class="p-4">
+    <div class="row g-4">
+      <div class="col-md-6">
+        <div style="border:1px solid #e2e8f0;border-radius:8px;padding:20px;min-height:80px">
+          <div class="text-muted mb-3" style="font-size:12px;font-weight:600">SIGNATURE DU CLIENT</div>
+          {% if recueil.accepte_signature %}
+          <div style="color:#22c55e;font-weight:600">✅ Le client a pris connaissance de ce document</div>
+          {% else %}
+          <div style="color:#94a3b8;font-size:12px">En attente de validation client</div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div style="border:1px solid #e2e8f0;border-radius:8px;padding:20px;min-height:80px">
+          <div class="text-muted mb-3" style="font-size:12px;font-weight:600">CONSEILLER — {{ params.get('cabinet_nom','Riviera Marine Assurances') }}</div>
+          <div style="font-size:13px">{{ recueil.conseiller or '—' }}</div>
+          <div class="text-muted" style="font-size:11px;margin-top:4px">
+            ORIAS n° {{ params.get('cabinet_orias','—') }}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="text-muted mt-3" style="font-size:11px">
+      Document établi le {{ recueil.date_recueil }} — Conservé conformément aux obligations réglementaires (DDA, Art. L521-4 Code des assurances)
+    </div>
+  </div>
+</div>
+
+<style>
+@media print {
+  .sidebar, .topbar, .btn, .page-header .d-flex { display: none !important; }
+  .main-content { margin-left: 0 !important; }
+  .page-content { padding: 0 !important; }
+  .card-crm { box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
+}
+</style>
+{% endblock %}

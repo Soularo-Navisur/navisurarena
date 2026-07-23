@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Mon espace{% endblock %} — Riviera Marine Assurances</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    :root { --navy:#0f1e3c; --gold:#c9a84c; }
+    body  { font-family:'DM Sans',sans-serif; background:#f0f4f8; color:#1e293b; }
+
+    /* Topbar */
+    .p-topbar {
+      background:var(--navy); color:white; padding:14px 24px;
+      display:flex; align-items:center; justify-content:space-between;
+      box-shadow:0 2px 12px rgba(0,0,0,.2);
+    }
+    .p-topbar .brand { font-family:'Playfair Display',serif; font-size:18px; font-weight:900; color:var(--gold); }
+    .p-topbar .user  { font-size:13px; color:rgba(255,255,255,.75); display:flex; align-items:center; gap:12px; }
+    .p-topbar a { color:rgba(255,255,255,.6); text-decoration:none; font-size:13px; }
+    .p-topbar a:hover { color:white; }
+
+    /* Nav */
+    .p-nav {
+      background:white; border-bottom:1px solid #e2e8f0;
+      padding:0 24px; display:flex; gap:0; overflow-x:auto;
+    }
+    .p-nav a {
+      display:inline-flex; align-items:center; gap:7px;
+      padding:14px 18px; font-size:13px; font-weight:500;
+      color:#64748b; text-decoration:none; border-bottom:2px solid transparent;
+      white-space:nowrap; transition:all .15s;
+    }
+    .p-nav a:hover  { color:var(--navy); }
+    .p-nav a.active { color:var(--gold); border-bottom-color:var(--gold); font-weight:700; }
+
+    /* Content */
+    .p-content { padding:28px 24px; max-width:1100px; margin:0 auto; }
+
+    /* Cards */
+    .p-card {
+      background:white; border:1px solid #e2e8f0; border-radius:14px;
+      padding:24px; box-shadow:0 1px 3px rgba(0,0,0,.05);
+    }
+    .p-card-title {
+      font-size:12px; font-weight:700; text-transform:uppercase;
+      letter-spacing:.1em; color:#64748b; margin-bottom:16px;
+      display:flex; align-items:center; gap:8px;
+    }
+
+    /* Badges */
+    .badge-actif    { background:rgba(22,163,74,.1);  color:#16a34a; border:1px solid rgba(22,163,74,.25);  border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; }
+    .badge-attente  { background:rgba(245,158,11,.1); color:#d97706; border:1px solid rgba(245,158,11,.25); border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; }
+    .badge-traite   { background:rgba(37,99,235,.1);  color:#2563eb; border:1px solid rgba(37,99,235,.25);  border-radius:20px; padding:3px 10px; font-size:11px; font-weight:700; }
+
+    /* Contrat card */
+    .contrat-card {
+      border:1px solid #e2e8f0; border-left:3px solid var(--gold);
+      border-radius:10px; padding:16px; margin-bottom:10px;
+      display:flex; align-items:center; gap:16px;
+    }
+    .contrat-num { font-family:monospace; font-weight:700; font-size:13px; color:var(--navy); }
+    .contrat-info { flex:1; }
+    .contrat-company { font-size:14px; font-weight:600; color:var(--navy); }
+    .contrat-detail { font-size:12px; color:#64748b; margin-top:2px; }
+
+    /* Flash messages */
+    .alert { border-radius:10px; font-size:13px; }
+
+    /* Responsive */
+    @media(max-width:640px) {
+      .p-content { padding:16px; }
+      .contrat-card { flex-wrap:wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="p-topbar">
+  <div class="brand">Riviera Marine Assurances</div>
+  <div class="user">
+    <span><i class="bi bi-person-circle me-1"></i>{{ session.get('portail_nom', '') }}</span>
+    <a href="{{ url_for('portail_profil') }}"><i class="bi bi-gear"></i> Mon profil</a>
+    <a href="{{ url_for('portail_logout') }}"><i class="bi bi-box-arrow-right"></i> Déconnexion</a>
+  </div>
+</div>
+
+<!-- Navigation -->
+<nav class="p-nav">
+  <a href="{{ url_for('portail_dashboard') }}"   class="{{ 'active' if request.endpoint == 'portail_dashboard' }}">
+    <i class="bi bi-house"></i> Accueil
+  </a>
+  <a href="{{ url_for('portail_contrats') }}"    class="{{ 'active' if request.endpoint == 'portail_contrats' }}">
+    <i class="bi bi-file-earmark-check"></i> Mes contrats
+  </a>
+  <a href="{{ url_for('portail_attestations') }}" class="{{ 'active' if request.endpoint == 'portail_attestations' }}">
+    <i class="bi bi-shield-check"></i> Attestations
+  </a>
+  <a href="{{ url_for('portail_documents') }}"   class="{{ 'active' if request.endpoint == 'portail_documents' }}">
+    <i class="bi bi-folder2"></i> Documents
+  </a>
+  <a href="{{ url_for('portail_demandes') }}"    class="{{ 'active' if request.endpoint == 'portail_demandes' }}">
+    <i class="bi bi-chat-square-text"></i> Mes demandes
+  </a>
+</nav>
+
+<!-- Contenu -->
+<div class="p-content">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for cat, msg in messages %}
+      <div class="alert alert-{{ 'success' if cat=='success' else 'warning' if cat=='warning' else 'danger' }} mb-3">
+        {{ msg|safe }}
+      </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</div>
+
+<div style="text-align:center;padding:20px;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;margin-top:40px">
+  Riviera Marine Assurances · Courtier en assurance plaisance · ORIAS
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

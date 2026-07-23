@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — Riviera Marine Assurances{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">{{ titre }}</h1>
+  <a href="{{ url_for('factures_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+<form method="post">
+  <div class="form-card">
+    <div class="form-section-title">Client & Dates</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Client *</label>
+        <select name="client_id" class="form-select" required>
+          <option value="">— Sélectionner un client —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}" {{ 'selected' if facture and facture.client_id == c.id }}>{{ c.prenom or '' }} {{ c.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Statut</label>
+        <select name="statut" class="form-select">
+          <option value="brouillon" {{ 'selected' if not facture or facture.statut == 'brouillon' }}>Brouillon</option>
+          <option value="envoyee" {{ 'selected' if facture and facture.statut == 'envoyee' }}>Envoyée</option>
+          <option value="payee" {{ 'selected' if facture and facture.statut == 'payee' }}>Payée</option>
+          <option value="annulee" {{ 'selected' if facture and facture.statut == 'annulee' }}>Annulée</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Date d'émission</label>
+        <input type="date" name="date_emission" class="form-control" value="{{ facture.date_emission if facture else today }}">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Date d'échéance</label>
+        <input type="date" name="date_echeance" class="form-control" value="{{ facture.date_echeance if facture else '' }}">
+      </div>
+    </div>
+
+    <div class="form-section-title">Montants</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Montant HT (€) *</label>
+        <div class="input-group">
+          <input type="number" name="montant_ht" id="montant_ht" class="form-control" step="0.01" min="0" required
+                 value="{{ facture.montant_ht if facture else '' }}" placeholder="0.00">
+          <span class="input-group-text">€</span>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">TVA (%)</label>
+        <div class="input-group">
+          <input type="number" name="tva" id="tva" class="form-control" step="0.1" min="0"
+                 value="{{ facture.tva if facture else 20 }}" placeholder="20">
+          <span class="input-group-text">%</span>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Total TTC (calculé)</label>
+        <div class="input-group">
+          <input type="text" id="preview_ttc" class="form-control" readonly placeholder="0.00" style="background:#f8fafc">
+          <span class="input-group-text">€</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section-title">Objet & Notes</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label">Objet de la quittance</label>
+        <input type="text" name="objet" class="form-control" placeholder="Honoraires de courtage — Contrat AUTO ref. XXX" value="{{ facture.objet if facture and facture['objet'] is defined else '' }}">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Notes</label>
+        <textarea name="notes" class="form-control" rows="3" placeholder="Conditions de paiement, coordonnées bancaires...">{{ facture.notes if facture else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if facture else 'Créer la quittance' }}
+      </button>
+      <a href="{{ url_for('factures_list') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const ht = document.getElementById('montant_ht');
+  const tva = document.getElementById('tva');
+  const ttc = document.getElementById('preview_ttc');
+  function calcTTC() {
+    const h = parseFloat(ht.value) || 0;
+    const t = parseFloat(tva.value) || 0;
+    ttc.value = (h * (1 + t / 100)).toFixed(2);
+  }
+  ht.addEventListener('input', calcTTC);
+  tva.addEventListener('input', calcTTC);
+  // Init
+  {% if facture %}
+  ht.value = '{{ facture.montant_ht }}';
+  tva.value = '{{ facture.tva }}';
+  {% endif %}
+  calcTTC();
+</script>
+{% endblock %}
+<!-- already has objet, just needs iban -->

@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}Modèles emails — Riviera Marine Assurances{% endblock %}
+{% block page_title %}Modèles d'emails{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('email_nouveau') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Nouveau</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📧 Modèles d'emails</h1>
+    <p class="page-header-sub">Cliquez sur un modèle pour l'apercevoir et copier</p>
+  </div>
+  <a href="{{ url_for('email_nouveau') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Nouveau modèle
+  </a>
+</div>
+
+{% if categories %}
+  {% for categorie, templates in categories.items() %}
+  <h6 class="text-muted fw-600 mb-3" style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin-top:24px">
+    📂 {{ categorie }}
+  </h6>
+  <div class="row g-3 mb-2">
+    {% for t in templates %}
+    <div class="col-md-6 col-xl-4">
+      <div class="card-crm h-100" style="cursor:pointer;transition:transform .15s,box-shadow .15s"
+           onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,.12)'"
+           onmouseout="this.style.transform='';this.style.boxShadow=''"
+           onclick="openTemplate({{ t.id }})">
+        <div class="p-4">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="fw-600" style="font-size:14px;color:#0f172a">{{ t.titre }}</div>
+            <div class="d-flex gap-1" onclick="event.stopPropagation()">
+              <a href="{{ url_for('email_utiliser', id=t.id) }}"
+                 class="btn btn-sm btn-primary" title="Personnaliser &amp; copier">
+                <i class="bi bi-send"></i>
+              </a>
+              <a href="{{ url_for('email_modifier', id=t.id) }}"
+                 class="btn btn-sm btn-outline-secondary" title="Modifier">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="post" action="{{ url_for('email_supprimer', id=t.id) }}"
+                    onsubmit="return confirm('Supprimer ce modèle ?')">
+                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+              </form>
+            </div>
+          </div>
+          {% if t.sujet %}
+          <div class="text-muted mb-2" style="font-size:12px">
+            <i class="bi bi-envelope me-1"></i>{{ t.sujet }}
+          </div>
+          {% endif %}
+          <div style="font-size:12px;color:#94a3b8;line-height:1.5;max-height:56px;overflow:hidden">
+            {{ t.corps[:120] }}{% if t.corps|length > 120 %}…{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+{% else %}
+<div class="card-crm">
+  <div class="empty-state">
+    <i class="bi bi-envelope-paper"></i>
+    <h5>Aucun modèle d'email</h5>
+    <a href="{{ url_for('email_nouveau') }}" class="btn btn-primary">Créer un modèle</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- MODAL APERÇU -->
+<div id="email-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:32px;width:100%;max-width:640px;margin:16px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 id="modal-titre" style="margin:0;font-weight:700;color:#0f172a"></h5>
+      <button onclick="document.getElementById('email-modal').style.display='none'"
+              style="background:none;border:none;font-size:22px;color:#94a3b8;cursor:pointer">×</button>
+    </div>
+    <div class="mb-3 p-3" style="background:#eff6ff;border-radius:8px;font-size:13px;color:#1e3a5f">
+      <strong>Sujet :</strong> <span id="modal-sujet"></span>
+    </div>
+    <pre id="modal-corps" style="white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:1.7;color:#374151;background:#f8fafc;padding:16px;border-radius:8px;border:1px solid #e2e8f0;max-height:300px;overflow-y:auto;margin:0"></pre>
+    <div class="mt-3 d-flex gap-2">
+      <button onclick="copyBody()" class="btn btn-primary flex-grow-1">
+        <i class="bi bi-clipboard me-1"></i>Copier
+      </button>
+      <a id="modal-utiliser-link" href="#" class="btn btn-outline-secondary flex-grow-1">
+        <i class="bi bi-person me-1"></i>Personnaliser
+      </a>
+    </div>
+    <div class="text-muted mt-2" style="font-size:11px;text-align:center">
+      Variables : {prenom}, {nom}, {num_contrat}, {date_echeance}, {nom_bateau}
+    </div>
+  </div>
+</div>
+
+<script>
+const allTemplates = {
+  {% for cat, tmplts in categories.items() %}{% for t in tmplts %}
+  {{ t.id }}: { titre: {{ t.titre|tojson }}, sujet: {{ t.sujet|tojson }}, corps: {{ t.corps|tojson }} },
+  {% endfor %}{% endfor %}
+};
+function openTemplate(id) {
+  const t = allTemplates[id];
+  if (!t) return;
+  document.getElementById('modal-titre').textContent = t.titre;
+  document.getElementById('modal-sujet').textContent = t.sujet || '—';
+  document.getElementById('modal-corps').textContent = t.corps;
+  document.getElementById('modal-utiliser-link').href = '/emails/' + id + '/utiliser';
+  document.getElementById('email-modal').style.display = 'flex';
+}
+function copyBody() {
+  navigator.clipboard.writeText(document.getElementById('modal-corps').textContent).then(() => {
+    const btn = event.target.closest('button');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copié !';
+    btn.classList.replace('btn-primary','btn-success');
+    setTimeout(() => { btn.innerHTML = orig; btn.classList.replace('btn-success','btn-primary'); }, 2200);
+  });
+}
+document.getElementById('email-modal').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.style.display = 'none'; });
+</script>
+{% endblock %}

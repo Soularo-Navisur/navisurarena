@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% block title %}Documents — Riviera Marine Assurances{% endblock %}
+{% block page_title %}GED Documents{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('clients_list') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-person me-1"></i>Fiche client
+  </a>
+{% endblock %}
+
+{% block content %}
+<!-- Layout GED : liste + panneau aperçu -->
+<div style="display:flex;gap:0;height:calc(100vh - 54px - 48px);overflow:hidden;margin:-24px;padding:24px 24px 0">
+
+  <!-- ── COLONNE LISTE ── -->
+  <div id="ged-list" style="flex:1;overflow-y:auto;padding-right:0;transition:flex .25s ease;min-width:0">
+
+    <div class="page-header" style="margin-bottom:16px">
+      <div>
+        <h1 class="page-header-title">📁 GED — Gestion documentaire</h1>
+        <p class="page-header-sub">{{ total }} document(s)</p>
+      </div>
+    </div>
+
+    <form method="get" class="search-bar" style="margin-bottom:16px">
+      <div class="search-input-wrap">
+        <i class="bi bi-search"></i>
+        <input type="text" name="q" class="form-control"
+               placeholder="Rechercher un document, client, type..." value="{{ search }}">
+      </div>
+      <select name="type" class="form-select" style="width:auto;min-width:180px">
+        <option value="">Tous les types</option>
+        {% for t in types_documents %}
+        <option value="{{ t }}" {{ 'selected' if type_doc == t }}>{{ t }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary">Filtrer</button>
+      {% if search or type_doc %}
+        <a href="{{ url_for('documents_list') }}" class="btn btn-outline-secondary">Réinitialiser</a>
+      {% endif %}
+    </form>
+
+    <div class="card-crm">
+      {% if documents %}
+      <table class="table-crm">
+        <thead>
+          <tr>
+            <th>Document</th>
+            <th>Type</th>
+            <th>Client</th>
+            <th>Taille</th>
+            <th>Date</th>
+            <th style="width:120px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in documents %}
+          {% set is_pdf = d.nom_original.lower().endswith('.pdf') %}
+          {% set is_img = d.nom_original.lower().endswith(('.jpg','.jpeg','.png','.gif','.webp')) %}
+          {% set is_eml = d.nom_original.lower().endswith(('.eml','.msg')) %}
+          <tr id="row-{{ d.id }}" style="cursor:{{ 'pointer' if is_pdf or is_img or is_eml else 'default' }}"
+              {% if is_pdf or is_img %}onclick="openPreview({{ d.id }}, '{{ d.nom_original | replace("'","") }}', {{ 'true' if is_pdf else 'false' }}, {{ 'true' if is_img else 'false' }})"
+              {% elif is_eml %}onclick="openEmailPreview({{ d.id }}, '{{ d.nom_original | replace("'","") }}')"{% endif %}>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                {% if is_pdf %}
+                <i class="bi bi-file-earmark-pdf text-danger" style="font-size:20px"></i>
+                {% elif is_img %}
+                <i class="bi bi-file-earmark-image text-primary" style="font-size:20px"></i>
+                {% elif is_eml %}
+                <i class="bi bi-envelope-paper" style="font-size:20px;color:#c9a84c"></i>
+                {% else %}
+                <i class="bi bi-file-earmark" style="font-size:20px;color:#94a3b8"></i>
+                {% endif %}
+                <div>
+                  <div class="fw-500" style="font-size:13px">{{ d.nom_original }}</div>
+                  {% if d.notes %}<div class="text-muted" style="font-size:11px">{{ d.notes }}</div>{% endif %}
+                </div>
+                {% if is_pdf or is_img %}
+                <i class="bi bi-eye text-muted ms-1" style="font-size:13px;opacity:.5" title="Cliquer pour aperçu"></i>
+                {% endif %}
+              </div>
+            </td>
+            <td>
+              <span class="badge-crm badge-client" style="font-size:11px">{{ d.type_document or '—' }}</span>
+            </td>
+            <td>
+              <a href="{{ url_for('client_detail', id=d.client_id) }}"
+                 class="text-decoration-none fw-500" onclick="event.stopPropagation()">
+                {{ d.prenom or '' }} {{ d.nom }}
+              </a>
+            </td>
+            <td class="text-muted" style="font-size:12px">{{ d.taille | format_size }}</td>
+            <td class="text-muted" style="font-size:12px">{{ d.date_upload }}</td>
+            <td onclick="event.stopPropagation()">
+              <div class="d-flex gap-1">
+                {% if is_pdf or is_img %}
+                <button onclick="openPreview({{ d.id }}, '{{ d.nom_original | replace("'","") }}', {{ 'true' if is_pdf else 'false' }}, {{ 'true' if is_img else 'false' }})"
+                        class="btn btn-sm btn-outline-primary" title="Aperçu">
+                  <i class="bi bi-layout-sidebar-reverse"></i>
+                </button>
+                {% elif is_eml %}
+                <button onclick="openEmailPreview({{ d.id }}, '{{ d.nom_original | replace("'","") }}')"
+                        class="btn btn-sm btn-outline-warning" title="Lire l'email">
+                  <i class="bi bi-envelope-open"></i>
+                </button>
+                {% endif %}
+                <a href="{{ url_for('document_voir', doc_id=d.id) }}" target="_blank"
+                   class="btn btn-sm btn-outline-secondary" title="Ouvrir dans un nouvel onglet">
+                  <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+                <a href="{{ url_for('document_telecharger', doc_id=d.id) }}"
+                   class="btn btn-sm btn-outline-secondary" title="Télécharger">
+                  <i class="bi bi-download"></i>
+                </a>
+                <form method="post" action="{{ url_for('document_supprimer', doc_id=d.id) }}"
+                      onsubmit="return confirm('Supprimer ce document ?')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">
+        <i class="bi bi-folder2-open"></i>
+        <h5>Aucun document</h5>
+        <p class="text-muted">
+          {% if search or type_doc %}Aucun résultat pour vos critères
+          {% else %}Les documents sont ajoutés depuis la fiche client{% endif %}
+        </p>
+      </div>
+      {% endif %}
+    </div>
+  </div><!-- fin ged-list -->
+
+  <!-- ── PANNEAU APERÇU ── -->
+  <div id="ged-preview" style="
+    width:0; overflow:hidden; flex-shrink:0;
+    background:#fff; border-left:1px solid #e2e8f0;
+    display:flex; flex-direction:column;
+    transition:width .25s ease;
+    border-radius:0 0 0 12px;
+  ">
+    <!-- Header panneau -->
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #e2e8f0;flex-shrink:0">
+      <div id="preview-nom" style="font-size:13px;font-weight:600;color:#1e293b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div>
+      <a id="preview-open-btn" href="#" target="_blank"
+         class="btn btn-sm btn-outline-secondary" title="Ouvrir dans un onglet" style="flex-shrink:0">
+        <i class="bi bi-box-arrow-up-right"></i>
+      </a>
+      <button onclick="closePreview()" class="btn btn-sm btn-outline-secondary" title="Fermer" style="flex-shrink:0">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <!-- Contenu aperçu -->
+    <div id="preview-body" style="flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f8fafc">
+      <span class="text-muted" style="font-size:13px">Sélectionnez un PDF ou une image</span>
+    </div>
+  </div>
+
+</div><!-- fin layout -->
+
+<style>
+.table-crm tbody tr:hover { background: #f8fafc; }
+.table-crm tbody tr.preview-active { background: #eff6ff; border-left: 3px solid #3b82f6; }
+#ged-preview iframe, #ged-preview img { width:100%; height:100%; border:none; }
+</style>
+
+<script>
+let previewOpen = false;
+
+function openPreview(docId, nom, isPdf, isImg) {
+  const panel = document.getElementById('ged-preview');
+  const body  = document.getElementById('preview-body');
+  const label = document.getElementById('preview-nom');
+  const btn   = document.getElementById('preview-open-btn');
+  const url   = `/documents/${docId}/voir`;
+
+  // Highlight row
+  document.querySelectorAll('.preview-active').forEach(r => r.classList.remove('preview-active'));
+  const row = document.getElementById('row-' + docId);
+  if (row) row.classList.add('preview-active');
+
+  // Set header
+  label.textContent = nom;
+  btn.href = url;
+
+  // Set content
+  if (isPdf) {
+    body.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none"></iframe>`;
+  } else if (isImg) {
+    body.innerHTML = `<img src="${url}" style="max-width:100%;max-height:100%;object-fit:contain;padding:12px">`;
+  }
+
+  // Open panel
+  panel.style.width = '45%';
+  previewOpen = true;
+}
+
+function closePreview() {
+  const panel = document.getElementById('ged-preview');
+  const body  = document.getElementById('preview-body');
+  panel.style.width = '0';
+  previewOpen = false;
+  document.querySelectorAll('.preview-active').forEach(r => r.classList.remove('preview-active'));
+  // Vider l'iframe après la transition pour libérer la mémoire
+  setTimeout(() => { body.innerHTML = '<span class="text-muted" style="font-size:13px">Sélectionnez un PDF ou une image</span>'; }, 260);
+}
+
+// Fermer avec Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && previewOpen) closePreview();
+});
+
+// Ouvrir un .eml dans le panneau latéral
+function openEmailPreview(docId, nom) {
+  const panel = document.getElementById('ged-preview');
+  const body  = document.getElementById('preview-body');
+  const label = document.getElementById('preview-nom');
+  const btn   = document.getElementById('preview-open-btn');
+
+  document.querySelectorAll('.preview-active').forEach(r => r.classList.remove('preview-active'));
+  const row = document.getElementById('row-' + docId);
+  if (row) row.classList.add('preview-active');
+
+  label.textContent = nom;
+  btn.href = `/documents/${docId}/voir`;
+
+  // Loader pendant le fetch
+  body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:#94a3b8">
+    <div style="width:32px;height:32px;border:3px solid rgba(201,168,76,.2);border-top-color:#c9a84c;border-radius:50%;animation:ov-spin .8s linear infinite"></div>
+    <span style="font-size:13px">Lecture de l'email...</span>
+  </div>`;
+  panel.style.width = '48%';
+  previewOpen = true;
+
+  // Charger le .eml parsé dans une iframe
+  body.innerHTML = `<iframe src="/documents/${docId}/apercu-email" style="width:100%;height:100%;border:none;background:#fff"></iframe>`;
+}
+</script>
+{% endblock %}

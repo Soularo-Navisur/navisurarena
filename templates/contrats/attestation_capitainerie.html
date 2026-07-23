@@ -1,0 +1,42 @@
+{% extends 'print/print_base.html' %}
+{% block doc_title %}ATTESTATION D'ASSURANCE PLAISANCE{% endblock %}
+{% block doc_type %}ATTESTATION D'ASSURANCE PLAISANCE{% endblock %}
+{% block doc_ref %}Police N° : {{ contrat.numero or 'N/A' }}{% endblock %}
+
+{% block content %}
+<div class="doc-section">
+  <p>Nous soussignés, <strong>{{ params.get('nom_cabinet', 'Riviera Marine Assurances') }}</strong>, agissant en qualité de Courtiers d'Assurances, certifions par la présente que :</p>
+  
+  <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:20px; border-radius:8px; margin:20px 0;">
+    <h3 style="margin-top:0; color:var(--p-navy);">👤 Assuré</h3>
+    <p style="margin-bottom:5px;"><strong>Nom / Prénom :</strong> {{ contrat.prenom }} {{ contrat.nom }}</p>
+    <p style="margin-bottom:0;"><strong>Adresse :</strong> {{ contrat.adresse }}, {{ contrat.code_postal }} {{ contrat.ville }}</p>
+    
+    <h3 style="margin-top:20px; color:var(--p-navy);">⛵ Navire Assuré</h3>
+    <p style="margin-bottom:5px;"><strong>Nom du bateau :</strong> {{ contrat.nom_bateau or '—' }}</p>
+    <p style="margin-bottom:5px;"><strong>Marque / Modèle :</strong> {{ contrat.marque }} {{ contrat.modele }}</p>
+    <p style="margin-bottom:5px;"><strong>Immatriculation / CIN :</strong> {{ contrat.immatriculation or '—' }}</p>
+    <p style="margin-bottom:0;"><strong>Port d'attache :</strong> {{ contrat.port_attache or '—' }}</p>
+  </div>
+
+  <p>Le navire désigné ci-dessus est garanti par la compagnie <strong>{{ contrat.compagnie }}</strong> sous la police numéro <strong>{{ contrat.numero or '—' }}</strong>.</p>
+  
+  <p><strong>Garanties principales en cours :</strong></p>
+  <ul>
+    <li>Responsabilité Civile Propriétaire / Utilisateur du Navire</li>
+    <li>Dommages Corps et Moteur (selon conditions particulières)</li>
+    <li>Zone de navigation : {{ contrat.zone_navigation or 'Côtière / Hauturière' }}</li>
+  </ul>
+
+  <p><strong>Période de validité :</strong> Du <strong>{{ contrat.date_debut }}</strong> au <strong>{{ contrat.date_fin }}</strong>.</p>
+
+  <p style="margin-top:30px;">La présente attestation est délivrée à la demande de l'assuré pour valoir ce que de droit et notamment pour être présentée aux autorités portuaires et capitaineries de ports.</p>
+</div>
+
+<div style="margin-top:60px; display:flex; justify-content:flex-end;">
+  <div style="text-align:center; width:250px;">
+    <p>Fait à Marseille, le {{ today }}</p>
+    <p style="margin-top:40px; font-weight:700;">Le Cabinet de Courtage</p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}Nouvelle formation — NAVISUR{% endblock %}
+{% block page_title %}Ajouter une formation DDA{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">🎓 {{ 'Modifier la formation' if formation else 'Nouvelle formation DDA' }}</h1>
+    <p class="page-header-sub">Saisissez les informations de la formation suivie</p>
+  </div>
+  <a href="{{ url_for('formations_list') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="form-card" style="max-width:100%">
+        <div class="form-section-title">📋 Informations</div>
+        <div class="row g-3">
+
+          <div class="col-12">
+            <label class="form-label fw-semibold">Titre de la formation *</label>
+            <input type="text" name="titre" class="form-control" required
+                   placeholder="Ex : Formation Loi Chatel et devoir de conseil"
+                   value="{{ formation.titre if formation else '' }}">
+          </div>
+
+          <div class="col-md-7">
+            <label class="form-label fw-semibold">Organisme de formation</label>
+            <input type="text" name="organisme" class="form-control"
+                   placeholder="Ex : CGPA Formation, FCA France, CSCA..."
+                   value="{{ formation.organisme if formation else '' }}">
+          </div>
+
+          <div class="col-md-5">
+            <label class="form-label fw-semibold">Type de formation</label>
+            <select name="type_formation" class="form-select">
+              <option value="continue" {{ 'selected' if not formation or formation.type_formation == 'continue' }}>Continue</option>
+              <option value="initiale" {{ 'selected' if formation and formation.type_formation == 'initiale' }}>Initiale</option>
+              <option value="specialisee" {{ 'selected' if formation and formation.type_formation == 'specialisee' }}>Spécialisée</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Date de la formation *</label>
+            <input type="date" name="date_formation" class="form-control" required
+                   value="{{ formation.date_formation if formation else '' }}">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Durée (heures) *</label>
+            <div class="input-group">
+              <input type="number" name="duree_heures" class="form-control" required
+                     step="0.5" min="0.5" max="35" placeholder="7"
+                     value="{{ formation.duree_heures if formation else '' }}">
+              <span class="input-group-text">heures</span>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-semibold">Attestation de formation</label>
+            <input type="file" name="attestation" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+            {% if formation and formation.attestation_fichier %}
+            <div class="form-text text-success">
+              <i class="bi bi-check-circle me-1"></i>Attestation déjà uploadée
+              <a href="{{ url_for('documents_voir_formation', formation_id=formation.id) }}" target="_blank">(voir)</a>
+            </div>
+            {% else %}
+            <div class="form-text">PDF ou image — max 10 Mo</div>
+            {% endif %}
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Notes</label>
+            <textarea name="notes" class="form-control" rows="2"
+                      placeholder="Programme, thèmes abordés, intervenants...">{{ formation.notes if formation else '' }}</textarea>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card-crm mb-3">
+        <div class="card-crm-header"><span class="card-crm-title">ℹ️ Obligation DDA</span></div>
+        <div class="p-3 small text-muted">
+          <p class="mb-2">La Directive Distribution Assurances (DDA) impose <strong>15 heures de formation continue par an</strong>.</p>
+          <p class="mb-2">Les formations éligibles incluent :</p>
+          <ul class="mb-0 ps-3">
+            <li>Formations produits assurance</li>
+            <li>Formation devoir de conseil</li>
+            <li>Formation conformité / réglementation</li>
+            <li>Formations dispensées par les compagnies</li>
+            <li>Congrès et séminaires professionnels</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check-lg me-1"></i>Enregistrer
+        </button>
+        <a href="{{ url_for('formations_list') }}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

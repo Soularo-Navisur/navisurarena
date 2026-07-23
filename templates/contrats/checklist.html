@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% block title %}Checklist — {{ contrat.numero or '' }} — NAVISUR{% endblock %}
+{% block page_title %}Checklist pièces{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">📋 Checklist pièces &amp; signatures</h1>
+    <p class="page-header-sub">{{ contrat.type_assurance or 'Contrat' }} — {{ contrat.prenom or '' }} {{ contrat.nom }}</p>
+  </div>
+  <a href="{{ url_for('contrat_detail', id=contrat.id) }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Retour contrat
+  </a>
+</div>
+
+<!-- Initialisation par modèle -->
+{% if not pieces %}
+<div class="card-crm mb-4" style="border:2px dashed #c9a84c">
+  <div class="p-4">
+    <h5 class="fw-700 mb-1">🚀 Initialiser la checklist</h5>
+    <p class="text-muted mb-3" style="font-size:13px">
+      Choisissez le modèle adapté au type de risque pour pré-remplir la checklist automatiquement.
+    </p>
+    <form method="post" class="d-flex gap-3 flex-wrap align-items-end">
+      <input type="hidden" name="action" value="init">
+      <div style="flex:1;min-width:220px">
+        <label class="form-label fw-600">Modèle de checklist</label>
+        <select name="modele" class="form-select" id="sel-modele" onchange="previewModel(this.value)">
+          {% for key, m in modeles.items() %}
+          <option value="{{ key }}" {{ 'selected' if key==risque_type }}>{{ m.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="avec_optionnels" value="1" id="cb-opt">
+          <label class="form-check-label" for="cb-opt">Inclure les pièces optionnelles</label>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-magic me-1"></i>Initialiser
+      </button>
+    </form>
+
+    <!-- Aperçu du modèle -->
+    <div id="preview-modele" class="mt-3"></div>
+  </div>
+</div>
+{% else %}
+<!-- Initialisation rapide si pièces existent déjà -->
+<div class="d-flex justify-content-end mb-3 gap-2">
+  <form method="post" class="d-flex gap-2 align-items-center">
+    <input type="hidden" name="action" value="init">
+    <select name="modele" class="form-select form-select-sm" style="width:auto">
+      {% for key, m in modeles.items() %}
+      <option value="{{ key }}" {{ 'selected' if key==risque_type }}>{{ m.label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-outline-secondary btn-sm" onclick="return confirm('Réinitialiser avec ce modèle ? Les pièces déjà saisies seront conservées.')">
+      <i class="bi bi-magic me-1"></i>Appliquer modèle
+    </button>
+  </form>
+</div>
+{% endif %}
+
+<!-- Progression -->
+{% if pieces %}
+{% set nb_obl = pieces|selectattr('obligatoire')|list|length %}
+{% set nb_ok = pieces|selectattr('obligatoire')|selectattr('recu')|list|length %}
+{% set pct = (nb_ok / nb_obl * 100)|int if nb_obl > 0 else 0 %}
+<div class="card-crm mb-3" style="{{ 'border-left:4px solid #22c55e' if pct==100 else 'border-left:4px solid #f97316' }}">
+  <div class="p-3 d-flex align-items-center gap-3">
+    <div style="font-size:36px">{{ '✅' if pct==100 else '📂' }}</div>
+    <div class="flex-grow-1">
+      <div class="d-flex justify-content-between mb-1">
+        <span class="fw-600">{{ nb_ok }}/{{ nb_obl }} pièces obligatoires reçues</span>
+        <span class="fw-700" style="color:{{ '#22c55e' if pct==100 else '#f97316' }}">{{ pct }}%</span>
+      </div>
+      <div style="background:#e2e8f0;border-radius:6px;height:10px">
+        <div style="height:10px;border-radius:6px;width:{{ pct }}%;background:{{ '#22c55e' if pct==100 else '#f97316' if pct>50 else '#dc2626' }};transition:width .5s"></div>
+      </div>
+    </div>
+    {% if pct == 100 %}
+    <span class="badge-crm badge-clos" style="font-size:14px">Dossier complet</span>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Liste des pièces -->
+<div class="card-crm">
+  {% if pieces %}
+  <table class="table-crm" id="checklist-table">
+    <thead>
+      <tr>
+        <th style="width:40px"></th>
+        <th>Pièce / Document</th>
+        <th style="width:100px">Type</th>
+        <th style="width:110px">Reçu le</th>
+        <th style="width:40px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in pieces %}
+      <tr id="row-{{ p.id }}" class="{{ 'table-success' if p.recu else '' }}" style="transition:background .3s">
+        <td class="text-center">
+          <form method="post" style="margin:0" onsubmit="togglePiece(event, {{ p.id }}, {{ 1 if not p.recu else 0 }})">
+            <input type="hidden" name="action" value="toggle">
+            <input type="hidden" name="piece_id" value="{{ p.id }}">
+            <input type="hidden" name="recu" value="{{ '0' if p.recu else '1' }}">
+            <button type="submit" class="btn btn-link p-0" style="font-size:22px;text-decoration:none">
+              {{ '✅' if p.recu else '⬜' }}
+            </button>
+          </form>
+        </td>
+        <td>
+          <span class="{{ 'text-muted text-decoration-line-through' if p.recu else 'fw-500' }}" id="lbl-{{ p.id }}">
+            {{ p.libelle }}
+          </span>
+        </td>
+        <td>
+          {% if p.obligatoire %}
+          <span class="badge-crm badge-ouvert" style="font-size:10px">Obligatoire</span>
+          {% else %}
+          <span class="text-muted" style="font-size:11px">Optionnel</span>
+          {% endif %}
+        </td>
+        <td class="text-muted" style="font-size:12px" id="date-{{ p.id }}">
+          {{ p.date_reception or '—' }}
+        </td>
+        <td>
+          <form method="post" style="margin:0" onsubmit="return confirm('Supprimer ?')">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="piece_id" value="{{ p.id }}">
+            <button class="btn btn-sm btn-outline-danger" style="padding:2px 8px"><i class="bi bi-trash" style="font-size:11px"></i></button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state py-4">
+    <p class="mb-0 text-muted">Utilisez le modèle ci-dessus pour initialiser la checklist</p>
+  </div>
+  {% endif %}
+
+  <!-- Ajouter une pièce -->
+  <div class="p-3 border-top">
+    <form method="post" class="d-flex gap-2 flex-wrap">
+      <input type="hidden" name="action" value="add">
+      <input type="text" name="libelle" class="form-control form-control-sm" style="flex:1;min-width:200px"
+             placeholder="Nom de la pièce / document..." required>
+      <div class="form-check align-self-center ms-1">
+        <input class="form-check-input" type="checkbox" name="obligatoire" value="1" id="cb-obl" checked>
+        <label class="form-check-label" for="cb-obl" style="font-size:13px">Obligatoire</label>
+      </div>
+      <button type="submit" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-plus me-1"></i>Ajouter
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+const modelesData = {{ modeles | tojson }};
+
+function previewModel(key) {
+  const m = modelesData[key];
+  if (!m) return;
+  const el = document.getElementById('preview-modele');
+  const obl = m.obligatoires.map(p => `<li style="color:#1a2e5a">✅ ${p}</li>`).join('');
+  const opt = (m.optionnels||[]).map(p => `<li style="color:#64748b">○ ${p}</li>`).join('');
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px">
+      <div>
+        <div style="font-weight:700;margin-bottom:6px;color:#1a2e5a">Obligatoires (${m.obligatoires.length})</div>
+        <ul style="list-style:none;padding:0;margin:0">${obl}</ul>
+      </div>
+      ${opt ? `<div><div style="font-weight:700;margin-bottom:6px;color:#64748b">Optionnelles (${m.optionnels.length})</div><ul style="list-style:none;padding:0;margin:0">${opt}</ul></div>` : ''}
+    </div>`;
+}
+
+// Preview initial
+const sel = document.getElementById('sel-modele');
+if (sel) previewModel(sel.value);
+
+function togglePiece(e, id, newVal) {
+  // Allow normal form submit - the AJAX path is optional
+  // For now just let it submit normally
+}
+</script>
+{% endblock %}

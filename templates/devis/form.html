@@ -1,0 +1,373 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — NAVISUR{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">📋 {{ titre }}</h1>
+  <a href="{{ url_for('devis_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+{% if not devis %}
+<div class="p-3 mb-3" style="background:#eff6ff;border-radius:8px;border-left:4px solid #1a2e5a;font-size:13px;color:#1e40af">
+  <strong>💡 Workflow :</strong> Enregistrez ici chaque devis envoyé au prospect. Quand il accepte, cliquez <strong>"Accepter"</strong> — le prospect devient client et le contrat se crée automatiquement.
+</div>
+{% endif %}
+
+<form method="post" data-loading-title="Création du devis..." data-loading-sub="Calcul et enregistrement des propositions">
+  <div class="form-card">
+    <div class="form-section-title">👤 Client & Date</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Client / Prospect *</label>
+        <select name="client_id" class="form-select" required id="sel-client">
+          <option value="">— Sélectionner —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}"
+            {{ 'selected' if (devis and devis.client_id==c.id) or (preselect and preselect|int==c.id) }}>
+            {{ c.prenom or '' }} {{ c.nom }}
+            <span>{% if c.statut == 'prospect' %} (Prospect){% endif %}</span>
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Date du devis</label>
+        <input type="date" name="date_devis" class="form-control"
+               value="{{ devis.date_devis if devis else today }}">
+      </div>
+      {% if devis and statuts %}
+      <div class="col-md-3">
+        <label class="form-label">Statut</label>
+        <select name="statut" class="form-select">
+          {% for val, label, badge in statuts %}
+          <option value="{{ val }}" {{ 'selected' if devis.statut==val }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="form-section-title">🛡️ Proposition & Risque</div>
+    <div class="row g-3">
+      <div class="col-md-5">
+        <label class="form-label">Compagnie *</label>
+        <select name="compagnie" class="form-select" required onchange="toggleCompagnieFree(this)">
+          <option value="">— Sélectionner —</option>
+          {%- for cp in compagnies_liste %}
+          <option value="{{ cp.nom }}"
+            {{- ' selected' if devis.compagnie if devis else ''==cp.nom }}>
+            {{ cp.nom }}{% if cp.taux_commission > 0 %} ({{ cp.taux_commission }}%){% endif %}
+          </option>
+          {%- endfor %}
+          <option value="__autre__">✏️ Autre (saisie libre)</option>
+        </select>
+        <input type="text" name="compagnie_libre" class="form-control mt-1" id="cp-libre" style="display:none" placeholder="Nom de la compagnie...">
+      </div>
+      <div class="col-md-7">
+        <label class="form-label">Produit / Type d'assurance *</label>
+        <select name="type_assurance" class="form-select" required>
+          <option value="">— Sélectionner —</option>
+          {% for p in produits %}
+          <option value="{{ p }}" {{ 'selected' if devis and devis.type_assurance==p }}>{{ p }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Prime annuelle proposée (€) *</label>
+        <div class="input-group">
+          <input type="number" name="prime_proposee" step="0.01" min="0" class="form-control" required
+                 value="{{ devis.prime_proposee if devis else '' }}" placeholder="1 200">
+          <span class="input-group-text">€ / an</span>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Franchise (€)</label>
+        <div class="input-group">
+          <input type="number" name="franchise_proposee" step="0.01" min="0" class="form-control"
+                 value="{{ devis.franchise_proposee if devis else '' }}" placeholder="1 500">
+          <span class="input-group-text">€</span>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Risque / Bateau concerné (optionnel)</label>
+        <select name="risque_id" id="sel-risque" class="form-select">
+          <option value="">— Lier à un risque / bateau —</option>
+          {% if risques_client %}
+          {% for r in risques_client %}
+          <option value="{{ r.id }}"
+            {{ 'selected' if (devis and devis.risque_id==r.id) or (preselect_risque and preselect_risque|int==r.id) }}>
+            {{ r.type_risque|replace('_',' ')|title }} — {{ r.libelle }}
+          </option>
+          {% endfor %}
+          {% endif %}
+        </select>
+        <div class="form-text d-flex gap-2 mt-1">
+          <a href="#" data-bs-toggle="modal" data-bs-target="#modalRisqueRapide" onclick="document.getElementById('modal-risque-client-id').value = document.getElementById('sel-client').value;" style="font-size:11px">+ Créer risque</a>
+          <a href="#" data-bs-toggle="modal" data-bs-target="#modalBateauRapide" onclick="document.getElementById('modal-bateau-client-id').value = document.getElementById('sel-client').value;" style="font-size:11px">+ Créer bateau</a>
+        </div>
+      </div>
+
+      {% if devis %}
+      <div class="col-md-4">
+        <label class="form-label">Date de réponse</label>
+        <input type="date" name="date_reponse" class="form-control"
+               value="{{ devis.date_reponse if devis and devis.date_reponse else '' }}">
+      </div>
+      {% endif %}
+      <div class="col-12">
+        <label class="form-label">Garanties principales</label>
+        <textarea name="garanties" class="form-control" rows="2"
+                  placeholder="RC, dommages au bateau, assistance, option équipage...">{{ devis.garanties if devis else '' }}</textarea>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Notes internes</label>
+        <textarea name="notes" class="form-control" rows="2"
+                  placeholder="Conditions particulières, remarques, comparatif avec d'autres compagnies...">{{ devis.notes if devis else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="form-section-title">🎯 Note de conseil (DDA) <span class="text-muted fw-400" style="font-size:12px">— Traçabilité obligatoire</span></div>
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label fw-600">Argumentaire — Pourquoi ce produit ?</label>
+        <textarea name="note_conseil" class="form-control" rows="3"
+                  placeholder="Expliquez pourquoi vous recommandez ce produit/cette compagnie pour ce client : adéquation avec ses besoins, zone de navigation, valeur du bateau, rapport qualité/prix...">{{ devis.note_conseil if devis else '' }}</textarea>
+        <div class="form-text text-warning">⚠️ Cette note est obligatoire en cas de contrôle ACPR / DDA</div>
+      </div>
+      {% if devis and devis.statut == 'refuse' %}
+      <div class="col-12">
+        <label class="form-label">Raison de non-sélection</label>
+        <textarea name="raison_non_retenu" class="form-control" rows="2"
+                  placeholder="Pourquoi ce devis n'a pas été retenu (prix, garanties insuffisantes, refus compagnie...)">{{ devis.raison_non_retenu if devis else '' }}</textarea>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="form-section-title">📨 Envoi &amp; Validité</div>
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Date d'envoi au client</label>
+        <input type="date" name="date_envoi_client" class="form-control"
+               value="{{ devis.date_envoi_client if devis else '' }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Moyen d'envoi</label>
+        <select name="moyen_envoi" class="form-select">
+          {% for val, lbl in [('email','✉️ Email'),('courrier','📮 Courrier'),('remise_main','🤝 En mains propres'),('telephone','📞 Oral (téléphone)')] %}
+          <option value="{{ val }}" {{ 'selected' if devis and devis.moyen_envoi==val or (not devis and val=='email') }}>{{ lbl }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Validité (jours)</label>
+        <input type="number" name="validite_jours" class="form-control" min="1" max="90"
+               value="{{ devis.validite_jours if devis else 30 }}">
+      </div>
+      {% if devis and devis.statut == 'accepte' %}
+      <div class="col-md-3">
+        <label class="form-label">Type d'accord client</label>
+        <select name="type_acceptation" class="form-select">
+          {% for val, lbl in [('email','✉️ Email'),('courrier','📮 Courrier signé'),('signature_elec','🖊️ Signature électronique'),('oral','📞 Oral')] %}
+          <option value="{{ val }}" {{ 'selected' if devis and devis.type_acceptation==val }}>{{ lbl }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary" data-loading-title="Enregistrement du devis..." data-loading-sub="Sauvegarde en cours">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if devis else 'Enregistrer le devis' }}
+      </button>
+      {% if devis %}
+      <a href="{{ url_for('devis_dda_pdf', id=devis.id) }}" target="_blank" class="btn btn-outline-primary">
+        <i class="bi bi-file-earmark-pdf me-1"></i>Générer Fiche DDA (Conseil)
+      </a>
+      {% endif %}
+      {% if devis and devis.statut == 'en_attente' %}
+      <form method="post" action="{{ url_for('devis_accepter', id=devis.id) }}" style="margin:0" data-loading-title="Création du contrat..." data-loading-sub="Association du devis et du client">
+        <button type="submit" class="btn btn-success">
+          ✅ Accepter → Créer le contrat
+        </button>
+      </form>
+      {% endif %}
+      <a href="{{ url_for('devis_list') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+
+<!-- MODAL BATEAU RAPIDE -->
+<div class="modal fade" id="modalBateauRapide" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:12px;border:none">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title fs-6">⛵ Nouveau bateau rapide</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-bateau-rapide">
+          <input type="hidden" name="client_id" id="modal-bateau-client-id">
+          <input type="hidden" name="ajax" value="1">
+          <div class="mb-3">
+            <label class="form-label">Nom du bateau *</label>
+            <input type="text" name="nom_bateau" class="form-control" required placeholder="Ex: Le Grand Bleu">
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label">Marque</label>
+              <input type="text" name="marque" class="form-control" placeholder="Jeanneau">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Modèle</label>
+              <input type="text" name="modele" class="form-control" placeholder="Merry Fisher">
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label">Valeur assurée (€)</label>
+              <input type="number" name="valeur_assurance" class="form-control" step="0.01" placeholder="50000">
+            </div>
+            <div class="col-6">
+              <label class="form-label">Port d'attache</label>
+              <input type="text" name="port_attache" class="form-control" placeholder="Marseille">
+            </div>
+          </div>
+          <div class="text-end">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn btn-primary btn-sm">Enregistrer & Sélectionner</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RISQUE RAPIDE -->
+<div class="modal fade" id="modalRisqueRapide" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content" style="border-radius:12px;border:none">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title fs-6">🛡️ Nouveau risque rapide</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="form-risque-rapide">
+          <input type="hidden" name="client_id" id="modal-risque-client-id">
+          <input type="hidden" name="ajax" value="1">
+          <div class="mb-3">
+            <label class="form-label">Type de risque</label>
+            <select name="type_risque" class="form-select">
+              <option value="bateau">Bateau / Plaisance</option>
+              <option value="habitation">Habitation</option>
+              <option value="auto">Automobile</option>
+              <option value="rc_pro">RC Professionnelle</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Libellé / Description *</label>
+            <input type="text" name="libelle" class="form-control" required placeholder="Ex: Voilier 12m">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Valeur assurée (€)</label>
+            <input type="number" name="valeur_assurance" class="form-control" step="0.01" placeholder="100000">
+          </div>
+          <div class="text-end">
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn btn-primary btn-sm">Enregistrer & Sélectionner</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function loadRisques(clientId) {
+  const sel = document.getElementById('sel-risque');
+  if (!clientId) { sel.innerHTML = '<option value="">— Lier à un risque / bateau —</option>'; return; }
+  
+  fetch('/api/clients/' + clientId + '/risques')
+    .then(r => r.json())
+    .then(data => {
+      let opts = '<option value="">— Lier à un risque / bateau —</option>';
+      if (data.risques && data.risques.length) {
+        opts += '<optgroup label="Risques enregistrés">';
+        data.risques.forEach(r => {
+          opts += `<option value="${r.id}">${r.type} — ${r.libelle}${r.valeur ? ' (' + Math.round(r.valeur).toLocaleString() + ' €)' : ''}</option>`;
+        });
+        opts += '</optgroup>';
+      }
+      if (data.bateaux && data.bateaux.length) {
+        opts += '<optgroup label="Bateaux">';
+        data.bateaux.forEach(b => {
+          opts += `<option value="${b.id}">⚓ ${b.libelle}${b.valeur ? ' (' + Math.round(b.valeur).toLocaleString() + ' €)' : ''}</option>`;
+        });
+        opts += '</optgroup>';
+      }
+      sel.innerHTML = opts;
+      {% if devis and devis.risque_id %}sel.value = '{{ devis.risque_id }}';{% endif %}
+    }).catch(() => {});
+}
+
+const selClient = document.getElementById('sel-client');
+if (selClient) {
+  selClient.addEventListener('change', () => loadRisques(selClient.value));
+  if (selClient.value) loadRisques(selClient.value);
+}
+
+// AJAX Bateau Rapide
+document.getElementById('form-bateau-rapide').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const formData = new FormData(this);
+  fetch('/bateaux/nouveau', {
+    method: 'POST',
+    body: formData,
+    headers: {'X-Requested-With': 'XMLHttpRequest'}
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      const sel = document.getElementById('sel-risque');
+      const opt = document.createElement('option');
+      opt.value = data.id;
+      opt.textContent = `⚓ Bateau — ${data.nom_bateau || '(sans nom)'} (${data.valeur_assurance ? Math.round(data.valeur_assurance).toLocaleString() + ' €' : ''})`;
+      opt.selected = true;
+      sel.appendChild(opt);
+      const modalEl = document.getElementById('modalBateauRapide');
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      if (modal) modal.hide();
+      this.reset();
+    }
+  });
+});
+
+// AJAX Risque Rapide
+document.getElementById('form-risque-rapide').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const formData = new FormData(this);
+  fetch('/risques/nouveau', {
+    method: 'POST',
+    body: formData,
+    headers: {'X-Requested-With': 'XMLHttpRequest'}
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      const sel = document.getElementById('sel-risque');
+      const opt = document.createElement('option');
+      opt.value = data.id;
+      opt.textContent = `${data.type} — ${data.libelle}${data.valeur ? ' (' + Math.round(data.valeur).toLocaleString() + ' €)' : ''}`;
+      opt.selected = true;
+      sel.appendChild(opt);
+      const modalEl = document.getElementById('modalRisqueRapide');
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      if (modal) modal.hide();
+      this.reset();
+    }
+  });
+});
+</script>
+{% endblock %}

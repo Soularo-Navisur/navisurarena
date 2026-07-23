@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}Résiliation — {{ contrat.numero or '' }} — NAVISUR{% endblock %}
+{% block page_title %}Détail résiliation{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">🔴 Résiliation enregistrée</h1>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('contrat_resilier', id=contrat.id) }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-pencil me-1"></i>Modifier
+    </a>
+    <a href="{{ url_for('contrat_detail', id=contrat.id) }}" class="btn btn-outline-secondary btn-sm">
+      Fiche contrat
+    </a>
+    <a href="{{ url_for('client_detail', id=contrat.cid) }}" class="btn btn-outline-secondary btn-sm">
+      Fiche client
+    </a>
+    <a href="{{ url_for('attestation_non_sinistralite', id=contrat.id) }}" target="_blank" class="btn btn-primary btn-sm">
+      <i class="bi bi-file-earmark-check me-1"></i>Attestation de non-sinistralité
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card-crm">
+      <div class="card-crm-header"><span class="card-crm-title">📋 Informations</span></div>
+      <div class="p-3">
+        {% for label, val in [
+          ('Client', (contrat.prenom or '') + ' ' + contrat.nom),
+          ('Contrat', (contrat.type_assurance or '') + (' · ' + contrat.numero if contrat.numero else '')),
+          ('Date de résiliation', resil.date_resiliation),
+          ('Date d\'effet', resil.date_effet or resil.date_resiliation),
+          ('Motif', motifs_dict.get(resil.motif, resil.motif)),
+          ('Détails', resil.motif_detail or '—'),
+        ] %}
+        <div class="info-row">
+          <span class="info-label">{{ label }}</span>
+          <span class="info-value">{{ val }}</span>
+        </div>
+        {% endfor %}
+        {% if resil.notes %}
+        <div class="mt-3 p-3" style="background:#f8fafc;border-radius:8px;font-size:13px;color:#475569">
+          {{ resil.notes }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <!-- Ristourne -->
+    <div class="card-crm mb-3" style="{{ 'border-left:4px solid #22c55e' if resil.ristourne_montant > 0 else '' }}">
+      <div class="card-crm-header"><span class="card-crm-title">💰 Ristourne prorata</span></div>
+      <div class="p-3">
+        {% if resil.ristourne_montant > 0 %}
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div style="font-size:22px;font-weight:800;color:#22c55e">{{ "{:,.2f}".format(resil.ristourne_montant) }} €</div>
+            <div class="text-muted" style="font-size:12px">Compagnie → Client (ne transite pas par vous)</div>
+          </div>
+          <div>
+            {% if resil.ristourne_recue %}
+            <span class="badge-crm badge-clos">✅ Reçue le {{ resil.ristourne_date or '—' }}</span>
+            {% else %}
+            <form method="post" action="{{ url_for('resiliation_ristourne_recue', id=resil.id) }}" style="margin:0">
+              <button class="btn btn-sm btn-outline-success">✓ Marquer reçue</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0" style="font-size:13px">Aucune ristourne pour cette résiliation.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Commission -->
+    <div class="card-crm mb-3" style="{{ 'border-left:4px solid #f97316' if resil.commission_a_deduire > 0 else '' }}">
+      <div class="card-crm-header"><span class="card-crm-title">📊 Commission</span></div>
+      <div class="p-3">
+        {% for label, val in [
+          ('Commission initiale', '{:,.2f} €'.format(resil.commission_initiale or 0)),
+          ('À déduire / régulariser', '{:,.2f} €'.format(resil.commission_a_deduire or 0)),
+          ('Mode', {'aucun':'Aucune régularisation','note_debit':'Note de débit compagnie','deduction_prochaine':'Déduction sur prochaine commission'}.get(resil.commission_mode or 'aucun','—')),
+        ] %}
+        <div class="info-row">
+          <span class="info-label">{{ label }}</span>
+          <span class="info-value {{ 'text-danger fw-700' if 'déduire' in label and resil.commission_a_deduire > 0 else '' }}">{{ val }}</span>
+        </div>
+        {% endfor %}
+        {% if resil.commission_a_deduire > 0 %}
+        <div class="mt-3">
+          {% if resil.commission_regularisee %}
+          <span class="badge-crm badge-clos">✅ Régularisée le {{ resil.commission_regularisation_date or '—' }}</span>
+          {% else %}
+          <form method="post" action="{{ url_for('resiliation_regulariser', id=resil.id) }}" style="margin:0">
+            <button class="btn btn-sm btn-outline-success">✓ Marquer comme régularisée</button>
+          </form>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Frais de courtage -->
+    {% if resil.frais_courtage_appliquer %}
+    <div class="card-crm" style="border-left:4px solid #8b5cf6">
+      <div class="card-crm-header"><span class="card-crm-title">🧾 Frais de courtage</span></div>
+      <div class="p-3">
+        <div style="font-size:20px;font-weight:700;color:#8b5cf6">{{ "{:,.2f}".format(resil.frais_courtage_montant or 0) }} €</div>
+        {% if facture %}
+        <div class="mt-2 d-flex gap-2 align-items-center">
+          <span class="badge-crm badge-{{ facture.statut }}">{{ facture.statut|title }}</span>
+          <a href="{{ url_for('facture_imprimer', id=facture.id) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-printer me-1"></i>Facture {{ facture.numero }}
+          </a>
+        </div>
+        {% else %}
+        <p class="text-muted mt-2" style="font-size:12px">Facture brouillon à créer dans le module Quittances.</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

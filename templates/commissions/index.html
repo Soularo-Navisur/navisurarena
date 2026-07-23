@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Commissions — Riviera Marine Assurances{% endblock %}
+{% block page_title %}Commissions{% endblock %}
+{% block topbar_actions %}
+  <a href="{{ url_for('commission_nouvelle') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus me-1"></i>Saisir</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header-title">Commissions</h1>
+    <p class="page-header-sub">Suivi de vos bordereaux de commissions</p>
+  </div>
+  <a href="{{ url_for('commission_nouvelle') }}" class="btn btn-primary">
+    <i class="bi bi-percent me-2"></i>Saisir une commission
+  </a>
+</div>
+
+<!-- RÉSUMÉ ANNUEL -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="stat-card">
+      <div class="stat-icon gold"><i class="bi bi-cash-stack"></i></div>
+      <div>
+        <div class="stat-value">{{ "%.2f"|format(total) }} €</div>
+        <div class="stat-label">Total attendu {{ annee }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+      <div>
+        <div class="stat-value">{{ "%.2f"|format(total_recu) }} €</div>
+        <div class="stat-label">Total reçu {{ annee }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FILTRES -->
+<form method="get" class="search-bar">
+  <select name="annee" class="form-select" style="width:auto">
+    {% for a in annees %}
+    <option value="{{ a }}" {{ 'selected' if annee|int == a }}>{{ a }}</option>
+    {% endfor %}
+  </select>
+  <select name="mois" class="form-select" style="width:auto">
+    <option value="">Tous les mois</option>
+    {% set mois_noms = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'] %}
+    {% for i in range(1, 13) %}
+    <option value="{{ i }}" {{ 'selected' if mois and mois|int == i }}>{{ mois_noms[i-1] }}</option>
+    {% endfor %}
+  </select>
+  <select name="statut" class="form-select" style="width:auto">
+    <option value="">Tous</option>
+    <option value="attendu" {{ 'selected' if statut=='attendu' }}>Attendu</option>
+    <option value="recu" {{ 'selected' if statut=='recu' }}>Reçu</option>
+  </select>
+  <button type="submit" class="btn btn-primary">Filtrer</button>
+</form>
+
+<div class="card-crm">
+  {% if commissions %}
+  <table class="table-crm">
+    <thead>
+      <tr><th>Compagnie</th><th>Contrat</th><th>Client</th><th>Période</th><th>Brut</th><th>Taux</th><th>Net</th><th>Statut</th><th>Date paiement</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% set mois_noms = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'] %}
+      {% for cm in commissions %}
+      <tr>
+        <td class="fw-500">{{ cm.compagnie or '—' }}</td>
+        <td class="text-muted">{{ cm.numero or '—' }}</td>
+        <td>{{ cm.prenom or '' }} {{ cm.nom or '—' }}</td>
+        <td>{{ mois_noms[cm.mois-1] }} {{ cm.annee }}</td>
+        <td class="text-money">{{ "%.2f"|format(cm.montant_brut) }} €</td>
+        <td class="text-muted">{{ cm.taux }} %</td>
+        <td class="text-money-pos">{{ "%.2f"|format(cm.montant_net) }} €</td>
+        <td>
+          <span class="badge-crm badge-{{ cm.statut }}">
+            {{ 'Reçu ✓' if cm.statut == 'recu' else 'Attendu' }}
+          </span>
+        </td>
+        <td class="text-muted">{{ cm.date_paiement or '—' }}</td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="{{ url_for('commission_modifier', id=cm.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+            <form method="post" action="{{ url_for('commission_supprimer', id=cm.id) }}" onsubmit="return confirm('Supprimer ?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-percent"></i>
+    <h5>Aucune commission enregistrée</h5>
+    <a href="{{ url_for('commission_nouvelle') }}" class="btn btn-primary">Saisir une commission</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

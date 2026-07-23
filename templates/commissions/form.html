@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — Riviera Marine Assurances{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">{{ titre }}</h1>
+  <a href="{{ url_for('commissions_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+<form method="post">
+  <div class="form-card">
+    <div class="form-section-title">Informations</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Compagnie</label>
+        <select name="compagnie" class="form-select" onchange="toggleCompagnieFree(this)">
+          <option value="">— Sélectionner —</option>
+          {%- for cp in compagnies_liste %}
+          <option value="{{ cp.nom }}"
+            {{- ' selected' if commission.compagnie if commission else ''==cp.nom }}>
+            {{ cp.nom }}{% if cp.taux_commission > 0 %} ({{ cp.taux_commission }}%){% endif %}
+          </option>
+          {%- endfor %}
+          <option value="__autre__">✏️ Autre (saisie libre)</option>
+        </select>
+        <input type="text" name="compagnie_libre" class="form-control mt-1" id="cp-libre" style="display:none" placeholder="Nom de la compagnie...">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Contrat lié (optionnel)</label>
+        <select name="contrat_id" class="form-select">
+          <option value="">— Aucun —</option>
+          {% for ct in contrats %}
+          <option value="{{ ct.id }}" {{ 'selected' if commission and commission.contrat_id == ct.id }}>
+            {{ ct.numero or 'Sans n°' }} — {{ ct.nom }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Mois *</label>
+        <select name="mois" class="form-select" required>
+          {% set mois_noms = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'] %}
+          {% for i in range(1, 13) %}
+          <option value="{{ i }}" {{ 'selected' if (commission and commission.mois == i) or (not commission and now.month == i) }}>
+            {{ mois_noms[i-1] }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Année *</label>
+        <select name="annee" class="form-select" required>
+          {% for a in range(2020, now.year + 2) %}
+          <option value="{{ a }}" {{ 'selected' if (commission and commission.annee == a) or (not commission and now.year == a) }}>{{ a }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section-title">Montants</div>
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Montant brut (€)</label>
+        <div class="input-group">
+          <input type="number" name="montant_brut" class="form-control" id="montant_brut" step="0.01" min="0"
+                 value="{{ commission.montant_brut if commission else '' }}" placeholder="0.00">
+          <span class="input-group-text">€</span>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Taux de rétrocession (%)</label>
+        <div class="input-group">
+          <input type="number" name="taux" class="form-control" id="taux" step="0.1" min="0" max="100"
+                 value="{{ commission.taux if commission else '' }}" placeholder="0">
+          <span class="input-group-text">%</span>
+        </div>
+        <div class="form-text">0% = montant net = brut</div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Montant net estimé</label>
+        <div class="input-group">
+          <input type="number" name="montant_net" class="form-control" id="montant_net" step="0.01" min="0"
+                 value="{{ commission.montant_net if commission else '' }}" placeholder="Calculé auto">
+          <span class="input-group-text">€</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section-title">Paiement & Statut</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Statut</label>
+        <select name="statut" class="form-select">
+          <option value="attendu" {{ 'selected' if not commission or commission.statut == 'attendu' }}>Attendu</option>
+          <option value="recu" {{ 'selected' if commission and commission.statut == 'recu' }}>Reçu ✓</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Date de paiement</label>
+        <input type="date" name="date_paiement" class="form-control" value="{{ commission.date_paiement if commission else '' }}">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Notes</label>
+        <textarea name="notes" class="form-control" rows="2" placeholder="Références bordereau...">{{ commission.notes if commission else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if commission else 'Enregistrer' }}
+      </button>
+      <a href="{{ url_for('commissions_list') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Auto-calculate net amount
+  const brut = document.getElementById('montant_brut');
+  const taux = document.getElementById('taux');
+  const net = document.getElementById('montant_net');
+  function calcNet() {
+    const b = parseFloat(brut.value) || 0;
+    const t = parseFloat(taux.value) || 0;
+    if (b > 0) {
+      net.value = t > 0 ? (b * t / 100).toFixed(2) : b.toFixed(2);
+    }
+  }
+  brut.addEventListener('input', calcNet);
+  taux.addEventListener('input', calcNet);
+</script>
+{% endblock %}

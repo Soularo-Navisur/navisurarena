@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Modifier' if facture else 'Nouvelle' }} facture — NAVISUR{% endblock %}
+{% block page_title %}{{ 'Modifier' if facture else 'Nouvelle' }} facture{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">🧾 {{ 'Modifier la facture' if facture else 'Nouvelle facture' }}</h1>
+  <a href="{{ url_for('compta_factures') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+<form method="post">
+  <div class="form-card" style="max-width:800px">
+    <div class="form-section-title">Client & Dates</div>
+    <div class="row g-3">
+      <div class="col-md-5">
+        <label class="form-label">Client *</label>
+        <select name="client_id" class="form-select" required>
+          <option value="">— Sélectionner —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}"
+            {{ 'selected' if (facture and facture.client_id==c.id) or (preselect and preselect|int==c.id) }}>
+            {{ c.prenom or '' }} {{ c.nom }}{% if c.email %} ({{ c.email }}){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Date d'émission *</label>
+        <input type="date" name="date_emission" class="form-control" required
+               value="{{ facture.date_emission if facture else today }}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Date d'échéance</label>
+        <input type="date" name="date_echeance" class="form-control"
+               value="{{ facture.date_echeance if facture else '' }}">
+      </div>
+    </div>
+
+    <div class="form-section-title">Prestation</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label">Objet / Description *</label>
+        <input type="text" name="objet" class="form-control" required
+               value="{{ facture.objet if facture else '' }}"
+               placeholder="Frais de courtage — Assurance plaisance / Honoraire de conseil...">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Montant (€ HT = TTC) *</label>
+        <div class="input-group">
+          <input type="number" name="montant" step="0.01" min="0.01" class="form-control" required
+                 value="{{ facture.montant_ht if facture else '' }}">
+          <span class="input-group-text">€</span>
+        </div>
+        <div class="form-text text-success fw-600">TVA non applicable, art. 293 B CGI</div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Statut</label>
+        <select name="statut" class="form-select">
+          {% for val, lbl in [('brouillon','📝 Brouillon'),('emise','📤 Émise'),('payee','✅ Payée'),('retard','⚠️ En retard'),('annulee','❌ Annulée')] %}
+          <option value="{{ val }}" {{ 'selected' if facture and facture.statut==val or (not facture and val=='brouillon') }}>{{ lbl }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section-title">Notes internes</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <textarea name="notes" class="form-control" rows="2"
+                  placeholder="Conditions particulières, référence dossier...">{{ facture.notes if facture else '' }}</textarea>
+      </div>
+    </div>
+
+    <!-- Aperçu mentions légales -->
+    <div class="mt-3 p-3" style="background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
+      <div style="font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;margin-bottom:8px">Mentions légales automatiques sur la facture</div>
+      <div style="font-size:12px;color:#475569;line-height:1.8">
+        {{ params.get('cabinet_nom','Riviera Marine Assurances') }} ·
+        {% if params.get('cabinet_siren') %}SIRET : {{ params.get('cabinet_siren') }} · {% endif %}
+        {% if params.get('cabinet_orias') %}ORIAS n° {{ params.get('cabinet_orias') }} · {% endif %}
+        <strong style="color:#16a34a">TVA non applicable, article 293 B du CGI</strong>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if facture else 'Créer la facture' }}
+      </button>
+      {% if facture %}
+      <a href="{{ url_for('compta_facture_imprimer', id=facture.id) }}" target="_blank" class="btn btn-outline-secondary">
+        <i class="bi bi-printer me-1"></i>Imprimer
+      </a>
+      {% endif %}
+      <a href="{{ url_for('compta_factures') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

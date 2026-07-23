@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% block title %}{{ titre }} — Riviera Marine Assurances{% endblock %}
+{% block page_title %}{{ titre }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-header-title">{{ titre }}</h1>
+  <a href="{{ url_for('dda_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Retour</a>
+</div>
+
+<form method="post">
+  <div class="form-card" style="max-width:980px">
+
+    <div class="form-section-title">👤 Informations générales</div>
+    <div class="row g-3">
+      <div class="col-md-5">
+        <label class="form-label">Client *</label>
+        <select name="client_id" class="form-select" required>
+          <option value="">— Sélectionner —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}" {{ 'selected' if (recueil and recueil.client_id==c.id) or (preselect and preselect|int==c.id) }}>
+            {{ c.prenom or '' }} {{ c.nom }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Conseiller</label>
+        <input type="text" name="conseiller" class="form-control"
+               value="{{ recueil.conseiller if recueil else conseiller }}"
+               placeholder="Nom du conseiller">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Date du recueil</label>
+        <input type="date" name="date_recueil" class="form-control"
+               value="{{ recueil.date_recueil if recueil else today }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Contrat lié (si souscription)</label>
+        <select name="contrat_id" class="form-select">
+          <option value="">— Aucun (prospect) —</option>
+          {% for c in contrats %}
+          <option value="{{ c.id }}"
+            {{ 'selected' if recueil and recueil.contrat_id==c.id }}>
+            {{ c.numero or 'Sans n°' }} — {{ c.type_assurance or '' }} ({{ c.prenom or '' }} {{ c.nom }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Date signature client</label>
+        <input type="date" name="date_signature" class="form-control"
+               value="{{ recueil.date_signature if recueil and recueil.date_signature else '' }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Version</label>
+        <input type="number" name="version" class="form-control" min="1"
+               value="{{ recueil.version if recueil else 1 }}">
+        <div class="form-text">Incrémenter à chaque révision</div>
+      </div>
+    </div>
+
+    <div class="form-section-title">🎯 Objectifs & Besoins</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label">Objectif principal de l'assurance</label>
+        <textarea name="objectif_assurance" class="form-control" rows="2"
+          placeholder="Protection du capital navire, RC en navigation, protection de l'équipage, couverture charter...">{{ recueil.objectif_assurance if recueil else '' }}</textarea>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Type de navigation pratiquée</label>
+        <select name="type_navigation" class="form-select">
+          <option value="">— Sélectionner —</option>
+          {% for t in ['Plaisance côtière','Plaisance hauturière','Navigation fluviale et lacustre','Régates / Compétition','Charter / Location','Voile de croisière','Motonautisme','Jet Ski / Scooter des mers','Mixte (voile + moteur)'] %}
+          <option value="{{ t }}" {{ 'selected' if recueil and recueil.type_navigation==t }}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Zone de navigation habituelle</label>
+        <select name="zone_navigation" class="form-select">
+          <option value="">— Sélectionner —</option>
+          {% for z in ['Côtière (< 6 milles)','Hauturière (6 à 200 milles)','Hauturière étendue (> 200 milles)','Atlantique','Méditerranée','Eaux intérieures (fleuves, lacs)','Monde entier'] %}
+          <option value="{{ z }}" {{ 'selected' if recueil and recueil.zone_navigation==z }}>{{ z }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Expérience en navigation</label>
+        <select name="experience_navigation" class="form-select">
+          <option value="">—</option>
+          {% for e in ['Débutant (< 2 ans)','Intermédiaire (2-5 ans)','Confirmé (5-10 ans)','Expert (> 10 ans)','Professionnel'] %}
+          <option value="{{ e }}" {{ 'selected' if recueil and recueil.experience_navigation==e }}>{{ e }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Nombre habituel de personnes à bord</label>
+        <select name="nb_personnes_bord" class="form-select">
+          <option value="">—</option>
+          {% for n in ['1 personne','2 personnes','3 à 5 personnes','6 à 10 personnes','Plus de 10 personnes'] %}
+          <option value="{{ n }}" {{ 'selected' if recueil and recueil.nb_personnes_bord==n }}>{{ n }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Valeur estimée du bateau</label>
+        <select name="valeur_bateau" class="form-select">
+          <option value="">—</option>
+          {% for v in ['Moins de 10 000 €','10 000 à 30 000 €','30 000 à 75 000 €','75 000 à 150 000 €','150 000 à 500 000 €','Plus de 500 000 €'] %}
+          <option value="{{ v }}" {{ 'selected' if recueil and recueil.valeur_bateau==v }}>{{ v }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-section-title">🛡️ Garanties & Couverture</div>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Garanties souhaitées</label>
+        <textarea name="garanties_souhaitees" class="form-control" rows="3"
+          placeholder="Corps bateau (dommages), RC (tiers), Assistance rapatriement, Effets personnels, Annulation charter...">{{ recueil.garanties_souhaitees if recueil else '' }}</textarea>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Garanties à exclure ou non prioritaires</label>
+        <textarea name="garanties_exclues" class="form-control" rows="3"
+          placeholder="Garanties dont le client n'a pas besoin ou qu'il possède déjà ailleurs...">{{ recueil.garanties_exclues if recueil else '' }}</textarea>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Budget annuel envisagé</label>
+        <select name="budget_annuel" class="form-select">
+          <option value="">—</option>
+          {% for b in ['Moins de 500 €','500 à 1 000 €','1 000 à 2 000 €','2 000 à 5 000 €','5 000 à 10 000 €','Plus de 10 000 €','À définir selon proposition'] %}
+          <option value="{{ b }}" {{ 'selected' if recueil and recueil.budget_annuel==b }}>{{ b }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Situation d'assurance actuelle</label>
+        <select name="situation_assurance" class="form-select">
+          <option value="">—</option>
+          {% for s in ['Jamais assuré','Assuré chez un concurrent (renouvellement)','Assuré — changement de navire','Complément de garanties','Première assurance (nouveau navire)'] %}
+          <option value="{{ s }}" {{ 'selected' if recueil and recueil.situation_assurance==s }}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Sinistres antérieurs (5 ans)</label>
+        <select name="sinistres_anterieurs" class="form-select">
+          <option value="">—</option>
+          {% for s in ['Aucun sinistre','1 sinistre','2 sinistres','3 sinistres ou plus','Ne sait pas'] %}
+          <option value="{{ s }}" {{ 'selected' if recueil and recueil.sinistres_anterieurs==s }}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Besoins spécifiques / Particularités</label>
+        <textarea name="besoins_specifiques" class="form-control" rows="2"
+          placeholder="Bateau en charter, équipage professionnel, navigation long cours, fréquence d'utilisation, accessoires coûteux...">{{ recueil.besoins_specifiques if recueil else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="form-section-title">✅ Recommandation du conseiller</div>
+    <div class="row g-3">
+      <div class="col-12">
+        <label class="form-label">Recommandation motivée *</label>
+        <textarea name="recommandation" class="form-control" rows="4"
+          placeholder="Au vu des éléments recueillis, je recommande... Ce produit répond aux besoins du client car... La garantie X est particulièrement adaptée à sa situation car...">{{ recueil.recommandation if recueil else '' }}</textarea>
+        <div class="form-text">Ce champ est obligatoire pour la conformité DDA. La recommandation doit être motivée.</div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Statut du recueil</label>
+        <select name="statut" class="form-select">
+          <option value="brouillon" {{ 'selected' if not recueil or recueil.statut=='brouillon' }}>📝 Brouillon</option>
+          <option value="en_cours" {{ 'selected' if recueil and recueil.statut=='en_cours' }}>🔄 En cours</option>
+          <option value="valide" {{ 'selected' if recueil and recueil.statut=='valide' }}>✅ Validé</option>
+        </select>
+      </div>
+      <div class="col-md-4 d-flex align-items-end">
+        <div class="form-check" style="margin-bottom:8px">
+          <input class="form-check-input" type="checkbox" name="accepte_signature" value="1" id="sig"
+                 {{ 'checked' if recueil and recueil.accepte_signature }}>
+          <label class="form-check-label fw-500" for="sig">
+            ✍️ Le client a pris connaissance de ce recueil
+          </label>
+        </div>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Notes internes</label>
+        <textarea name="notes" class="form-control" rows="2"
+          placeholder="Remarques internes, suite à donner...">{{ recueil.notes if recueil else '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-check-lg me-1"></i>{{ 'Mettre à jour' if recueil else 'Enregistrer le recueil' }}
+      </button>
+      {% if recueil %}
+      <a href="{{ url_for('dda_detail', id=recueil.id) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-printer me-1"></i>Voir / Imprimer
+      </a>
+      {% endif %}
+      <a href="{{ url_for('dda_list') }}" class="btn btn-outline-secondary">Annuler</a>
+    </div>
+  </div>
+</form>
+{% endblock %}
