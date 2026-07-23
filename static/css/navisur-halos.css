@@ -1,0 +1,64 @@
+/*
+ * navisur-halos.css — NAVISUR v9.9
+ * Halos de fond premium — compatibles pywebview (Chromium embarqué).
+ * background-attachment:fixed ne fonctionne pas dans pywebview → utiliser
+ * un pseudo-élément position:fixed sur <html> à la place.
+ *
+ * INSTALLATION : ajouter dans base.html APRÈS style.css et navisur-premium.css :
+ *   <link rel="stylesheet" href="{{ url_for('static', filename='css/navisur-halos.css') }}">
+ */
+
+/* ── Couche de halos fixe (fonctionne dans pywebview) ──────── */
+html::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+
+  /* MODE CLAIR : fond gris-bleu + halo or en haut gauche + halo bleu en bas droite */
+  background:
+    radial-gradient(ellipse 70% 50% at 8% 15%,
+      rgba(201, 168, 76, 0.07) 0%,
+      transparent 55%),
+    radial-gradient(ellipse 55% 65% at 92% 85%,
+      rgba(14, 165, 233, 0.05) 0%,
+      transparent 55%),
+    radial-gradient(ellipse 40% 40% at 50% 50%,
+      rgba(201, 168, 76, 0.025) 0%,
+      transparent 60%),
+    #f0f4f8;
+}
+
+/* ── Mode sombre ───────────────────────────────────────────── */
+html[data-dark="1"]::before,
+body.dark-mode html::before {
+  background:
+    radial-gradient(ellipse 70% 50% at 8% 15%,
+      rgba(201, 168, 76, 0.09) 0%,
+      transparent 55%),
+    radial-gradient(ellipse 55% 65% at 92% 85%,
+      rgba(14, 165, 233, 0.07) 0%,
+      transparent 55%),
+    radial-gradient(ellipse 40% 40% at 50% 50%,
+      rgba(201, 168, 76, 0.04) 0%,
+      transparent 60%),
+    #080d1a !important;
+}
+
+/* ── body transparent pour laisser passer les halos ────────── */
+body {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+/* ── dark-mode : body aussi transparent ────────────────────── */
+body.dark-mode {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+/* ── html en dark mode : fond sombre de base ───────────────── */
+html[data-dark="1"] {
+  background: #080d1a !important;
+}

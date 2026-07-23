@@ -1,0 +1,429 @@
+/*
+ * print-premium.css — NAVISUR v9.9
+ * Styles d'impression premium pour : note de couverture, fiche client,
+ * attestation, facture courtage.
+ * Utilisé uniquement pour @media print et les templates d'impression.
+ */
+
+/* ══ VARIABLES ══════════════════════════════════════════════ */
+:root {
+  --p-navy:  #0f1e3c;
+  --p-navy2: #1a2e5a;
+  --p-gold:  #c9a84c;
+  --p-slate: #64748b;
+  --p-light: #f8fafc;
+  --p-border:#e2e8f0;
+  --p-text:  #1e293b;
+}
+
+/* ══ RESET IMPRESSION ═══════════════════════════════════════ */
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body { margin: 0 !important; padding: 0 !important; background: white !important; }
+  .no-print, .btn, nav, .sidebar, .topbar { display: none !important; }
+  .page-break { page-break-after: always; break-after: always; }
+  a { text-decoration: none !important; color: inherit !important; }
+}
+
+/* ══ PAGE ═══════════════════════════════════════════════════ */
+@page {
+  size: A4 portrait;
+  margin: 18mm 16mm 22mm 16mm;
+}
+@page:first { margin-top: 0; }
+
+body.doc-print {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 10pt;
+  line-height: 1.55;
+  color: var(--p-text);
+  background: white;
+  width: 210mm;
+  margin: 0 auto;
+}
+
+/* ══ EN-TÊTE CABINET ════════════════════════════════════════ */
+.doc-header {
+  background: var(--p-navy);
+  padding: 0;
+  margin: -18mm -16mm 0;  /* couvre les marges */
+  display: flex;
+  align-items: stretch;
+  page-break-inside: avoid;
+}
+.doc-header-logo {
+  background: white;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 160px;
+}
+.doc-header-logo img {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+}
+.doc-header-logo .cabinet-name {
+  font-size: 11pt;
+  font-weight: 800;
+  color: var(--p-navy);
+  line-height: 1.2;
+  letter-spacing: -.01em;
+}
+.doc-header-logo .cabinet-sub {
+  font-size: 7.5pt;
+  color: var(--p-slate);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.doc-header-info {
+  flex: 1;
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: rgba(255,255,255,.8);
+  font-size: 8.5pt;
+  gap: 2px;
+}
+.doc-header-info strong { color: white; }
+.doc-header-right {
+  background: var(--p-gold);
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  min-width: 120px;
+}
+.doc-header-right .doc-type {
+  font-size: 9pt;
+  font-weight: 800;
+  color: var(--p-navy);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  text-align: right;
+}
+.doc-header-right .doc-date {
+  font-size: 8pt;
+  color: var(--p-navy);
+  opacity: .75;
+  margin-top: 3px;
+}
+
+/* Ligne dorée sous le header */
+.doc-header-bar {
+  height: 3px;
+  background: var(--p-gold);
+  margin: 0 -16mm 20px;
+}
+
+/* ══ TITRE DU DOCUMENT ══════════════════════════════════════ */
+.doc-title-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin: 20px 0 16px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--p-gold);
+}
+.doc-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 18pt;
+  font-weight: 900;
+  color: var(--p-navy);
+  letter-spacing: -.02em;
+  line-height: 1.1;
+}
+.doc-subtitle {
+  font-size: 9pt;
+  color: var(--p-slate);
+  margin-top: 4px;
+}
+.doc-ref {
+  text-align: right;
+  font-size: 8.5pt;
+  color: var(--p-slate);
+}
+.doc-ref .ref-num {
+  font-family: 'DM Mono', 'Courier New', monospace;
+  font-size: 10pt;
+  font-weight: 700;
+  color: var(--p-navy);
+  display: block;
+}
+
+/* ══ BLOCS PARTIES (Client / Compagnie) ══════════════════════ */
+.doc-parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.doc-partie {
+  border: 1px solid var(--p-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.doc-partie-header {
+  background: var(--p-navy);
+  color: white;
+  font-size: 7.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  padding: 6px 12px;
+}
+.doc-partie-body {
+  padding: 10px 12px;
+  font-size: 9.5pt;
+}
+.doc-partie-body .name {
+  font-size: 11pt;
+  font-weight: 700;
+  color: var(--p-navy);
+  margin-bottom: 4px;
+}
+.doc-partie-body .detail {
+  color: var(--p-slate);
+  font-size: 9pt;
+  line-height: 1.5;
+}
+
+/* ══ SECTION ════════════════════════════════════════════════ */
+.doc-section {
+  margin-bottom: 16px;
+  page-break-inside: avoid;
+}
+.doc-section-title {
+  font-size: 8pt;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--p-gold);
+  border-bottom: 1px solid var(--p-gold);
+  padding-bottom: 4px;
+  margin-bottom: 10px;
+}
+
+/* ══ TABLEAU GARANTIES ══════════════════════════════════════ */
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9pt;
+  margin-bottom: 12px;
+}
+.doc-table thead th {
+  background: var(--p-navy);
+  color: white;
+  font-size: 7.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  padding: 7px 10px;
+  text-align: left;
+}
+.doc-table thead th:last-child { text-align: right; }
+.doc-table tbody tr { border-bottom: 1px solid var(--p-border); }
+.doc-table tbody tr:nth-child(even) { background: var(--p-light); }
+.doc-table tbody td {
+  padding: 7px 10px;
+  vertical-align: top;
+  color: var(--p-text);
+}
+.doc-table tbody td:last-child {
+  text-align: right;
+  font-family: 'DM Mono', monospace;
+  font-weight: 600;
+  color: var(--p-navy);
+}
+.doc-table tfoot td {
+  padding: 8px 10px;
+  font-weight: 700;
+  border-top: 2px solid var(--p-gold);
+  background: rgba(201,168,76,.06);
+}
+.doc-table tfoot td:last-child {
+  font-size: 11pt;
+  color: var(--p-gold);
+  font-family: 'DM Mono', monospace;
+}
+
+/* ══ GRILLE INFOS ═══════════════════════════════════════════ */
+.doc-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 20px;
+  margin-bottom: 12px;
+}
+.doc-info-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.doc-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.doc-info-label {
+  font-size: 7.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--p-slate);
+}
+.doc-info-value {
+  font-size: 10pt;
+  color: var(--p-navy);
+  font-weight: 500;
+}
+.doc-info-value.mono {
+  font-family: 'DM Mono', monospace;
+  font-weight: 600;
+}
+.doc-info-value.gold { color: var(--p-gold); font-weight: 700; }
+
+/* ══ BADGE STATUT ════════════════════════════════════════════ */
+.doc-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.doc-badge-green { background: rgba(22,163,74,.12); color: #16a34a; border: 1px solid rgba(22,163,74,.3); }
+.doc-badge-gold  { background: rgba(201,168,76,.12); color: var(--p-gold); border: 1px solid rgba(201,168,76,.3); }
+.doc-badge-gray  { background: rgba(100,116,139,.1); color: var(--p-slate); border: 1px solid rgba(100,116,139,.2); }
+
+/* ══ BOÎTE MONTANT PRIME ════════════════════════════════════ */
+.doc-prime-box {
+  background: var(--p-navy);
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 14px 0;
+  page-break-inside: avoid;
+}
+.doc-prime-box .label {
+  color: rgba(255,255,255,.7);
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+.doc-prime-box .montant {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 22pt;
+  font-weight: 900;
+  color: var(--p-gold);
+  letter-spacing: -.01em;
+}
+.doc-prime-box .detail {
+  color: rgba(255,255,255,.55);
+  font-size: 8.5pt;
+  margin-top: 2px;
+}
+
+/* ══ BATEAU ══════════════════════════════════════════════════ */
+.doc-boat-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: var(--p-light);
+  border: 1px solid var(--p-border);
+  border-left: 3px solid var(--p-gold);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.doc-boat-icon { font-size: 28px; flex-shrink: 0; }
+.doc-boat-info .boat-name {
+  font-size: 12pt;
+  font-weight: 700;
+  color: var(--p-navy);
+}
+.doc-boat-info .boat-detail {
+  font-size: 9pt;
+  color: var(--p-slate);
+  margin-top: 2px;
+}
+
+/* ══ BLOC MENTIONS LÉGALES ══════════════════════════════════ */
+.doc-legal {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--p-border);
+  font-size: 7.5pt;
+  color: var(--p-slate);
+  line-height: 1.5;
+}
+.doc-legal strong { color: var(--p-navy); }
+
+/* ══ PIED DE PAGE ════════════════════════════════════════════ */
+.doc-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0; right: 0;
+  padding: 8px 16mm;
+  background: white;
+  border-top: 1px solid var(--p-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 7.5pt;
+  color: var(--p-slate);
+}
+.doc-footer .footer-brand {
+  font-weight: 700;
+  color: var(--p-navy);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.doc-footer .footer-brand::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 2px;
+  background: var(--p-gold);
+  border-radius: 1px;
+}
+.doc-footer .footer-page::after {
+  content: counter(page) ' / ' counter(pages);
+  counter-increment: page;
+}
+
+/* ══ SIGNATURE ═══════════════════════════════════════════════ */
+.doc-signatures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+  page-break-inside: avoid;
+}
+.doc-sign-box {
+  border: 1px solid var(--p-border);
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 80px;
+}
+.doc-sign-label {
+  font-size: 8pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--p-slate);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--p-border);
+}
+
+/* ══ UTILITÉ ══════════════════════════════════════════════════ */
+.text-gold { color: var(--p-gold) !important; }
+.text-navy { color: var(--p-navy) !important; }
+.text-slate { color: var(--p-slate) !important; }
+.fw-700 { font-weight: 700 !important; }
+.text-right { text-align: right !important; }
+.mt-8 { margin-top: 8px !important; }
+.mt-12 { margin-top: 12px !important; }
+.mb-0 { margin-bottom: 0 !important; }
