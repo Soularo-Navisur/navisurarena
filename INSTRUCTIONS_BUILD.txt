@@ -1,0 +1,109 @@
+╔══════════════════════════════════════════════════════════════╗
+║        INSTRUCTIONS POUR CRÉER NAVISUR.EXE                 ║
+║        5 étapes — Aucune connaissance technique requise     ║
+╚══════════════════════════════════════════════════════════════╝
+
+
+AVANT DE COMMENCER
+──────────────────
+Vous avez besoin de :
+✅ Windows 10 ou 11 (64 bits)
+✅ Python 3.11 ou 3.12 installé
+   → Si pas installé : https://www.python.org/downloads/
+   → IMPORTANT : cochez "Add Python to PATH" lors de l'installation
+✅ Le dossier complet du projet NAVISUR (avec app.py, templates/, etc.)
+
+
+═══════════════════════════════════════════════════════════════
+  ÉTAPE 1 — Ouvrir le dossier du projet
+═══════════════════════════════════════════════════════════════
+
+Ouvrez l'explorateur Windows et naviguez jusqu'au dossier
+où se trouve le projet NAVISUR (celui qui contient app.py,
+build.bat, navisur_launcher.py, etc.)
+
+
+═══════════════════════════════════════════════════════════════
+  ÉTAPE 2 — Double-cliquez sur build.bat
+═══════════════════════════════════════════════════════════════
+
+Double-cliquez sur le fichier "build.bat"
+
+Une fenêtre noire s'ouvre et affiche la progression :
+  [1/5] Installation des dépendances...
+  [2/5] Génération de l'icône...
+  [3/5] Nettoyage...
+  [4/5] Compilation avec PyInstaller...   ← Peut prendre 2-5 minutes
+  [5/5] Préparation...
+
+⏱️  La compilation (étape 4) peut prendre 2 à 5 minutes.
+    C'est normal. Ne fermez pas la fenêtre.
+
+
+═══════════════════════════════════════════════════════════════
+  ÉTAPE 3 — Tester l'exe
+═══════════════════════════════════════════════════════════════
+
+Une fois terminé, l'explorateur s'ouvre automatiquement
+sur le dossier dist\NAVISUR\
+
+Double-cliquez sur NAVISUR.exe pour tester.
+→ L'écran de chargement NAVISUR doit apparaître
+→ Puis l'interface s'ouvre dans une fenêtre dédiée
+
+
+═══════════════════════════════════════════════════════════════
+  ÉTAPE 4 — Créer l'installateur (optionnel)
+═══════════════════════════════════════════════════════════════
+
+Si vous voulez créer Setup_NAVISUR_v98.exe :
+
+a) Téléchargez Inno Setup (gratuit) :
+   https://jrsoftware.org/isinfo.php
+
+b) Installez-le
+
+c) Double-cliquez sur le fichier "setup_navisur.iss"
+
+d) Dans le menu en haut, cliquez "Build" → "Compile"
+   (ou appuyez sur F9)
+
+e) Attendez 1-2 minutes → Setup_NAVISUR_v98.exe est créé
+   dans le même dossier
+
+
+═══════════════════════════════════════════════════════════════
+  ÉTAPE 5 — Distribuer
+═══════════════════════════════════════════════════════════════
+
+Vous pouvez distribuer :
+
+OPTION A — Dossier complet :
+Copiez tout le dossier dist\NAVISUR\ sur une clé USB
+ou sur le PC cible. Double-clic sur NAVISUR.exe = démarrage.
+
+OPTION B — Installateur (plus propre) :
+Copiez seulement Setup_NAVISUR_v98.exe sur le PC cible.
+Double-clic → assistant d'installation → raccourci bureau créé.
+
+
+═══════════════════════════════════════════════════════════════
+  EN CAS D'ERREUR LORS DE LA COMPILATION
+═══════════════════════════════════════════════════════════════
+
+Erreur "Python n'est pas reconnu" :
+→ Réinstallez Python en cochant "Add Python to PATH"
+
+Erreur "pywebview not found" :
+→ Ouvrez une invite de commandes dans le dossier du projet
+→ Tapez : pip install pywebview pillow pyinstaller
+→ Relancez build.bat
+
+Erreur lors de PyInstaller (étape 4) :
+→ Ouvrez une invite de commandes dans le dossier
+→ Tapez : pip install --upgrade pyinstaller
+→ Relancez build.bat
+
+Autres erreurs :
+→ Copiez le message d'erreur complet
+→ Contactez : contact@rivieramarine-assurances.fr

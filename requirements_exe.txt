@@ -1,0 +1,14 @@
+# NAVISUR v9.8 — Dépendances pour compiler l'exe
+# pip install -r requirements_exe.txt
+
+flask>=3.0.0
+Flask-Login>=0.6.3
+werkzeug>=3.0.0
+pywebview>=4.4.1
+pillow>=10.0.0
+openpyxl>=3.1.0
+pyinstaller>=6.0.0
+
+# Déjà inclus dans Python standard :
+# sqlite3, tkinter, threading, socket, logging, json,
+# uuid, datetime, glob, shutil, re, urllib, ctypes, winreg

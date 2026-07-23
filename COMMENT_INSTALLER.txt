@@ -1,0 +1,43 @@
+NAVISUR v9.9 — Portail client + Déploiement IONOS
+==================================================
+
+PARTIE 1 — PORTAIL CLIENT (sur votre version locale Windows)
+-------------------------------------------------------------
+
+ÉTAPE 1 — Remplacer dans votre projet :
+  app.py      → racine
+  core.py     → racine
+
+ÉTAPE 2 — Ajouter le nouveau fichier :
+  routes/portail.py    → dossier routes/
+
+ÉTAPE 3 — Ajouter les templates portail :
+  templates/portail/base_portail.html
+  templates/portail/login.html
+  templates/portail/dashboard.html
+  templates/portail/documents.html
+  templates/portail/attestations.html
+  templates/portail/demandes.html
+  templates/portail/profil.html
+  templates/portail/admin_client.html
+
+ÉTAPE 4 — Lancer build.bat
+
+UTILISATION :
+  → Fiche client > Portail client : créer l'accès (bouton à ajouter)
+  → L'URL du portail : http://localhost:5000/portail (local)
+                       https://navisur.votredomaine.fr/portail (IONOS)
+
+PARTIE 2 — DÉPLOIEMENT IONOS
+------------------------------
+Voir le dossier IONOS_DEPLOY/ :
+  • DEPLOIEMENT_IONOS.txt  → guide étape par étape
+  • setup_ionos.sh          → script d'installation automatique
+
+RÉSUMÉ :
+  1. Commander VPS IONOS Ubuntu 22.04
+  2. Pointer votre domaine vers l'IP du VPS
+  3. ssh root@IP puis bash setup_ionos.sh votre-domaine.fr
+  4. Copier les fichiers NAVISUR + navisur.db sur le serveur
+  5. sudo systemctl restart navisur
+  → Accessible sur https://votre-domaine.fr

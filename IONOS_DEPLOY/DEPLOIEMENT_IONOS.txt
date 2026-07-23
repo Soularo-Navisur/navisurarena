@@ -1,0 +1,84 @@
+NAVISUR — Guide déploiement IONOS VPS
+======================================
+
+PRÉREQUIS :
+-----------
+• Un VPS IONOS (Cloud Server S ou M recommandé — ~4€/mois)
+  Ubuntu 22.04 ou Debian 12
+• Un nom de domaine pointant vers l'IP du VPS
+  (ex: navisur.rivieramarine-assurances.fr → IP du VPS)
+• Accès SSH en root au VPS
+
+ÉTAPE 1 — Commander le VPS IONOS
+----------------------------------
+1. IONOS.fr > Cloud > Cloud Serveur
+2. Choisir Ubuntu 22.04
+3. Copier l'adresse IP fournie
+4. Dans votre registrar : créer un enregistrement A
+   navisur.votredomaine.fr → IP du VPS
+
+ÉTAPE 2 — Connexion SSH + Installation
+----------------------------------------
+Depuis votre PC (Windows : utiliser PuTTY ou Windows Terminal) :
+
+  ssh root@VOTRE_IP_VPS
+
+Puis lancer le script d'installation automatique :
+
+  curl -sSL https://votre-serveur/setup_ionos.sh | bash -s navisur.votredomaine.fr
+
+OU copier setup_ionos.sh sur le serveur et exécuter :
+
+  bash setup_ionos.sh navisur.votredomaine.fr
+
+Le script installe automatiquement :
+  ✅ Python 3 + pip + virtualenv
+  ✅ gunicorn (serveur WSGI)
+  ✅ nginx (reverse proxy)
+  ✅ HTTPS Let's Encrypt (certificat gratuit auto-renouvelé)
+  ✅ Service systemd (redémarrage auto)
+
+ÉTAPE 3 — Copier les fichiers NAVISUR
+---------------------------------------
+Depuis votre PC Windows (avec WinSCP ou FileZilla SFTP) :
+
+  Copier TOUT le contenu du dossier projet NAVISUR vers :
+  /opt/navisur/
+
+  Structure attendue sur le serveur :
+  /opt/navisur/
+  ├── app.py
+  ├── core.py
+  ├── routes/        (15 fichiers .py)
+  ├── templates/     (tous les templates)
+  ├── static/        (css, js, img)
+  ├── data/
+  │   └── navisur.db  ← COPIER VOTRE BASE EXISTANTE
+  ├── config/
+  │   └── api_keys.json
+  └── logs/
+
+ÉTAPE 4 — Démarrer l'application
+----------------------------------
+  ssh root@VOTRE_IP_VPS
+  sudo systemctl restart navisur
+  sudo systemctl status navisur   (doit afficher "active (running)")
+
+ÉTAPE 5 — Vérifier
+--------------------
+  https://navisur.votredomaine.fr        → CRM (votre accès habituel)
+  https://navisur.votredomaine.fr/portail → Espace client
+
+GESTION QUOTIDIENNE :
+---------------------
+  Redémarrer :   sudo systemctl restart navisur
+  Voir les logs : sudo journalctl -u navisur -f
+  Sauvegardes :  /opt/navisur/backups/ (accessible via SFTP)
+
+ACCÈS SIMULTANÉS :
+------------------
+NAVISUR reste sur SQLite — adapté pour :
+  ✅ 1 courtier + jusqu'à ~50 clients connectés simultanément
+  ✅ Pas de gros volumes de données concurrentes
+
+Si l'activité augmente fortement, migration vers PostgreSQL possible.

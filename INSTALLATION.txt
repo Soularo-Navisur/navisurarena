@@ -1,0 +1,84 @@
+╔══════════════════════════════════════════════════════════════╗
+║              NAVISUR v9.8 — Guide d'installation            ║
+║              Riviera Marine Assurances                      ║
+╚══════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ OPTION 1 — INSTALLATION DEPUIS L'INSTALLATEUR (recommandé)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Double-cliquez sur Setup_NAVISUR_v98.exe
+2. Suivez l'assistant d'installation
+3. NAVISUR sera installé dans C:\NAVISUR par défaut
+4. Un raccourci sera créé sur votre Bureau
+5. À la fin, cliquez "Lancer NAVISUR" pour démarrer
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ OPTION 2 — UTILISATION PORTABLE (sans installation)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Copiez le dossier NAVISUR_v98\ où vous voulez
+2. Double-cliquez sur NAVISUR.exe
+   C'est tout.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PRÉREQUIS SYSTÈME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Windows 10 ou Windows 11 (64 bits)
+✅ Microsoft Edge WebView2 Runtime
+   → Normalement déjà installé sur Windows 10/11 depuis 2021
+   → Si absent : https://developer.microsoft.com/microsoft-edge/webview2/
+✅ 500 Mo d'espace disque
+✅ 4 Go de RAM minimum
+
+Aucune autre installation requise.
+Python est inclus dans NAVISUR.exe.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STRUCTURE DES FICHIERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+NAVISUR/
+├── NAVISUR.exe          ← Le logiciel. Double-clic = démarrage.
+├── _internal/           ← Dépendances (ne pas modifier)
+├── data/
+│   ├── navisur.db       ← Votre base de données (VOS DONNÉES)
+│   └── documents/       ← Vos documents uploadés
+├── config/
+│   ├── api_keys.json    ← Clés API (Pappers, Abstract, etc.)
+│   └── pays_cache.json  ← Cache pays et drapeaux
+├── logs/
+│   └── navisur.log      ← Journal des événements et erreurs
+├── backups/             ← Sauvegardes automatiques quotidiennes
+└── INSTALLATION.txt     ← Ce fichier
+
+⚠️  IMPORTANT : Sauvegardez régulièrement le dossier data/ !
+    C'est là que sont stockés tous vos clients et contrats.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ MISE À JOUR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Pour mettre à jour NAVISUR vers une version plus récente :
+1. Fermez NAVISUR s'il est ouvert
+2. Copiez les nouveaux fichiers fournis par-dessus les anciens
+   (sauf les dossiers data/, config/, logs/, backups/)
+3. Relancez NAVISUR
+
+Vos données sont toujours conservées dans data/.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ EN CAS DE PROBLÈME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Si NAVISUR ne démarre pas :
+1. Ouvrez le fichier logs\navisur.log avec le Bloc-notes
+2. Les dernières lignes indiquent la cause du problème
+
+Si le message "WebView2 non disponible" apparaît :
+→ Téléchargez le Runtime WebView2 :
+  https://developer.microsoft.com/microsoft-edge/webview2/
+→ Installez-le, puis relancez NAVISUR
+
+Contact : contact@rivieramarine-assurances.fr

@@ -1,0 +1,35 @@
+{
+  "pappers": {
+    "cle": "de2e47438d84efa1295f0e594260d007afea5df8c14f2b37",
+    "active": true,
+    "requetes_ce_mois": 0,
+    "dernier_reset": "auto"
+  },
+  "abstract_email": {
+    "cle": "1865469075ad42d4bf312af537442519",
+    "active": true,
+    "requetes_ce_mois": 0,
+    "dernier_reset": "auto"
+  },
+  "numverify": {
+    "cle": "145abf27f2c7aa9c20d3c28f5f8a919e",
+    "active": true,
+    "requetes_ce_mois": 0,
+    "dernier_reset": "auto"
+  },
+  "adresse_gouv": {
+    "active": true
+  },
+  "restcountries": {
+    "active": true,
+    "cache_date": null
+  },
+  "brevo": {
+    "cle": "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",
+    "active": true,
+    "expediteur_email": "contact@rivieramarine-assurances.fr",
+    "expediteur_nom": "Riviera Marine Assurances",
+    "envois_aujourd_hui": 0,
+    "envois_ce_mois": 0
+  }
+}

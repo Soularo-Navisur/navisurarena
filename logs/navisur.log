@@ -1,0 +1,440 @@
+2026-06-16 13:16:05 [WARNING] Admin créé : admin@navisur.local / admin123 — CHANGEZ LE MOT DE PASSE
+2026-06-16 13:16:05 [INFO] init_db() OK
+2026-06-16 13:16:05 [INFO] Admin login admin@navisur.local
+2026-06-16 13:16:10 [INFO] Contrat POL-2026-001 créé (client #1)
+2026-06-16 13:16:10 [INFO] Quittances 2026 créées contrat #1 — 1 × 1200.0€ (annuel/virement)
+2026-06-16 13:16:21 [INFO] init_db() OK
+2026-06-16 13:16:22 [INFO] Admin login admin@navisur.local
+2026-06-16 13:16:27 [INFO] Contrat POL-2026-001 créé (client #1)
+2026-06-16 13:16:27 [INFO] Quittances 2026 créées contrat #1 — 1 × 1200.0€ (annuel/virement)
+2026-06-16 13:16:27 [WARNING] 404 — /quittances-suivi/1/modifier
+2026-06-16 13:16:27 [WARNING] 404 — /quittances-suivi/1/imprimer
+2026-06-16 13:16:34 [INFO] init_db() OK
+2026-06-16 13:16:35 [INFO] Admin login admin@navisur.local
+2026-06-16 13:16:40 [INFO] Contrat POL-2026-001 créé (client #1)
+2026-06-16 13:16:40 [INFO] Quittances 2026 créées contrat #1 — 1 × 1200.0€ (annuel/virement)
+2026-06-16 13:16:40 [WARNING] 404 — /quittances-suivi/1/modifier
+2026-06-16 13:16:40 [WARNING] 404 — /quittances-suivi/1/imprimer
+2026-07-17 08:07:41 [INFO] init_db() OK
+2026-07-17 08:07:42 [INFO] PRAGMA integrity_check : ok
+2026-07-17 08:28:59 [INFO] init_db() OK
+2026-07-17 08:34:37 [INFO] init_db() OK
+2026-07-17 08:34:38 [INFO] init_db() OK
+2026-07-17 08:34:40 [INFO] init_db() OK
+2026-07-17 08:34:45 [INFO] init_db() OK
+2026-07-17 08:34:48 [INFO] init_db() OK
+2026-07-17 08:34:54 [INFO] init_db() OK
+2026-07-17 08:34:59 [INFO] init_db() OK
+2026-07-17 08:35:00 [INFO] init_db() OK
+2026-07-17 08:35:02 [INFO] init_db() OK
+2026-07-17 08:35:06 [INFO] init_db() OK
+2026-07-17 08:35:15 [INFO] init_db() OK
+2026-07-17 08:35:15 [INFO] Admin login admin@navisur.local
+2026-07-17 08:35:20 [INFO] Contrat POL-2026-004 créé (client #4)
+2026-07-17 08:35:20 [WARNING] 404 — /contrats/4/quittances/creer
+2026-07-17 08:35:28 [INFO] init_db() OK
+2026-07-17 08:35:28 [INFO] Admin login admin@navisur.local
+2026-07-17 08:35:33 [INFO] Contrat POL-2026-005 créé (client #5)
+2026-07-17 08:35:33 [INFO] Quittances 2026 créées contrat #5 — 1 × 1500.0€ (annuel/prelevement)
+2026-07-17 08:38:16 [INFO] init_db() OK
+2026-07-17 08:38:19 [INFO] init_db() OK
+2026-07-17 08:38:19 [INFO] Admin login admin@navisur.local
+2026-07-17 08:38:19 [ERROR] Exception non gérée [/contrats/1/attestation-capitainerie] : block 'doc_type' defined twice
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/Navisur/routes/contrats_ops.py", line 544, in attestation_capitainerie
+    return render_template('contrats/attestation_capitainerie.html', contrat=contrat, params=params, today=date.today().strftime('%d/%m/%Y'))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/contrats/attestation_capitainerie.html", line 1, in top-level template code
+    {% extends 'print/print_base.html' %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/print/print_base.html", line 34, in template
+    <div class="doc-type">{% block doc_type %}Document{% endblock %}</div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.TemplateAssertionError: block 'doc_type' defined twice
+2026-07-17 08:38:19 [ERROR] Exception non gérée [/contrats/1/attestation-non-sinistralite] : block 'doc_type' defined twice
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/Navisur/routes/contrats_ops.py", line 566, in attestation_non_sinistralite
+    return render_template('contrats/attestation_non_sinistralite.html',
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/contrats/attestation_non_sinistralite.html", line 1, in top-level template code
+    {% extends 'print/print_base.html' %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/print/print_base.html", line 34, in template
+    <div class="doc-type">{% block doc_type %}Document{% endblock %}</div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.TemplateAssertionError: block 'doc_type' defined twice
+2026-07-17 08:38:21 [INFO] init_db() OK
+2026-07-17 08:38:22 [INFO] Admin login admin@navisur.local
+2026-07-17 08:38:22 [ERROR] Exception non gérée [/contrats/1/attestation-capitainerie] : block 'doc_type' defined twice
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/Navisur/routes/contrats_ops.py", line 544, in attestation_capitainerie
+    return render_template('contrats/attestation_capitainerie.html', contrat=contrat, params=params, today=date.today().strftime('%d/%m/%Y'))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/contrats/attestation_capitainerie.html", line 1, in top-level template code
+    {% extends 'print/print_base.html' %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/print/print_base.html", line 34, in template
+    <div class="doc-type">{% block doc_type %}Document{% endblock %}</div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.TemplateAssertionError: block 'doc_type' defined twice
+2026-07-17 08:38:24 [INFO] init_db() OK
+2026-07-17 08:38:26 [INFO] init_db() OK
+2026-07-17 08:38:26 [INFO] Admin login admin@navisur.local
+2026-07-17 08:38:26 [ERROR] Exception non gérée [/contrats/1/attestation-capitainerie] : block 'doc_type' defined twice
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/Navisur/routes/contrats_ops.py", line 544, in attestation_capitainerie
+    return render_template('contrats/attestation_capitainerie.html', contrat=contrat, params=params, today=date.today().strftime('%d/%m/%Y'))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/contrats/attestation_capitainerie.html", line 1, in top-level template code
+    {% extends 'print/print_base.html' %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/print/print_base.html", line 34, in template
+    <div class="doc-type">{% block doc_type %}Document{% endblock %}</div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.TemplateAssertionError: block 'doc_type' defined twice
+2026-07-17 08:38:28 [INFO] init_db() OK
+2026-07-17 08:38:28 [INFO] Admin login admin@navisur.local
+2026-07-17 08:38:29 [ERROR] Exception non gérée [/contrats/1/attestation-capitainerie] : block 'doc_type' defined twice
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/Navisur/routes/contrats_ops.py", line 544, in attestation_capitainerie
+    return render_template('contrats/attestation_capitainerie.html', contrat=contrat, params=params, today=date.today().strftime('%d/%m/%Y'))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/contrats/attestation_capitainerie.html", line 1, in top-level template code
+    {% extends 'print/print_base.html' %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/print/print_base.html", line 34, in template
+    <div class="doc-type">{% block doc_type %}Document{% endblock %}</div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.TemplateAssertionError: block 'doc_type' defined twice
+2026-07-17 08:38:41 [INFO] init_db() OK
+2026-07-17 08:38:41 [INFO] Admin login admin@navisur.local
+2026-07-17 08:38:41 [ERROR] Exception non gérée [/contrats/1/attestation-capitainerie] : block 'doc_type' defined twice
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/Navisur/routes/contrats_ops.py", line 544, in attestation_capitainerie
+    return render_template('contrats/attestation_capitainerie.html', contrat=contrat, params=params, today=date.today().strftime('%d/%m/%Y'))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/contrats/attestation_capitainerie.html", line 1, in top-level template code
+    {% extends 'print/print_base.html' %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/print/print_base.html", line 34, in template
+    <div class="doc-type">{% block doc_type %}Document{% endblock %}</div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.TemplateAssertionError: block 'doc_type' defined twice
+2026-07-17 08:38:41 [ERROR] Exception non gérée [/contrats/1/attestation-non-sinistralite] : block 'doc_type' defined twice
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/Navisur/routes/contrats_ops.py", line 566, in attestation_non_sinistralite
+    return render_template('contrats/attestation_non_sinistralite.html',
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/contrats/attestation_non_sinistralite.html", line 1, in top-level template code
+    {% extends 'print/print_base.html' %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/print/print_base.html", line 34, in template
+    <div class="doc-type">{% block doc_type %}Document{% endblock %}</div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.TemplateAssertionError: block 'doc_type' defined twice
+2026-07-17 08:38:43 [INFO] init_db() OK
+2026-07-17 08:38:45 [INFO] init_db() OK
+2026-07-17 08:38:45 [INFO] Admin login admin@navisur.local
+2026-07-17 08:38:45 [ERROR] Exception non gérée [/contrats/4/attestation-capitainerie] : block 'doc_type' defined twice
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/Navisur/routes/contrats_ops.py", line 544, in attestation_capitainerie
+    return render_template('contrats/attestation_capitainerie.html', contrat=contrat, params=params, today=date.today().strftime('%d/%m/%Y'))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/contrats/attestation_capitainerie.html", line 1, in top-level template code
+    {% extends 'print/print_base.html' %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/print/print_base.html", line 34, in template
+    <div class="doc-type">{% block doc_type %}Document{% endblock %}</div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.TemplateAssertionError: block 'doc_type' defined twice
+2026-07-17 08:38:45 [ERROR] Exception non gérée [/contrats/4/attestation-non-sinistralite] : block 'doc_type' defined twice
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/Navisur/routes/contrats_ops.py", line 566, in attestation_non_sinistralite
+    return render_template('contrats/attestation_non_sinistralite.html',
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 151, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/flask/templating.py", line 132, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/contrats/attestation_non_sinistralite.html", line 1, in top-level template code
+    {% extends 'print/print_base.html' %}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/user/Navisur/templates/print/print_base.html", line 34, in template
+    <div class="doc-type">{% block doc_type %}Document{% endblock %}</div>
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.TemplateAssertionError: block 'doc_type' defined twice
+2026-07-17 08:38:52 [INFO] init_db() OK
+2026-07-17 08:38:52 [INFO] Admin login admin@navisur.local
+2026-07-17 08:46:34 [INFO] init_db() OK
+2026-07-17 09:50:19 [INFO] init_db() OK
+2026-07-17 18:05:01 [INFO] init_db() OK
+2026-07-17 18:05:02 [INFO] Admin login admin@navisur.local
+2026-07-20 13:42:34 [INFO] init_db() OK
+2026-07-20 13:42:34 [INFO] Admin login admin@navisur.local
+2026-07-20 13:42:45 [INFO] init_db() OK
+2026-07-20 13:42:47 [INFO] init_db() OK
+2026-07-20 14:17:59 [INFO] init_db() OK
+2026-07-20 14:17:59 [INFO] PRAGMA integrity_check : ok
+2026-07-20 14:17:59 [INFO] Admin login admin@navisur.local
+2026-07-20 14:18:00 [INFO] Admin login admin@navisur.local
+2026-07-20 14:18:00 [INFO] Admin login admin@navisur.local
+2026-07-20 14:19:31 [INFO] init_db() OK
+2026-07-20 14:19:31 [INFO] PRAGMA integrity_check : ok
+2026-07-20 14:19:32 [INFO] Admin login admin@navisur.local
+2026-07-20 14:19:32 [INFO] Admin login admin@navisur.local
+2026-07-20 14:19:33 [INFO] Admin login admin@navisur.local
+2026-07-20 14:42:00 [INFO] init_db() OK
+2026-07-20 14:42:00 [INFO] PRAGMA integrity_check : ok
+2026-07-20 14:42:00 [INFO] Admin login admin@navisur.local
+2026-07-20 14:42:01 [INFO] Admin login admin@navisur.local
+2026-07-20 14:42:01 [INFO] Admin login admin@navisur.local
+2026-07-20 17:11:43 [INFO] init_db() OK
+2026-07-20 17:11:43 [INFO] PRAGMA integrity_check : ok
+2026-07-20 17:11:43 [INFO] Admin login admin@navisur.local
+2026-07-20 17:11:44 [INFO] Admin login admin@navisur.local
+2026-07-20 17:11:44 [INFO] Admin login admin@navisur.local
+2026-07-20 17:39:22 [INFO] init_db() OK
+2026-07-20 17:39:22 [INFO] PRAGMA integrity_check : ok
+2026-07-20 17:39:22 [INFO] Admin login admin@navisur.local
+2026-07-20 17:39:22 [INFO] Admin login admin@navisur.local
+2026-07-20 17:39:23 [INFO] Admin login admin@navisur.local
+2026-07-20 18:24:36 [INFO] init_db() OK
+2026-07-20 18:24:36 [INFO] PRAGMA integrity_check : ok
+2026-07-20 18:24:37 [INFO] Admin login admin@navisur.local
+2026-07-20 18:24:37 [INFO] Admin login admin@navisur.local
+2026-07-20 18:24:37 [INFO] Admin login admin@navisur.local
+2026-07-20 19:55:45 [INFO] init_db() OK
+2026-07-20 19:55:45 [INFO] PRAGMA integrity_check : ok
+2026-07-20 19:55:45 [INFO] Admin login admin@navisur.local
+2026-07-20 19:55:46 [INFO] Admin login admin@navisur.local
+2026-07-20 19:55:46 [INFO] Admin login admin@navisur.local
+2026-07-20 19:56:10 [INFO] init_db() OK
+2026-07-20 19:56:10 [INFO] PRAGMA integrity_check : ok
+2026-07-20 19:56:10 [INFO] Admin login admin@navisur.local
+2026-07-20 19:56:11 [INFO] Admin login admin@navisur.local
+2026-07-20 19:56:11 [INFO] Admin login admin@navisur.local
+2026-07-20 20:11:41 [INFO] init_db() OK
+2026-07-20 20:11:41 [INFO] PRAGMA integrity_check : ok
+2026-07-20 20:11:42 [INFO] Admin login admin@navisur.local
+2026-07-20 20:11:42 [INFO] Admin login admin@navisur.local
+2026-07-20 20:11:42 [INFO] Admin login admin@navisur.local
+2026-07-20 20:16:28 [INFO] init_db() OK
+2026-07-20 20:16:28 [INFO] PRAGMA integrity_check : ok
+2026-07-20 20:16:28 [INFO] Admin login admin@navisur.local
+2026-07-20 20:16:28 [INFO] Admin login admin@navisur.local
+2026-07-20 20:16:29 [INFO] Admin login admin@navisur.local
+2026-07-20 20:21:05 [INFO] init_db() OK
+2026-07-20 20:21:05 [INFO] PRAGMA integrity_check : ok
+2026-07-20 20:21:05 [INFO] Admin login admin@navisur.local
+2026-07-20 20:21:05 [INFO] Admin login admin@navisur.local
+2026-07-20 20:21:06 [INFO] Admin login admin@navisur.local
+2026-07-20 20:22:54 [INFO] init_db() OK
+2026-07-20 20:22:54 [INFO] PRAGMA integrity_check : ok
+2026-07-20 20:22:54 [INFO] Admin login admin@navisur.local
+2026-07-20 20:22:55 [INFO] Admin login admin@navisur.local
+2026-07-20 20:22:55 [INFO] Admin login admin@navisur.local
+2026-07-20 20:28:34 [INFO] init_db() OK
+2026-07-20 20:28:34 [INFO] PRAGMA integrity_check : ok
+2026-07-20 20:28:34 [INFO] Admin login admin@navisur.local
+2026-07-20 20:28:34 [INFO] Admin login admin@navisur.local
+2026-07-20 20:28:35 [INFO] Admin login admin@navisur.local
+2026-07-21 07:54:57 [INFO] init_db() OK
+2026-07-21 07:54:57 [INFO] PRAGMA integrity_check : ok
+2026-07-21 07:54:58 [INFO] Admin login admin@navisur.local
+2026-07-21 07:54:58 [INFO] Admin login admin@navisur.local
+2026-07-21 07:54:58 [INFO] Admin login admin@navisur.local
+2026-07-21 08:04:27 [INFO] init_db() OK
+2026-07-21 08:04:27 [INFO] PRAGMA integrity_check : ok
+2026-07-21 08:04:27 [INFO] Admin login admin@navisur.local
+2026-07-21 08:04:28 [INFO] Admin login admin@navisur.local
+2026-07-21 08:04:28 [INFO] Admin login admin@navisur.local
+2026-07-21 13:38:56 [INFO] init_db() OK
+2026-07-21 13:38:56 [INFO] PRAGMA integrity_check : ok
+2026-07-21 13:38:56 [INFO] Admin login admin@navisur.local
+2026-07-21 13:38:56 [INFO] Admin login admin@navisur.local
+2026-07-21 13:38:57 [INFO] Admin login admin@navisur.local
