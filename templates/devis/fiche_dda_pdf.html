@@ -1,50 +1,217 @@
 {% extends 'print/print_base.html' %}
-{% block doc_title %}FICHE D'INFORMATION ET DE CONSEIL (DDA){% endblock %}
-{% block doc_type %}FICHE D'INFORMATION ET DE CONSEIL (DDA){% endblock %}
-{% block doc_ref %}Devis N° : {{ devis.id }}{% endblock %}
+{% block doc_title %}Fiche d'Information et de Conseil — DDA{% endblock %}
+{% block doc_type %}FICHE D'INFORMATION<br>ET DE CONSEIL (DDA){% endblock %}
+{% block doc_ref %}Devis n° {{ devis.id }} — {{ devis.date_devis }}{% endblock %}
 
 {% block content %}
-<div class="doc-section">
-  <h3>1. Identification de l'Intermédiaire (Cabinet de Courtage)</h3>
-  <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:15px; border-radius:8px; margin-bottom:20px;">
-    <p style="margin-bottom:5px;"><strong>Cabinet :</strong> {{ params.get('cabinet_nom', '—') }}</p>
-    <p style="margin-bottom:5px;"><strong>Adresse :</strong> {{ params.get('cabinet_adresse', '—') }}, {{ params.get('cabinet_cp', '') }} {{ params.get('cabinet_ville', '') }}</p>
-    <p style="margin-bottom:5px;"><strong>Immatriculation ORIAS :</strong> {{ params.get('cabinet_orias', '—') }} (www.orias.fr)</p>
-    <p style="margin-bottom:0;"><strong>Contact :</strong> Tél : {{ params.get('cabinet_telephone', '—') }} · Email : {{ params.get('cabinet_email', '—') }}</p>
-  </div>
 
-  <h3>2. Identification du Client / Prospect</h3>
-  <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:15px; border-radius:8px; margin-bottom:20px;">
-    <p style="margin-bottom:5px;"><strong>Nom / Prénom :</strong> {{ client.prenom or '' }} {{ client.nom }}</p>
-    <p style="margin-bottom:0;"><strong>Adresse :</strong> {{ client.adresse or '—' }}, {{ client.code_postal or '' }} {{ client.ville or '' }}</p>
-  </div>
-
-  <h3>3. Proposition d'Assurance (Devis)</h3>
-  <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:15px; border-radius:8px; margin-bottom:20px;">
-    <p style="margin-bottom:5px;"><strong>Compagnie proposée :</strong> {{ devis.compagnie }}</p>
-    <p style="margin-bottom:5px;"><strong>Type d'assurance :</strong> {{ devis.type_assurance }}</p>
-    <p style="margin-bottom:5px;"><strong>Prime annuelle TTC :</strong> <strong>{{ "{:,.2f}".format(devis.prime_proposee or 0) }} € / an</strong></p>
-    <p style="margin-bottom:0;"><strong>Franchise :</strong> {{ "{:,.2f}".format(devis.franchise_proposee or 0) }} €</p>
-  </div>
-
-  <h3>4. Devoir de Conseil &amp; Adéquation (DDA)</h3>
-  <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:15px; border-radius:8px; margin-bottom:20px;">
-    <p style="margin-bottom:0; white-space:pre-line;">{{ devis.note_conseil or 'Aucun argumentaire de conseil renseigné.' }}</p>
-  </div>
-
-  <p style="font-size:11px; color:#64748b; margin-top:20px;">
-    Conformément à la Directive sur la Distribution d'Assurances (DDA), la présente fiche récapitule les besoins exprimés par le client et l'adéquation du produit proposé par le cabinet de courtage.
-  </p>
+<!-- BANDEAU REGLEMENTAIRE -->
+<div style="margin-top:6px; margin-bottom:22px; padding:8px 14px; background:#f0f4ff; border-left:4px solid #1a2e5a; border-radius:0 6px 6px 0; font-size:10.5px; color:#1e40af; line-height:1.5;">
+  <strong>Document reglementaire</strong> — Etabli conformement a la Directive (UE) 2016/97 sur la Distribution d'Assurances (DDA),
+  transposee aux articles L.521-1 et suivants du Code des assurances.
 </div>
 
-<div style="margin-top:40px; display:flex; justify-content:space-between;">
-  <div style="text-align:center; width:220px; border:1px solid #cbd5e1; padding:15px; border-radius:8px;">
-    <p style="font-weight:700; margin-bottom:30px;">Signature du Cabinet</p>
-    <p style="font-size:11px; color:#64748b;">Cachet &amp; Signature</p>
-  </div>
-  <div style="text-align:center; width:220px; border:1px solid #cbd5e1; padding:15px; border-radius:8px;">
-    <p style="font-weight:700; margin-bottom:30px;">Signature du Client</p>
-    <p style="font-size:11px; color:#64748b;">"Lu et approuvé"</p>
+<!-- 1. CABINET -->
+<div class="dd-sec">
+  <div class="dd-num">1</div>
+  <div class="dd-body">
+    <h3 class="dd-h3">Identification du Cabinet de Courtage</h3>
+    <table class="dd-table">
+      <tr>
+        <td class="dd-lbl">Raison sociale</td>
+        <td class="dd-val">{{ params.get('cabinet_nom', params.get('nom_cabinet', '—')) }}</td>
+        <td class="dd-lbl">ORIAS</td>
+        <td class="dd-val mono bold">{{ params.get('cabinet_orias', '—') }}</td>
+      </tr>
+      <tr>
+        <td class="dd-lbl">Adresse</td>
+        <td class="dd-val">{{ params.get('cabinet_adresse', '—') }}{% if params.get('cabinet_cp') %} — {{ params.get('cabinet_cp') }} {{ params.get('cabinet_ville', '') }}{% endif %}</td>
+        <td class="dd-lbl">SIREN</td>
+        <td class="dd-val mono">{{ params.get('cabinet_siren', '—') }}</td>
+      </tr>
+      <tr>
+        <td class="dd-lbl">Telephone</td>
+        <td class="dd-val">{{ params.get('cabinet_telephone', '—') }}</td>
+        <td class="dd-lbl">Email</td>
+        <td class="dd-val">{{ params.get('cabinet_email', '—') }}</td>
+      </tr>
+    </table>
+    <div class="dd-orias">Courtier d'assurance immatricule a l'ORIAS sous le n° <strong>{{ params.get('cabinet_orias', '—') }}</strong>, consultable sur <strong>www.orias.fr</strong>. Garantie financiere et RC Professionnelle conformes aux articles L.512-6 et L.512-7 du Code des assurances.</div>
   </div>
 </div>
+
+<!-- 2. CLIENT -->
+<div class="dd-sec">
+  <div class="dd-num">2</div>
+  <div class="dd-body">
+    <h3 class="dd-h3">Identification du Souscripteur</h3>
+    <table class="dd-table">
+      <tr>
+        <td class="dd-lbl">Nom / Prenom</td>
+        <td class="dd-val large">{{ client.civilite or '' }} {{ client.prenom or '' }} {{ client.nom }}</td>
+        <td class="dd-lbl">Qualite</td>
+        <td class="dd-val">{{ client.type|replace('particulier','Particulier')|replace('professionnel','Professionnel') if client.type else 'Particulier' }}</td>
+      </tr>
+      <tr>
+        <td class="dd-lbl">Adresse</td>
+        <td class="dd-val" colspan="3">{{ client.adresse or '—' }}{% if client.code_postal %} — {{ client.code_postal }} {{ client.ville or '' }}{% elif client.ville %} — {{ client.ville }}{% endif %}</td>
+      </tr>
+      {% if client.email or client.telephone %}
+      <tr>
+        <td class="dd-lbl">Contact</td>
+        <td class="dd-val" colspan="3">{% if client.email %}✉ {{ client.email }}{% endif %}{% if client.email and client.telephone %} · {% endif %}{% if client.telephone %}✆ {{ client.telephone }}{% endif %}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+</div>
+
+<!-- 3. BESOINS -->
+<div class="dd-sec">
+  <div class="dd-num">3</div>
+  <div class="dd-body">
+    <h3 class="dd-h3">Expression des Besoins</h3>
+    <table class="dd-table">
+      <tr>
+        <td class="dd-lbl">Objet de la demande</td>
+        <td class="dd-val" colspan="3">{{ devis.type_assurance or 'Assurance plaisance' }}</td>
+      </tr>
+    </table>
+    <p class="dd-italic">Le souscripteur a sollicite le cabinet afin d'obtenir une proposition d'assurance. Apres analyse de sa situation et de ses besoins, le cabinet propose la solution detaillee ci-dessous.</p>
+  </div>
+</div>
+
+<!-- 4. PROPOSITION -->
+<div class="dd-sec">
+  <div class="dd-num">4</div>
+  <div class="dd-body">
+    <h3 class="dd-h3">Proposition d'Assurance Conseillee</h3>
+    <table class="dd-table">
+      <tr>
+        <td class="dd-lbl">Compagnie</td>
+        <td class="dd-val bold">{{ devis.compagnie }}</td>
+        <td class="dd-lbl">Type d'assurance</td>
+        <td class="dd-val">{{ devis.type_assurance }}</td>
+      </tr>
+    </table>
+
+    <!-- Bloc financier -->
+    <div class="dd-prime-row">
+      <div class="dd-prime-col">
+        <span class="dd-prime-lbl">Prime annuelle TTC</span>
+        <span class="dd-prime-num">{{ "{:,.2f}".format(devis.prime_proposee or 0)|replace(',',' ') }} €</span>
+        <span class="dd-prime-sub">par an</span>
+      </div>
+      {% if devis.franchise_proposee and devis.franchise_proposee > 0 %}
+      <div class="dd-prime-sep"></div>
+      <div class="dd-prime-col">
+        <span class="dd-prime-lbl">Franchise</span>
+        <span class="dd-prime-num">{{ "{:,.0f}".format(devis.franchise_proposee)|replace(',',' ') }} €</span>
+        <span class="dd-prime-sub">par sinistre</span>
+      </div>
+      {% endif %}
+      <div class="dd-prime-sep"></div>
+      <div class="dd-prime-col">
+        <span class="dd-prime-lbl">Validite de l'offre</span>
+        <span class="dd-prime-num">{{ devis.validite_jours or 30 }} jours</span>
+        <span class="dd-prime-sub">a compter du {{ devis.date_envoi_client or devis.date_devis }}</span>
+      </div>
+    </div>
+
+    {% if devis.garanties %}
+    <div class="dd-garanties">
+      <strong>Garanties incluses :</strong><br>
+      {% for g in (devis.garanties or '').replace(',', '\n').split('\n') %}
+        {% if g.strip() %}<span class="dd-tag">✓ {{ g.strip() }}</span>{% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- 5. DEVOIR DE CONSEIL -->
+<div class="dd-sec">
+  <div class="dd-num">5</div>
+  <div class="dd-body">
+    <h3 class="dd-h3">Devoir de Conseil — Justification de l'Adequation</h3>
+
+    <div class="dd-conseil">
+      <div class="dd-conseil-icon">💡</div>
+      <div class="dd-conseil-txt">
+        <div class="dd-conseil-title">Analyse et recommandation du courtier</div>
+        <div class="dd-conseil-body">{{ devis.note_conseil or 'Aucun argumentaire de conseil renseigne.' }}</div>
+      </div>
+    </div>
+
+    <p class="dd-attestation">Le cabinet atteste avoir recueilli les besoins du souscripteur, analyse sa situation personnelle et financiere, et propose un contrat en adequation avec les exigences et besoins exprimes, conformement a la Directive Distribution d'Assurances (DDA).</p>
+  </div>
+</div>
+
+<!-- SIGNATURES -->
+<div class="dd-sig-row">
+  <div class="dd-sig-box">
+    <div class="dd-sig-title">Le Courtier</div>
+    <div class="dd-sig-name">{{ params.get('cabinet_nom', params.get('nom_cabinet', 'Riviera Marine Assurances')) }}</div>
+    <div class="dd-sig-orias">ORIAS {{ params.get('cabinet_orias', '—') }}</div>
+    <div class="dd-sig-date">Fait le {{ today }}</div>
+    <div class="dd-sig-line"></div>
+    <div class="dd-sig-lbl">Signature et cachet du cabinet</div>
+  </div>
+  <div class="dd-sig-box">
+    <div class="dd-sig-title">Le Souscripteur</div>
+    <div class="dd-sig-name">{{ client.civilite or '' }} {{ client.prenom or '' }} {{ client.nom }}</div>
+    <div class="dd-sig-date">Fait le ____ / ____ / ________</div>
+    <div class="dd-sig-line"></div>
+    <div class="dd-sig-lbl">« Lu et approuve — Bon pour accord »<br>Signature precedee de la mention manuscrite</div>
+  </div>
+</div>
+
+<!-- MENTIONS LEGALES -->
+<div class="dd-legal">
+  <p><strong>Rappel des obligations legales :</strong> Le souscripteur est tenu de repondre avec exactitude aux questions posees par l'assureur dans le formulaire de declaration du risque (art. L.113-2 C. assur.). Toute reticence ou fausse declaration intentionnelle entraine la nullite du contrat (art. L.113-8).</p>
+  <p style="margin-top:6px;">Document etabli en deux exemplaires. Le present document ne constitue pas un contrat d'assurance. Seule la police signee fait foi. Conformement au RGPD, les donnees personnelles sont traitees par le cabinet et ne sont pas transmises a des tiers sans consentement.</p>
+  <p style="margin-top:6px;">{{ params.get('cabinet_nom', params.get('nom_cabinet', 'Riviera Marine Assurances')) }} · ORIAS {{ params.get('cabinet_orias', '—') }} · {{ params.get('cabinet_adresse', '') }} · {{ today }}</p>
+</div>
+
+<style>
+  .dd-sec { display:flex; gap:16px; margin-bottom:18px; page-break-inside:avoid; align-items:flex-start; }
+  .dd-num { width:26px; height:26px; background:#1a2e5a; color:#c9a84c; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex-shrink:0; margin-top:1px; }
+  .dd-body { flex:1; min-width:0; }
+  .dd-h3 { margin:0 0 8px 0; font-size:13px; font-weight:700; color:#1a2e5a; border-bottom:1px solid #e2e8f0; padding-bottom:5px; }
+  .dd-table { width:100%; border-collapse:collapse; margin-bottom:6px; }
+  .dd-table td { padding:4px 0; vertical-align:top; }
+  .dd-lbl { width:16%; font-size:10px; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:.03em; padding-right:6px; }
+  .dd-val { width:34%; font-size:11.5px; color:#1e293b; padding-right:12px; }
+  .dd-val.large { font-size:13px; }
+  .dd-val.mono { font-family:'Courier New',monospace; }
+  .dd-val.bold { font-weight:700; }
+  .dd-orias { font-size:9.5px; color:#64748b; border-top:1px solid #e2e8f0; padding-top:7px; margin-top:6px; line-height:1.5; }
+  .dd-italic { font-size:11px; color:#475569; line-height:1.5; margin-top:3px; font-style:italic; }
+  .dd-prime-row { display:flex; justify-content:center; background:#1a2e5a; border-radius:10px; padding:14px 20px; margin:10px 0 14px; color:white; }
+  .dd-prime-col { text-align:center; flex:1; padding:0 12px; }
+  .dd-prime-sep { width:1px; background:rgba(255,255,255,.2); }
+  .dd-prime-lbl { display:block; font-size:9px; text-transform:uppercase; letter-spacing:.06em; color:#c9a84c; margin-bottom:3px; }
+  .dd-prime-num { display:block; font-size:20px; font-weight:800; color:white; }
+  .dd-prime-sub { display:block; font-size:9.5px; color:rgba(255,255,255,.45); margin-top:1px; }
+  .dd-garanties { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px; margin-bottom:2px; font-size:11px; color:#475569; line-height:1.6; }
+  .dd-tag { display:inline-block; background:#f0fdf4; color:#166534; padding:1px 9px; border-radius:10px; font-size:10.5px; margin:2px 3px 2px 0; border:1px solid #bbf7d0; }
+  .dd-conseil { display:flex; gap:12px; background:#fef9c3; border-left:4px solid #c9a84c; border-radius:0 8px 8px 0; padding:14px 18px; margin-bottom:8px; align-items:flex-start; }
+  .dd-conseil-icon { font-size:20px; flex-shrink:0; margin-top:1px; }
+  .dd-conseil-title { font-weight:700; font-size:11px; color:#92400e; text-transform:uppercase; letter-spacing:.04em; margin-bottom:5px; }
+  .dd-conseil-body { font-size:12px; color:#1e293b; line-height:1.7; white-space:pre-line; }
+  .dd-attestation { font-size:10px; color:#64748b; line-height:1.5; border-top:1px solid #e2e8f0; padding-top:8px; margin-top:2px; }
+  .dd-sig-row { display:flex; justify-content:space-between; gap:36px; margin-top:36px; page-break-inside:avoid; }
+  .dd-sig-box { flex:1; text-align:center; padding:18px 20px 14px; border:1px solid #cbd5e1; border-radius:10px; }
+  .dd-sig-title { font-weight:700; font-size:13px; color:#1a2e5a; margin-bottom:5px; }
+  .dd-sig-name { font-size:11.5px; color:#1e293b; margin-bottom:3px; }
+  .dd-sig-orias { font-size:10px; color:#64748b; font-family:'Courier New',monospace; }
+  .dd-sig-date { font-size:10.5px; color:#64748b; margin:7px 0; }
+  .dd-sig-line { height:1px; background:#cbd5e1; margin:28px 18px 8px; }
+  .dd-sig-lbl { font-size:9.5px; color:#94a3b8; line-height:1.4; }
+  .dd-legal { margin-top:28px; padding-top:10px; border-top:1px solid #e2e8f0; font-size:9px; color:#94a3b8; line-height:1.5; text-align:justify; }
+  @media print {
+    .dd-prime-row, .dd-num { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .dd-orias, .dd-attestation, .dd-legal { color:#666 !important; }
+  }
+</style>
 {% endblock %}
